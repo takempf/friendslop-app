@@ -27,23 +27,35 @@ export class AudioManager {
   private gainRoom: GainNode | null = null;
   private dryGain: GainNode | null = null;
 
-  // Analysers
   private analyserMic: AnalyserNode | null = null;
   private analyserOut: AnalyserNode | null = null;
   private micDataArray: Uint8Array | null = null;
   private outDataArray: Uint8Array | null = null;
+  private micSource: MediaStreamAudioSourceNode | null = null;
+  private micGain: GainNode | null = null;
+  private localStream: MediaStream | null = null;
 
   // Remote player audio graph: clientId -> nodes
   private remotePeers = new Map<number, {
     source: MediaStreamAudioSourceNode;
     panner: PannerNode;
     filter: BiquadFilterNode;
+    analyser: AnalyserNode;
+    dataArray: Uint8Array;
     audioEl: HTMLAudioElement; // Fix for Chrome bug 933677
   }>();
 
   public async init() {
-    if (this.ctx) return;
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') {
+        await this.ctx.resume();
+      }
+      return;
+    }
     this.ctx = new AudioContext();
+    if (this.ctx.state === 'suspended') {
+      await this.ctx.resume();
+    }
 
     this.analyserOut = this.ctx.createAnalyser();
     this.analyserOut.fftSize = 256;
@@ -74,25 +86,109 @@ export class AudioManager {
     this.setRoom('gym');
   }
 
-  public async getLocalStream(): Promise<MediaStream> {
+  public async getLocalStream(deviceId?: string): Promise<MediaStream> {
     // Requirements: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: false,
         noiseSuppression: false,
-        autoGainControl: false
+        autoGainControl: true,
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {})
       }
     });
 
+    this.localStream = stream;
+
     if (this.ctx) {
-      const micSource = this.ctx.createMediaStreamSource(stream);
+      if (this.ctx.state === 'suspended') {
+        await this.ctx.resume();
+      }
+      this.micSource = this.ctx.createMediaStreamSource(stream);
+      
+      // Manual "Automatic Gain Control" (AGC) circuit
+      this.micGain = this.ctx.createGain();
+      this.micGain.gain.value = 5.0; // Boost raw mic input by 5x (very helpful on quiet Macs)
+      
+      const compressor = this.ctx.createDynamicsCompressor();
+      // Web Audio applies default compression (threshold: -24, ratio: 12) which acts cleanly as a limiter
+      
+      this.micSource.connect(this.micGain);
+      this.micGain.connect(compressor);
+
       this.analyserMic = this.ctx.createAnalyser();
       this.analyserMic.fftSize = 256;
       this.micDataArray = new Uint8Array(this.analyserMic.frequencyBinCount);
-      micSource.connect(this.analyserMic);
+      
+      // Connect compressor to local analyser meter
+      compressor.connect(this.analyserMic);
+
+      // Connect compressor to WebRTC outgoing destination stream!
+      const destination = this.ctx.createMediaStreamDestination();
+      compressor.connect(destination);
+
+      return destination.stream; // Return the processed, loud stream to GameSyncProvider!
     }
 
     return stream;
+  }
+
+  public async enumerateDevices() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      return [];
+    }
+    // Attempting to ask for permission so device labels are not blank, if not already granted.
+    try {
+      if (!this.localStream) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop()); // close immediately, just unlocking permissions
+      }
+    } catch {
+      // User blocked or no mic available
+    }
+    return await navigator.mediaDevices.enumerateDevices();
+  }
+
+  public async setInputDevice(deviceId: string) {
+    if (!this.ctx || !this.micGain) return;
+    
+    // Stop old tracks (turns off old hardware recording light)
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(t => t.stop());
+    }
+
+    // Get new stream
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: true,
+        deviceId: { exact: deviceId }
+      }
+    });
+    this.localStream = stream;
+
+    // Disconnect old source entirely
+    if (this.micSource) {
+      this.micSource.disconnect();
+    }
+
+    // Connect new source to the existing GainNode
+    // This allows WebRTC peers to seamlessly hear the new mic without reconnecting!
+    this.micSource = this.ctx.createMediaStreamSource(stream);
+    this.micSource.connect(this.micGain);
+  }
+
+  public async setOutputDevice(deviceId: string) {
+    if (!this.ctx) return;
+    
+    // Route Spatial Audio context to chosen speaker (standard in modern browsers)
+    // @ts-expect-error - setSinkId might not be correctly typed in standard DOM lib yet
+    if (typeof this.ctx.setSinkId === 'function') {
+      // @ts-expect-error - setSinkId is relatively new and often missing from standard DOM types
+      await this.ctx.setSinkId(deviceId);
+    } else {
+      console.warn("AudioContext.setSinkId not supported in this browser. Output routing is unavailable.");
+    }
   }
 
   public getVolumes() {
@@ -147,6 +243,25 @@ export class AudioManager {
     return this.remotePeers.size;
   }
 
+  public getPeerVolumes(): Record<number, number> {
+    const volumes: Record<number, number> = {};
+    for (const [clientId, peer] of this.remotePeers.entries()) {
+      if (peer.analyser && peer.dataArray) {
+        // @ts-expect-error TS library mismatch
+        peer.analyser.getByteTimeDomainData(peer.dataArray);
+        let sum = 0;
+        for (let i = 0; i < peer.dataArray.length; i++) {
+          const v = (peer.dataArray[i] - 128) / 128;
+          sum += v * v;
+        }
+        volumes[clientId] = Math.sqrt(sum / peer.dataArray.length);
+      } else {
+        volumes[clientId] = 0;
+      }
+    }
+    return volumes;
+  }
+
   public setRoom(roomName: 'gym' | 'classroom') {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -191,14 +306,21 @@ export class AudioManager {
     audioEl.muted = true; // Prevent DOM echo (Web Audio API handles the real output)
     audioEl.play().catch(console.warn);
 
+    // Create an analyser for this peer
+    const analyser = this.ctx.createAnalyser();
+    analyser.fftSize = 256;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
     // BYPASS SPATIAL AUDIO FOR DEBUGGING
-    // Source -> Filter -> Direct Master AnalyserOut
+    // Source -> Filter -> Analyser -> Direct Master AnalyserOut
     source.connect(filter);
+    filter.connect(analyser);
+
     if (this.analyserOut) {
-      filter.connect(this.analyserOut);
+      analyser.connect(this.analyserOut);
     }
 
-    this.remotePeers.set(clientId, { source, panner, filter, audioEl });
+    this.remotePeers.set(clientId, { source, panner, filter, analyser, dataArray, audioEl });
   }
 
   public removeRemoteStream(clientId: number) {
@@ -229,9 +351,7 @@ export class AudioManager {
       listener.upY.setTargetAtTime(up[1], this.ctx.currentTime, 0.1);
       listener.upZ.setTargetAtTime(up[2], this.ctx.currentTime, 0.1);
     } else {
-      // @ts-ignore fallback for older browsers
       listener.setPosition(position[0], position[1], position[2]);
-      // @ts-ignore
       listener.setOrientation(forward[0], forward[1], forward[2], up[0], up[1], up[2]);
     }
   }
@@ -247,7 +367,6 @@ export class AudioManager {
       panner.positionY.setTargetAtTime(position[1], this.ctx.currentTime, 0.1);
       panner.positionZ.setTargetAtTime(position[2], this.ctx.currentTime, 0.1);
     } else {
-      // @ts-ignore
       panner.setPosition(position[0], position[1], position[2]);
     }
   }

@@ -26,8 +26,14 @@ function App() {
       
       {started && (
         <GameSyncProvider roomName="friendslop-lobby-1">
-          <Game />
-          <UIOverlay />
+          <div className="flex flex-row w-full h-full">
+            <div className="flex-1 relative min-w-0 min-h-0">
+              <Game />
+            </div>
+            <div className="w-[300px] shrink-0 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden shadow-xl z-20">
+              <UIOverlay />
+            </div>
+          </div>
         </GameSyncProvider>
       )}
     </div>

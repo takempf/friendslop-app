@@ -38,11 +38,8 @@ export class YjsWebRtcAdapter implements IGameSync {
     return this.name;
   }
 
-  private localStream?: MediaStream;
-
   public async connect(roomName: string, localStream?: MediaStream): Promise<void> {
     if (this.provider) return;
-    this.localStream = localStream;
     // To deploy to production with Vercel and PartyKit:
     // 1. Run `npx partykit deploy` and follow the prompts (creates a free Cloudflare/PartyKit account).
     // 2. Replace the URL below with your production domain:
@@ -59,6 +56,7 @@ export class YjsWebRtcAdapter implements IGameSync {
     // y-webrtc creates simple-peer instances async, so we poll briefly.
     this.provider.on('peers', (change: { added: string[]; removed: string[] }) => {
       change.added.forEach(webrtcId => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const room = (this.provider as any).room;
         const conn = room?.webrtcConns?.get(webrtcId);
         
@@ -93,15 +91,18 @@ export class YjsWebRtcAdapter implements IGameSync {
 
     // Set initial presence data, waiting slightly for provider context
     setTimeout(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const room = (this.provider as any)?.room;
       const peerId = room?.peerId;
       awareness.setLocalStateField('playerState', { name: this.name, webrtcId: peerId });
     }, 50);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     awareness.on('change', (changes: any) => {
       const states = awareness.getStates();
 
       // Handle joins and updates
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       states.forEach((state: any, clientId: number) => {
         if (clientId === this.doc.clientID) return; // Ignore self
 
@@ -156,6 +157,7 @@ export class YjsWebRtcAdapter implements IGameSync {
   private webrtcToClientId = new Map<string, number>();
   private bufferedStreams = new Map<string, MediaStream>();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private attachPeerEvents(webrtcId: string, peer: any) {
     if (peer._eventsAttached) return;
     peer._eventsAttached = true;
@@ -236,7 +238,7 @@ export class YjsWebRtcAdapter implements IGameSync {
   // Map<clientId, WebrtcConn>
   public getWebRtcPeers() {
     if (!this.provider) return new Map();
-    // @ts-ignore - access internal connection map for media streams
+    // @ts-expect-error - access internal connection map for media streams
     return this.provider.webrtcConns; 
   }
 }

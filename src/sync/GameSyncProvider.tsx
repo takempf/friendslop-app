@@ -45,6 +45,7 @@ export function GameSyncProvider({ children, roomName }: { children: React.React
       setConnectedPeers(peers);
     };
 
+    // eslint-disable-next-line react-hooks/immutability
     adapter.onPlayerJoin = (id: number, state: PlayerState) => {
       playersRef.current.set(id, state);
       updatePeersList();

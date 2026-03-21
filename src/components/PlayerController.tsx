@@ -83,7 +83,7 @@ export function PlayerController() {
 
   return (
     <>
-      <PointerLockControls />
+      <PointerLockControls selector="#game-container" />
       <RigidBody 
         ref={ref}
         position={spawnPoint}
