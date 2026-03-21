@@ -1,0 +1,4 @@
+{
+  "name": "friendslop-app",
+  "main": "party/index.ts"
+}
