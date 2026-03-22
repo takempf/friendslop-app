@@ -31,7 +31,7 @@ export function RemotePlayers() {
         // Use 12 equidistant HSL colors deterministically assigned by clientId
         const color = new THREE.Color(getPlayerColor(id))
         
-        const material = new THREE.MeshStandardMaterial({ color })
+        const material = new THREE.MeshLambertMaterial({ color })
         mesh = new THREE.Mesh(geometry, material)
         mesh.castShadow = true
         mesh.receiveShadow = true
@@ -47,21 +47,25 @@ export function RemotePlayers() {
          // Update audio positioning
          audioManager.updateRemotePlayer(id, [mesh.position.x, mesh.position.y, mesh.position.z])
          
-         // Calculate Occlusion via Raycasting
-         const dir = new THREE.Vector3().subVectors(mesh.position, camera.position)
-         const dist = dir.length()
-         dir.normalize()
-         raycaster.current.set(camera.position, dir)
-         
-         const intersects = raycaster.current.intersectObjects(scene.children, true)
-         let occluded = false
-         for (const hit of intersects) {
-           if (hit.distance < dist - 0.5 && hit.object !== mesh) {
-              occluded = true
-              break
+         // Throttled Audio Occlusion via Raycasting (5Hz to save CPU)
+         const now = performance.now()
+         if (!mesh.userData.lastRaycast || now - mesh.userData.lastRaycast > 200) {
+           mesh.userData.lastRaycast = now
+           const dir = new THREE.Vector3().subVectors(mesh.position, camera.position)
+           const dist = dir.length()
+           dir.normalize()
+           raycaster.current.set(camera.position, dir)
+           
+           const intersects = raycaster.current.intersectObjects(scene.children, true)
+           let occluded = false
+           for (const hit of intersects) {
+             if (hit.distance < dist - 0.5 && hit.object !== mesh) {
+                occluded = true
+                break
+             }
            }
+           audioManager.setOcclusion(id, occluded)
          }
-         audioManager.setOcclusion(id, occluded)
       }
       if (state.rotation) {
          mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, state.rotation[0], 0.2)

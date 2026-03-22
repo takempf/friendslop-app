@@ -5,7 +5,7 @@ const Block = ({ position, args, color }: { position: [number, number, number], 
   <RigidBody type="fixed" position={position} colliders="cuboid">
     <mesh castShadow receiveShadow>
       <boxGeometry args={args} />
-      <meshStandardMaterial color={color} />
+      <meshLambertMaterial color={color} />
     </mesh>
   </RigidBody>
 )

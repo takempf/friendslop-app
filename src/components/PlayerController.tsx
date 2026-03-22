@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { PointerLockControls } from '@react-three/drei'
+import { SmoothedPointerLockControls } from './SmoothedPointerLockControls'
 import { RigidBody, RapierRigidBody, CapsuleCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { useKeyboard } from '../hooks/useKeyboard'
@@ -83,7 +83,7 @@ export function PlayerController() {
 
   return (
     <>
-      <PointerLockControls selector="#game-container" />
+      <SmoothedPointerLockControls selector="#game-container" />
       <RigidBody 
         ref={ref}
         position={spawnPoint}

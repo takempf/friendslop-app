@@ -9,7 +9,11 @@ export function Game() {
     <div className="w-full h-full relative bg-black" id="game-container">
       {/* UI Overlay will go here later */}
       
-      <Canvas shadows camera={{ position: [0, 2, 0], fov: 75 }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 2, 0], fov: 75 }}
+        dpr={Math.min(window.devicePixelRatio, 1.5)}
+      >
         <Physics gravity={[0, -9.81, 0]}>
           <SchoolEnvironment />
           <PlayerController />

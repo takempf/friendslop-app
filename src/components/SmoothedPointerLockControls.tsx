@@ -1,0 +1,80 @@
+import { useEffect, useRef } from 'react'
+import { useThree, useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
+
+interface Props {
+  selector?: string
+  sensitivity?: number
+}
+
+export function SmoothedPointerLockControls({ 
+  selector = '#game-container', 
+  sensitivity = 0.002
+}: Props) {
+  const { camera, gl } = useThree()
+  
+  // Reusable Euler instance
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
+  
+  // Accumulate raw mouse deltas to apply perfectly synchronously in useFrame
+  const mouseDelta = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const el = document.querySelector(selector) as HTMLElement | null
+    const targetElement = el || gl.domElement
+    
+    const onClick = () => {
+      // Request pointer lock synchronously within the user gesture handler.
+      // async/await would defer the fallback into a microtask, which Firefox
+      // may reject as outside the user-activation context.
+      try {
+        const promise = targetElement.requestPointerLock({ unadjustedMovement: true })
+        if (promise instanceof Promise) {
+          // unadjustedMovement not supported — fall back immediately
+          promise.catch(() => targetElement.requestPointerLock())
+        }
+      } catch {
+        targetElement.requestPointerLock()
+      }
+    }
+    
+    const onMouseMove = (event: MouseEvent) => {
+      if (document.pointerLockElement !== targetElement) return
+      
+      // Simply pool the incoming inputs. This solves event drop/desync issues where
+      // the browser fires multiple mouse events per frame or drops them during rendering.
+      mouseDelta.current.x += event.movementX || 0
+      mouseDelta.current.y += event.movementY || 0
+    }
+    
+    targetElement.addEventListener('click', onClick)
+    document.addEventListener('mousemove', onMouseMove)
+    
+    return () => {
+      targetElement.removeEventListener('click', onClick)
+      document.removeEventListener('mousemove', onMouseMove)
+    }
+  }, [gl.domElement, selector])
+
+  // Process mouse input EXACTLY once per rendering frame in the game loop
+  useFrame(() => {
+    if (mouseDelta.current.x === 0 && mouseDelta.current.y === 0) return
+    
+    const PI_2 = Math.PI / 2
+    euler.current.setFromQuaternion(camera.quaternion)
+    
+    euler.current.y -= mouseDelta.current.x * sensitivity
+    euler.current.x -= mouseDelta.current.y * sensitivity
+    
+    // Clamp pitch to prevent looking past straight up/down
+    euler.current.x = Math.max(-PI_2, Math.min(PI_2, euler.current.x))
+    
+    camera.quaternion.setFromEuler(euler.current)
+    
+    // Reset delta for the next frame's accumulation
+    mouseDelta.current.x = 0
+    mouseDelta.current.y = 0
+  })
+
+  return null
+}

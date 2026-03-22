@@ -1,14 +1,14 @@
 import { useGameSync } from '../sync/GameSyncProvider'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { audioManager } from '../audio/AudioManager'
 import { getPlayerColor } from '../utils/colors'
 
 export function UIOverlay() {
   const { sync, chatMessages, connectedPeers, audioBlocked, myId, myName } = useGameSync()
   const [chatInput, setChatInput] = useState('')
-  const [micVol, setMicVol] = useState(0)
-  const [peerVols, setPeerVols] = useState<Record<number, number>>({})
-  
+  const micMeterRef = useRef<HTMLProgressElement>(null)
+  const peerMeterRefs = useRef<Map<number, HTMLProgressElement>>(new Map())
+
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [selectedInput, setSelectedInput] = useState<string>('default')
   const [selectedOutput, setSelectedOutput] = useState<string>('default')
@@ -21,19 +21,19 @@ export function UIOverlay() {
     return () => { mounted = false; }
   }, [])
 
-  // Polling volumes
+  // Polling volumes — update DOM directly to avoid React re-renders at 60fps
   useEffect(() => {
     let raf: number;
     const loop = () => {
       const { mic } = audioManager.getVolumes();
-      setMicVol(Math.min(1, mic * 5)); // amplify visual
+      if (micMeterRef.current) {
+        micMeterRef.current.value = Math.min(1, mic * 5);
+      }
 
       const currentPeerVols = audioManager.getPeerVolumes();
-      const amplifiedPeerVols: Record<number, number> = {};
-      for (const [id, vol] of Object.entries(currentPeerVols)) {
-        amplifiedPeerVols[Number(id)] = Math.min(1, vol * 5); // amplify visual
-      }
-      setPeerVols(amplifiedPeerVols);
+      peerMeterRefs.current.forEach((el, id) => {
+        el.value = Math.min(1, (currentPeerVols[id] ?? 0) * 5);
+      });
 
       raf = requestAnimationFrame(loop);
     };
@@ -79,7 +79,14 @@ export function UIOverlay() {
           {connectedPeers.map(peer => (
             <li key={peer.id} className="flex items-center justify-between gap-2 drop-shadow" style={{ color: getPlayerColor(peer.id) }}>
               <span className="truncate">{peer.name}</span>
-              <progress className="w-16 h-1.5 shrink-0 [&::-webkit-progress-bar]:bg-gray-800/80 [&::-webkit-progress-value]:bg-blue-500 opacity-80" value={peerVols[peer.id] || 0} max="1"></progress>
+              <progress
+                ref={el => {
+                  if (el) peerMeterRefs.current.set(peer.id, el)
+                  else peerMeterRefs.current.delete(peer.id)
+                }}
+                className="w-16 h-1.5 shrink-0 [&::-webkit-progress-bar]:bg-gray-800/80 [&::-webkit-progress-value]:bg-blue-500 opacity-80"
+                max="1"
+              />
             </li>
           ))}
         </ul>
@@ -91,7 +98,7 @@ export function UIOverlay() {
          <div className="flex flex-col gap-3 text-xs">
            <div className="flex flex-col gap-1">
              <label className="text-gray-400 font-semibold">Microphone</label>
-             <select 
+             <select
                className="bg-zinc-800 text-white p-1 rounded border border-zinc-700 outline-none w-full"
                value={selectedInput}
                onChange={(e) => {
@@ -108,7 +115,7 @@ export function UIOverlay() {
 
            <div className="flex flex-col gap-1">
              <label className="text-gray-400 font-semibold">Speaker</label>
-             <select 
+             <select
                className="bg-zinc-800 text-white p-1 rounded border border-zinc-700 outline-none w-full"
                value={selectedOutput}
                onChange={(e) => {
@@ -125,11 +132,11 @@ export function UIOverlay() {
 
            <div className="flex items-center gap-2 mt-1">
              <span className="w-8 font-mono">MIC</span>
-             <progress className="w-full h-2 [&::-webkit-progress-bar]:bg-gray-800 [&::-webkit-progress-value]:bg-green-500" value={micVol} max="1"></progress>
+             <progress ref={micMeterRef} className="w-full h-2 [&::-webkit-progress-bar]:bg-gray-800 [&::-webkit-progress-value]:bg-green-500" max="1"></progress>
            </div>
          </div>
       </div>
-      
+
       {/* Chat */}
       <div className="flex-1 min-h-[200px] bg-black/40 rounded-md flex flex-col border border-zinc-800">
         <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-1 text-sm">
@@ -154,7 +161,7 @@ export function UIOverlay() {
           />
         </form>
       </div>
-      
+
     </div>
   )
 }
