@@ -11,7 +11,7 @@ const SETTLE_SPEED_SQ = 0.05 * 0.05 // squared threshold for speed + angspeed
 
 export function BasketballSync() {
   const { rapier } = useRapier()
-  const { ballRefs, heldBallRef, ownedBallIds } = useBasketball()
+  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions } = useBasketball()
   const { sync, remoteBallStates } = useGameSync()
   const lastBroadcastTime = useRef(0)
   const settleCounters = useRef<Map<number, number>>(new Map())
@@ -21,15 +21,27 @@ export function BasketballSync() {
     remoteBallStates.current.forEach((state, ballId) => {
       const ball = ballRefs.current[ballId]
       if (!ball) return
-      // Never override a ball we're holding or currently own (threw/dropped)
-      // Also clear any stale remote state so it doesn't snap back when we let go
-      if (heldBallRef.current === ballId) {
-        remoteBallStates.current.delete(ballId)
-        return
-      }
-      if (ownedBallIds.current.has(ballId)) {
-        remoteBallStates.current.delete(ballId)
-        return
+      const remoteOwnerVersion = state.ownerVersion || 0
+      const localOwnerVersion = ballOwnerVersions.current.get(ballId) || 0
+
+      // Surrender logic for steals
+      if (remoteOwnerVersion > localOwnerVersion) {
+        if (heldBallRef.current === ballId) {
+          heldBallRef.current = -1
+        }
+        ownedBallIds.current.delete(ballId)
+        ballOwnerVersions.current.set(ballId, remoteOwnerVersion)
+      } else {
+        // Never override a ball we're holding or currently own (threw/dropped)
+        // Also clear any stale remote state so it doesn't snap back when we let go
+        if (heldBallRef.current === ballId) {
+          remoteBallStates.current.delete(ballId)
+          return
+        }
+        if (ownedBallIds.current.has(ballId)) {
+          remoteBallStates.current.delete(ballId)
+          return
+        }
       }
 
       if (state.held) {
@@ -74,6 +86,7 @@ export function BasketballSync() {
         vel: [vel.x, vel.y, vel.z],
         angvel: [angvel.x, angvel.y, angvel.z],
         held: isHeld || undefined,
+        ownerVersion: ballOwnerVersions.current.get(ballId) || 0,
       }
 
       // Settle detection: stop broadcasting once ball is still for SETTLE_TICKS ticks

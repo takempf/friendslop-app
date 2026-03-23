@@ -19,6 +19,7 @@ export interface RemoteBallState {
   vel: [number, number, number];
   angvel: [number, number, number];
   held?: boolean;
+  ownerVersion?: number;
 }
 
 export interface IGameSync {

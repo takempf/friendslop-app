@@ -36,7 +36,7 @@ const SPAWN_POINTS: [number, number, number][] = Array.from({ length: 12 }, (_, 
 export function PlayerController() {
   const ref = useRef<RapierRigidBody>(null)
   const keys = useKeyboard()
-  const { sync } = useGameSync()
+  const { sync, remoteBallStates } = useGameSync()
   const lastSyncTime = useRef(0)
   const [spawnPoint] = useState(() => SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)])
 
@@ -44,7 +44,7 @@ export function PlayerController() {
 
   // Basketball pick-up / throw state
   const { rapier } = useRapier()
-  const { ballRefs, heldBallRef, ownedBallIds } = useBasketball()
+  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions } = useBasketball()
   const prevE = useRef(false)
   const prevQ = useRef(false)
   const qPressTime = useRef(0)
@@ -117,6 +117,12 @@ export function PlayerController() {
         if (nearestIdx !== -1) {
           heldBallRef.current = nearestIdx
           ownedBallIds.current.add(nearestIdx)
+          
+          const remoteVersion = remoteBallStates.current.get(nearestIdx)?.ownerVersion || 0
+          const localVersion = ballOwnerVersions.current.get(nearestIdx) || 0
+          const newVersion = Math.max(remoteVersion, localVersion) + 1
+          ballOwnerVersions.current.set(nearestIdx, newVersion)
+
           const ball = ballRefs.current[nearestIdx]
           if (ball) {
             // Switch to kinematic so physics doesn't fight our position updates
