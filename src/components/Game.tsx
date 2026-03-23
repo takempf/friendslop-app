@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { Stats } from '@react-three/drei'
 import { Physics } from '@react-three/rapier'
 import { SchoolEnvironment } from './SchoolEnvironment'
 import { PlayerController } from './PlayerController'
 import { RemotePlayers } from './RemotePlayers'
 import { BasketballProvider } from '../contexts/BasketballContext'
 import { BasketballSync } from './BasketballSync'
-import { DebugPanel } from './DebugPanel'
+import { debugConfig } from '../debug/config'
+
+function RenderScaleManager() {
+  const gl = useThree(state => state.gl)
+  
+  useFrame(() => {
+    const baseDpr = Math.min(window.devicePixelRatio, 1.5)
+    const desiredRatio = baseDpr * debugConfig.renderScale
+    if (gl.getPixelRatio() !== desiredRatio) {
+      gl.setPixelRatio(desiredRatio)
+    }
+  })
+  return null
+}
 
 export function Game() {
   const [locked, setLocked] = useState(false)
@@ -32,6 +46,8 @@ export function Game() {
             <BasketballSync />
           </Physics>
         </BasketballProvider>
+        <RenderScaleManager />
+        <Stats className="!absolute !bottom-0 !left-0 !top-auto !right-auto" />
       </Canvas>
 
       {/* Reticle */}
@@ -46,8 +62,6 @@ export function Game() {
         <line x1="8" y1="10.5" x2="8" y2="16" stroke="white" strokeWidth="1.5" />
         <circle cx="8" cy="8" r="1.5" fill="white" />
       </svg>
-
-      <DebugPanel />
 
       {!locked && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white bg-black/50 px-4 py-2 rounded pointer-events-none">

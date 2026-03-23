@@ -1,5 +1,6 @@
 import { useGameSync } from '../sync/GameSyncProvider'
 import { useState, useEffect, useRef } from 'react'
+import { DebugPanel } from './DebugPanel'
 import { audioManager } from '../audio/AudioManager'
 import { getPlayerColor } from '../utils/colors'
 
@@ -136,6 +137,8 @@ export function UIOverlay() {
            </div>
          </div>
       </div>
+
+      <DebugPanel />
 
       {/* Chat */}
       <div className="flex-1 min-h-[200px] bg-black/40 rounded-md flex flex-col border border-zinc-800">

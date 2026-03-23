@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { debugConfig } from '../debug/config'
+import { debugConfig, saveDebugConfig } from '../debug/config'
 
 type ConfigKey = keyof typeof debugConfig
 
 const PARAMS: { key: ConfigKey; label: string; min: number; max: number; step: number }[] = [
+  { key: 'renderScale',          label: 'Render Scale',          min: 0.25, max: 1,   step: 0.05  },
   { key: 'minThrowSpeed',        label: 'Min Throw Speed (m/s)', min: 0,   max: 15,  step: 0.125 },
   { key: 'maxThrowSpeed',        label: 'Max Throw Speed (m/s)', min: 0,   max: 20,  step: 0.125 },
   { key: 'throwArcDeg',          label: 'Throw Arc (°)',         min: 0,   max: 80,  step: 1     },
@@ -14,52 +15,38 @@ const PARAMS: { key: ConfigKey; label: string; min: number; max: number; step: n
 ]
 
 export function DebugPanel() {
-  const [open, setOpen] = useState(false)
-  // Force re-render when a slider changes so displayed values stay in sync
   const [, tick] = useState(0)
 
   const update = (key: ConfigKey, value: number) => {
     debugConfig[key] = value
+    saveDebugConfig()
     tick(n => n + 1)
   }
 
   return (
-    <div className="absolute top-4 left-4 pointer-events-auto select-none z-20 font-mono text-xs">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="text-white/80 bg-black/60 hover:bg-black/90 px-3 py-1.5 rounded border border-white/20 transition-colors"
-      >
-        {open ? '✕ Debug' : '⚙ Debug'}
-      </button>
-
-      {open && (
-        <div className="mt-1 bg-black/90 text-white rounded-lg border border-white/15 w-72 overflow-hidden">
-          <div className="px-3 py-2 border-b border-white/10 text-white/50 uppercase tracking-widest text-[10px]">
-            Physics Debug
+    <div className="bg-black/40 p-3 rounded-md text-white border border-zinc-800 font-mono text-xs">
+      <div className="text-xs font-bold mb-2 text-gray-300 font-sans">PHYSICS DEBUG</div>
+      <div className="space-y-3">
+        {PARAMS.map(({ key, label, min, max, step }) => (
+          <div key={key}>
+            <div className="flex justify-between mb-1">
+              <span className="text-gray-400 font-semibold">{label}</span>
+              <span className="text-yellow-300 tabular-nums w-14 text-right">
+                {debugConfig[key].toFixed(3)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={step}
+              value={debugConfig[key]}
+              onChange={e => update(key, parseFloat(e.target.value))}
+              className="w-full h-1 accent-yellow-300 cursor-pointer"
+            />
           </div>
-          <div className="p-3 space-y-3">
-            {PARAMS.map(({ key, label, min, max, step }) => (
-              <div key={key}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-white/60">{label}</span>
-                  <span className="text-yellow-300 tabular-nums w-14 text-right">
-                    {debugConfig[key].toFixed(3)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={step}
-                  value={debugConfig[key]}
-                  onChange={e => update(key, parseFloat(e.target.value))}
-                  className="w-full h-1 accent-yellow-300 cursor-pointer"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   )
 }
