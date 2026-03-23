@@ -26,6 +26,13 @@ export function BasketballHoop() {
   const scoredTimer = useRef(0)
   const prevBallY = useRef<number[]>([-999, -999, -999, -999])
 
+  // Create a static target for the spotlight to point at the hoop rim
+  const [lightTarget] = useState(() => {
+    const obj = new THREE.Object3D()
+    obj.position.set(0, HOOP_RIM_POS.y, HOOP_RIM_POS.z)
+    return obj
+  })
+
   // Refs for live restitution updates via Rapier API
   const backboardRbRef = useRef<RapierRigidBody>(null)
   const rimRbRef = useRef<RapierRigidBody>(null)
@@ -155,6 +162,17 @@ export function BasketballHoop() {
           distance={5}
         />
       )}
+
+      {/* Main spotlight to highlight the goal area */}
+      <spotLight
+        position={[0, HOOP_RIM_POS.y + 3, HOOP_RIM_POS.z - 1]}
+        angle={0.6}
+        penumbra={0.5}
+        intensity={30}
+        castShadow
+        target={lightTarget}
+      />
+      <primitive object={lightTarget} />
     </>
   )
 }
