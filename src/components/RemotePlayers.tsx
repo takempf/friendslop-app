@@ -5,6 +5,9 @@ import { useGameSync } from '../sync/GameSyncProvider'
 import { audioManager } from '../audio/AudioManager'
 import { getPlayerColor } from '../utils/colors'
 
+const _targetEuler = new THREE.Euler(0, 0, 0, 'XYZ')
+const _targetQuat = new THREE.Quaternion()
+
 export function RemotePlayers() {
   const { getPlayers } = useGameSync()
   const { camera, scene } = useThree()
@@ -68,9 +71,9 @@ export function RemotePlayers() {
          }
       }
       if (state.rotation) {
-         mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, state.rotation[0], 0.2)
-         mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, state.rotation[1], 0.2)
-         mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, state.rotation[2], 0.2)
+         _targetEuler.set(state.rotation[0], state.rotation[1], state.rotation[2], 'XYZ')
+         _targetQuat.setFromEuler(_targetEuler)
+         mesh.quaternion.slerp(_targetQuat, 0.2)
       }
     })
 
