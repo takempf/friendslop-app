@@ -38,13 +38,21 @@ export function SmoothedPointerLockControls({
       }
     }
     
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
     const onMouseMove = (event: MouseEvent) => {
       if (document.pointerLockElement !== targetElement) return
       
+      // Safari often fails to deliver raw sensor counts even with unadjustedMovement: true,
+      // instead applying macOS's pointer acceleration curves. Trackpad movements report as
+      // very tiny deltas. Here we apply a heuristic multiplier to normalize the speed to Chrome's.
+      // (Using 2.5 as a baseline trackpad compensation factor for Safari).
+      const multiplier = isSafari ? 2.5 : 1
+
       // Simply pool the incoming inputs. This solves event drop/desync issues where
       // the browser fires multiple mouse events per frame or drops them during rendering.
-      mouseDelta.current.x += event.movementX || 0
-      mouseDelta.current.y += event.movementY || 0
+      mouseDelta.current.x += (event.movementX || 0) * multiplier
+      mouseDelta.current.y += (event.movementY || 0) * multiplier
     }
     
     targetElement.addEventListener('click', onClick)
