@@ -21,8 +21,16 @@ export function BasketballSync() {
     remoteBallStates.current.forEach((state, ballId) => {
       const ball = ballRefs.current[ballId]
       if (!ball) return
-      // Never override a ball we're currently holding
-      if (heldBallRef.current === ballId) return
+      // Never override a ball we're holding or currently own (threw/dropped)
+      // Also clear any stale remote state so it doesn't snap back when we let go
+      if (heldBallRef.current === ballId) {
+        remoteBallStates.current.delete(ballId)
+        return
+      }
+      if (ownedBallIds.current.has(ballId)) {
+        remoteBallStates.current.delete(ballId)
+        return
+      }
 
       if (state.held) {
         // Remote player is holding this ball — kinematic so it follows them smoothly
@@ -85,7 +93,10 @@ export function BasketballSync() {
       }
     })
 
-    toRemove.forEach(id => ownedBallIds.current.delete(id))
+    toRemove.forEach(id => {
+      ownedBallIds.current.delete(id)
+      remoteBallStates.current.delete(id)
+    })
 
     sync.updateMyPresence({ ballStates })
   })
