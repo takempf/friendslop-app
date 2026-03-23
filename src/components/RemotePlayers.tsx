@@ -3,8 +3,8 @@ import { useRef } from 'react'
 import * as THREE from 'three'
 import { useGameSync } from '../sync/GameSyncProvider'
 import { audioManager } from '../audio/AudioManager'
-import { getPlayerColor } from '../utils/colors'
-
+import { getPlayerColor, getPlayerEmoji } from '../utils/colors'
+import { getEmojiTexture } from '../utils/emojiTexture'
 const _targetEuler = new THREE.Euler(0, 0, 0, 'XYZ')
 const _targetQuat = new THREE.Quaternion()
 
@@ -39,6 +39,19 @@ export function RemotePlayers() {
         mesh.castShadow = true
         mesh.receiveShadow = true
         
+        const emoji = getPlayerEmoji(id)
+        const emojiTexture = getEmojiTexture(emoji)
+        const faceGeometry = new THREE.PlaneGeometry(0.6, 0.6)
+        const faceMaterial = new THREE.MeshBasicMaterial({ 
+          map: emojiTexture, 
+          transparent: true,
+          depthWrite: false
+        })
+        const faceMesh = new THREE.Mesh(faceGeometry, faceMaterial)
+        faceMesh.position.set(0, 0.2, -0.31)
+        faceMesh.rotation.y = Math.PI
+        mesh.add(faceMesh)
+
         playerMeshes.current.set(id, mesh)
         groupRef.current!.add(mesh)
       }
