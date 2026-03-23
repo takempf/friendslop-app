@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import type { IGameSync, PlayerState, ChatMessage } from './IGameSync';
+import type { IGameSync, PlayerState, ChatMessage, RemoteBallState } from './IGameSync';
 import { YjsWebRtcAdapter } from './YjsWebRtcAdapter';
 import { audioManager } from '../audio/AudioManager';
 
@@ -11,6 +11,7 @@ interface SyncContextType {
   audioBlocked: boolean;
   myId: number;
   myName: string;
+  remoteBallStates: React.MutableRefObject<Map<number, RemoteBallState & { ownerId: number }>>;
 }
 
 const SyncContext = createContext<SyncContextType>({
@@ -20,7 +21,8 @@ const SyncContext = createContext<SyncContextType>({
   connectedPeers: [],
   audioBlocked: false,
   myId: 0,
-  myName: 'Connecting...'
+  myName: 'Connecting...',
+  remoteBallStates: { current: new Map() },
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -30,6 +32,7 @@ export function GameSyncProvider({ children, roomName }: { children: React.React
   // useMemo guarantees a single synchronous instantiation without breaking render or state mutation rules
   const sync = React.useMemo(() => new YjsWebRtcAdapter(), []);
   const playersRef = useRef<Map<number, PlayerState>>(new Map());
+  const remoteBallStates = useRef<Map<number, RemoteBallState & { ownerId: number }>>(new Map());
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [connectedPeers, setConnectedPeers] = useState<{ id: number, name: string }[]>([]);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -55,6 +58,15 @@ export function GameSyncProvider({ children, roomName }: { children: React.React
       playersRef.current.delete(id);
       updatePeersList();
       audioManager.removeRemoteStream(id);
+      for (const [ballId, state] of remoteBallStates.current.entries()) {
+        if (state.ownerId === id) remoteBallStates.current.delete(ballId);
+      }
+    };
+
+    adapter.onBallStatesReceived = (ownerId, states) => {
+      for (const [ballId, state] of Object.entries(states)) {
+        remoteBallStates.current.set(Number(ballId), { ...state, ownerId });
+      }
     };
 
     // Fast-path for 3D updates without React re-renders
@@ -109,14 +121,15 @@ export function GameSyncProvider({ children, roomName }: { children: React.React
   const getPlayers = React.useCallback(() => playersRef.current, []);
 
   return (
-    <SyncContext.Provider value={{ 
-      sync, 
-      getPlayers, 
-      chatMessages, 
-      connectedPeers, 
+    <SyncContext.Provider value={{
+      sync,
+      getPlayers,
+      chatMessages,
+      connectedPeers,
       audioBlocked,
       myId: sync.myId,
-      myName: sync.myName
+      myName: sync.myName,
+      remoteBallStates,
     }}>
       {children}
     </SyncContext.Provider>

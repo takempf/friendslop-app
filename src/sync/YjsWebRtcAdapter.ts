@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
-import type { IGameSync, PlayerState, ChatMessage } from './IGameSync';
+import type { IGameSync, PlayerState, ChatMessage, RemoteBallState } from './IGameSync';
 
 export class YjsWebRtcAdapter implements IGameSync {
   private doc: Y.Doc;
@@ -26,6 +26,8 @@ export class YjsWebRtcAdapter implements IGameSync {
       this.chatListeners.forEach(cb => cb(messages));
     });
   }
+
+  public onBallStatesReceived: (ownerId: number, states: Record<number, RemoteBallState>) => void = () => {};
 
   public onPlayerStream: (clientId: number, stream: MediaStream) => void = () => {};
   public onPlayerStreamRemove: (clientId: number) => void = () => {};
@@ -133,6 +135,10 @@ export class YjsWebRtcAdapter implements IGameSync {
 
         if (playerState.position && playerState.rotation) {
           this.onPlayerMove(clientId, playerState.position, playerState.rotation);
+        }
+
+        if (playerState.ballStates) {
+          this.onBallStatesReceived(clientId, playerState.ballStates);
         }
       });
 

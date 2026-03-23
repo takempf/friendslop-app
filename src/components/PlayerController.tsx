@@ -44,7 +44,7 @@ export function PlayerController() {
 
   // Basketball pick-up / throw state
   const { rapier } = useRapier()
-  const { ballRefs, heldBallRef } = useBasketball()
+  const { ballRefs, heldBallRef, ownedBallIds } = useBasketball()
   const prevE = useRef(false)
   const prevQ = useRef(false)
   const qPressTime = useRef(0)
@@ -116,6 +116,7 @@ export function PlayerController() {
 
         if (nearestIdx !== -1) {
           heldBallRef.current = nearestIdx
+          ownedBallIds.current.add(nearestIdx)
           const ball = ballRefs.current[nearestIdx]
           if (ball) {
             // Switch to kinematic so physics doesn't fight our position updates

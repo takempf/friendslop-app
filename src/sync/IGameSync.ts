@@ -14,20 +14,28 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface RemoteBallState {
+  pos: [number, number, number];
+  vel: [number, number, number];
+  angvel: [number, number, number];
+  held?: boolean;
+}
+
 export interface IGameSync {
   connect(roomName: string, localStream?: MediaStream): Promise<void>;
   disconnect(): void;
-  
+
   get myId(): number;
   get myName(): string;
 
   onPlayerJoin: (clientId: number, state: PlayerState) => void;
   onPlayerLeave: (clientId: number) => void;
   onPlayerMove: (clientId: number, position: [number, number, number], rotation: [number, number, number]) => void;
-  
+  onBallStatesReceived: (ownerId: number, states: Record<number, RemoteBallState>) => void;
+
   onPlayerStream: (clientId: number, stream: MediaStream) => void;
   onPlayerStreamRemove: (clientId: number) => void;
-  
+
   sendChatMessage(msg: string): void;
   subscribeToChat(callback: (messages: ChatMessage[]) => void): () => void;
   updateMyPresence(state: PlayerState): void;

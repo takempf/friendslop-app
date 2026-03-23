@@ -5,6 +5,7 @@ import { SchoolEnvironment } from './SchoolEnvironment'
 import { PlayerController } from './PlayerController'
 import { RemotePlayers } from './RemotePlayers'
 import { BasketballProvider } from '../contexts/BasketballContext'
+import { BasketballSync } from './BasketballSync'
 import { DebugPanel } from './DebugPanel'
 
 export function Game() {
@@ -28,6 +29,7 @@ export function Game() {
             <SchoolEnvironment />
             <PlayerController />
             <RemotePlayers />
+            <BasketballSync />
           </Physics>
         </BasketballProvider>
       </Canvas>
