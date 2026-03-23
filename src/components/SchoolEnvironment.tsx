@@ -1,8 +1,10 @@
 import { RigidBody } from '@react-three/rapier'
+import { BasketballHoop } from './BasketballHoop'
+import { Basketballs } from './Basketballs'
 
 // Helper component for Walls/Floors
-const Block = ({ position, args, color }: { position: [number, number, number], args: [number, number, number], color: string }) => (
-  <RigidBody type="fixed" position={position} colliders="cuboid">
+const Block = ({ position, args, color, restitution = 0 }: { position: [number, number, number], args: [number, number, number], color: string, restitution?: number }) => (
+  <RigidBody type="fixed" position={position} colliders="cuboid" restitution={restitution}>
     <mesh castShadow receiveShadow>
       <boxGeometry args={args} />
       <meshLambertMaterial color={color} />
@@ -11,7 +13,7 @@ const Block = ({ position, args, color }: { position: [number, number, number], 
 )
 
 export function SchoolEnvironment() {
-  const wallHeight = 4;
+  const wallHeight = 8;
   const wallThickness = 0.5;
 
   return (
@@ -22,7 +24,7 @@ export function SchoolEnvironment() {
 
       {/* --- Gymnasium --- */}
       {/* Floor 20x20 */}
-      <Block position={[0, -0.25, 0]} args={[20, 0.5, 20]} color="#8b5a2b" />
+      <Block position={[0, -0.25, 0]} args={[20, 0.5, 20]} color="#8b5a2b" restitution={0.84} />
       
       {/* Walls for Gym */}
       {/* West Wall */}
@@ -38,7 +40,7 @@ export function SchoolEnvironment() {
 
       {/* --- Hallway --- */}
       {/* Floor 4x20 (Z from -10 to -30) */}
-      <Block position={[0, -0.25, -20]} args={[4, 0.5, 20]} color="#708090" />
+      <Block position={[0, -0.25, -20]} args={[4, 0.5, 20]} color="#708090" restitution={0.84} />
       
       {/* Hallway Walls */}
       <Block position={[-2, wallHeight/2, -20]} args={[wallThickness, wallHeight, 20]} color="#f5f5dc" />
@@ -52,11 +54,15 @@ export function SchoolEnvironment() {
       <Block position={[-2, wallHeight/2, -28]} args={[wallThickness, wallHeight, 6]} color="#f5f5dc" />
       
       {/* Floor 10x10 */}
-      <Block position={[-7.5, -0.25, -25]} args={[10, 0.5, 10]} color="#5f9ea0" />
+      <Block position={[-7.5, -0.25, -25]} args={[10, 0.5, 10]} color="#5f9ea0" restitution={0.84} />
       {/* Classroom A Walls */}
       <Block position={[-12.5, wallHeight/2, -25]} args={[wallThickness, wallHeight, 10]} color="#fdf5e6" />
       <Block position={[-7.5, wallHeight/2, -20]} args={[10, wallHeight, wallThickness]} color="#fdf5e6" />
       <Block position={[-7.5, wallHeight/2, -30]} args={[10, wallHeight, wallThickness]} color="#fdf5e6" />
+
+      {/* Basketball */}
+      <BasketballHoop />
+      <Basketballs />
 
       {/* --- Classroom B (East of Hallway at Z=-25) --- */}
       {/* Opening in East Hallway wall is at Z=-25, width=2 */}
@@ -64,7 +70,7 @@ export function SchoolEnvironment() {
       <Block position={[2, wallHeight/2, -28]} args={[wallThickness, wallHeight, 6]} color="#f5f5dc" />
       
       {/* Floor 10x10 */}
-      <Block position={[7.5, -0.25, -25]} args={[10, 0.5, 10]} color="#5f9ea0" />
+      <Block position={[7.5, -0.25, -25]} args={[10, 0.5, 10]} color="#5f9ea0" restitution={0.84} />
       {/* Classroom B Walls */}
       <Block position={[12.5, wallHeight/2, -25]} args={[wallThickness, wallHeight, 10]} color="#fdf5e6" />
       <Block position={[7.5, wallHeight/2, -20]} args={[10, wallHeight, wallThickness]} color="#fdf5e6" />
