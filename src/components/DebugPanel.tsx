@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { debugConfig, saveDebugConfig } from '../debug/config'
+import { debugConfig } from '../debug/config'
 
 type ConfigKey = keyof typeof debugConfig
 
@@ -19,7 +19,6 @@ export function DebugPanel() {
 
   const update = (key: ConfigKey, value: number) => {
     debugConfig[key] = value
-    saveDebugConfig()
     tick(n => n + 1)
   }
 

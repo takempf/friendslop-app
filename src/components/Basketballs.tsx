@@ -74,7 +74,7 @@ export function Basketballs() {
           mass={0.62}          // NBA spec: 567–623g
           restitution={0.84}  // drops 72" → bounces 49–54" (≈0.84)
           friction={0.8}      // rubber on hardwood — friction transmits spin forces on contact
-          linearDamping={0.1} // translational air drag
+          linearDamping={0.07} // translational air drag
           angularDamping={0.4} // spin decays in air; Rapier friction handles spin↔surface interaction
         >
           <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />

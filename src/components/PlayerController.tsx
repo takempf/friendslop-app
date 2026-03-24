@@ -17,7 +17,7 @@ const PLAYER_GROUPS = interactionGroups([1], [0])
 const SPEED = 5
 const PICKUP_RANGE = 2.5
 // Throw params are now driven by debugConfig (see src/debug/config.ts)
-const MAX_CHARGE_TIME = 1.5 // seconds to reach full charge
+const MAX_CHARGE_TIME = 2.5 // seconds to reach full charge
 
 const direction = new THREE.Vector3()
 const frontVector = new THREE.Vector3()
