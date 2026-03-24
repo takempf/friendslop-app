@@ -15,6 +15,7 @@ import { debugConfig } from '../debug/config'
 const PLAYER_GROUPS = interactionGroups([1], [0])
 
 const SPEED = 5
+const SPRINT_SPEED = 7.5
 const PICKUP_RANGE = 2.5
 // Throw params are now driven by debugConfig (see src/debug/config.ts)
 const MAX_CHARGE_TIME = 2.5 // seconds to reach full charge
@@ -86,10 +87,11 @@ export function PlayerController() {
     frontVector.set(0, 0, (keys.current.KeyS ? 1 : 0) - (keys.current.KeyW ? 1 : 0))
     sideVector.set((keys.current.KeyA ? 1 : 0) - (keys.current.KeyD ? 1 : 0), 0, 0)
 
+    const speed = keys.current.ShiftLeft ? SPRINT_SPEED : SPEED
     direction
       .subVectors(frontVector, sideVector)
       .normalize()
-      .multiplyScalar(SPEED)
+      .multiplyScalar(speed)
       .applyEuler(state.camera.rotation)
 
     const currentVelocity = ref.current.linvel()

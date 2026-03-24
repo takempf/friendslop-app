@@ -73,6 +73,7 @@ export function Game() {
 
       <div className="absolute bottom-4 right-4 text-white/60 text-xs pointer-events-none text-right leading-relaxed">
         WASD · Move<br />
+        Shift · Sprint<br />
         E · Pick Up<br />
         Hold Q · Charge Throw
       </div>
