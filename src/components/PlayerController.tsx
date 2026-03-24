@@ -19,6 +19,13 @@ const PICKUP_RANGE = 2.5
 // Throw params are now driven by debugConfig (see src/debug/config.ts)
 const MAX_CHARGE_TIME = 2.5 // seconds to reach full charge
 
+// Jump — gravity is -9.81. v²/2g gives peak height.
+// JUMP_VELOCITY=4.4 → ~1.0m peak (full hold). Early release cuts vy → ~0.2m short hop.
+const JUMP_VELOCITY = 4.4
+const JUMP_CUT_MULT = 0.35    // vy multiplier on early space release
+// Ground ray: capsule halfHeight(0.5) + radius(0.5) + small epsilon
+const GROUND_RAY_LEN = 1.07
+
 const direction = new THREE.Vector3()
 const frontVector = new THREE.Vector3()
 const sideVector = new THREE.Vector3()
@@ -43,7 +50,7 @@ export function PlayerController() {
   const { camera } = useThree()
 
   // Basketball pick-up / throw state
-  const { rapier } = useRapier()
+  const { rapier, world } = useRapier()
   const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions } = useBasketball()
   const prevE = useRef(false)
   const prevQ = useRef(false)
@@ -53,6 +60,9 @@ export function PlayerController() {
   // Dribble state
   const dribbleTime = useRef(0)
   const dribbleBlend = useRef(0) // 0 = held still, 1 = dribbling
+
+  // Jump state
+  const prevSpace = useRef(false)
 
   // DOM refs for throw meter — updated imperatively in useFrame (no re-renders)
   const meterEl = useRef<HTMLDivElement | null>(null)
@@ -86,7 +96,25 @@ export function PlayerController() {
     ref.current.setLinvel({ x: direction.x, y: currentVelocity.y, z: direction.z }, true)
 
     const pos = ref.current.translation()
-    state.camera.position.set(pos.x, pos.y + 0.8, pos.z)
+    state.camera.position.set(pos.x, pos.y + 0.83, pos.z)
+
+    // --- Jump ---
+    const spacePressed = keys.current.Space
+    const ray = new rapier.Ray({ x: pos.x, y: pos.y, z: pos.z }, { x: 0, y: -1, z: 0 })
+    const hit = world.castRay(ray, GROUND_RAY_LEN, true)
+    const isGrounded = !!hit && hit.timeOfImpact <= GROUND_RAY_LEN
+
+    if (spacePressed && !prevSpace.current && isGrounded) {
+      ref.current.setLinvel({ x: currentVelocity.x, y: JUMP_VELOCITY, z: currentVelocity.z }, true)
+    } else if (!spacePressed && prevSpace.current) {
+      // Early release — cut upward velocity for a short hop
+      const vy = ref.current.linvel().y
+      if (vy > 0) {
+        const v = ref.current.linvel()
+        ref.current.setLinvel({ x: v.x, y: vy * JUMP_CUT_MULT, z: v.z }, true)
+      }
+    }
+    prevSpace.current = spacePressed
 
     // --- Basketball pick-up (E key) ---
     const ePressed = keys.current.KeyE

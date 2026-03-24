@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 export const useKeyboard = () => {
   const keys = useRef<{ [key: string]: boolean }>({
     KeyW: false, KeyA: false, KeyS: false, KeyD: false,
-    KeyE: false, KeyQ: false,
+    KeyE: false, KeyQ: false, Space: false,
   })
 
   useEffect(() => {
