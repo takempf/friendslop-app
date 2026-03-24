@@ -4,6 +4,8 @@ import { DebugPanel } from './DebugPanel'
 import { audioManager } from '../audio/AudioManager'
 import { getPlayerColor } from '../utils/colors'
 
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
 export function UIOverlay() {
   const { sync, chatMessages, connectedPeers, audioBlocked, myId, myName } = useGameSync()
   const [chatInput, setChatInput] = useState('')
@@ -94,7 +96,8 @@ export function UIOverlay() {
       </div>
 
       {/* Audio Debug HUD */}
-      <div className="bg-black/40 p-3 rounded-md text-white border border-zinc-800">
+      {isLocalhost && (
+        <div className="bg-black/40 p-3 rounded-md text-white border border-zinc-800">
          <div className="text-xs font-bold mb-2 text-gray-300">AUDIO DEBUG (Press B)</div>
          <div className="flex flex-col gap-3 text-xs">
            <div className="flex flex-col gap-1">
@@ -137,8 +140,9 @@ export function UIOverlay() {
            </div>
          </div>
       </div>
+      )}
 
-      <DebugPanel />
+      {isLocalhost && <DebugPanel />}
 
       {/* Chat */}
       <div className="flex-1 min-h-[200px] bg-black/40 rounded-md flex flex-col border border-zinc-800">
