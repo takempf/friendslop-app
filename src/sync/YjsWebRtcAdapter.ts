@@ -42,12 +42,10 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   public async connect(roomName: string, localStream?: MediaStream): Promise<void> {
     if (this.provider) return;
-    // To deploy to production with Vercel and PartyKit:
-    // 1. Run `npx partykit deploy` and follow the prompts (creates a free Cloudflare/PartyKit account).
-    // 2. Replace the URL below with your production domain:
-    const signalingServerUrl = import.meta.env.DEV 
+    const partykitHost = import.meta.env.VITE_PARTYKIT_HOST;
+    const signalingServerUrl = import.meta.env.DEV || !partykitHost
       ? `wss://${window.location.host}/party/y-webrtc-signaling`
-      : 'wss://friendslop-app.YOUR_USERNAME_HERE.partykit.dev/party/y-webrtc-signaling';
+      : `wss://${partykitHost}/party/y-webrtc-signaling`;
 
     this.provider = new WebrtcProvider(roomName, this.doc, {
       signaling: [signalingServerUrl],
