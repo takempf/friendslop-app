@@ -146,14 +146,12 @@ export function BasketballHoop() {
         />
       </mesh>
 
-      {scored && (
-        <pointLight
-          position={[0, boardY + 0.535 + 0.06, BOARD_Z]}
-          color="#00ff44"
-          intensity={8}
-          distance={5}
-        />
-      )}
+      <pointLight
+        position={[0, boardY + 0.535 + 0.06, BOARD_Z]}
+        color="#00ff44"
+        intensity={scored ? 8 : 0}
+        distance={5}
+      />
 
       {/* Main spotlight to highlight the goal area */}
       <spotLight
