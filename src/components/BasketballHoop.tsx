@@ -108,7 +108,7 @@ export function BasketballHoop() {
       </RigidBody>
 
       {/* Target rectangle painted on backboard (visual only) */}
-      <mesh position={[0, 3.22, BOARD_FRONT_FACE_Z - 0.003]}>
+      <mesh position={[0, RIM_Y + 0.225, BOARD_FRONT_FACE_Z - 0.003]}>
         <boxGeometry args={[0.59, 0.45, 0.005]} />
         <meshStandardMaterial color="#ff4400" wireframe />
       </mesh>
