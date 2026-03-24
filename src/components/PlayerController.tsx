@@ -7,7 +7,7 @@ import { useKeyboard } from '../hooks/useKeyboard'
 import { useGameSync } from '../sync/GameSyncProvider'
 import { audioManager } from '../audio/AudioManager'
 import { useBasketball } from '../contexts/BasketballContext'
-import { BALL_RADIUS } from './BasketballHoop'
+import { BALL_RADIUS } from '../constants/basketball'
 import { debugConfig } from '../debug/config'
 
 // Group layout: 0 = environment, 1 = player, 2 = balls

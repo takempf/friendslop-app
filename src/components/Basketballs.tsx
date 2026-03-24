@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { RigidBody, BallCollider, interactionGroups } from '@react-three/rapier'
 import type { RapierRigidBody } from '@react-three/rapier'
 import { useBasketball } from '../contexts/BasketballContext'
-import { BALL_RADIUS } from './BasketballHoop'
+import { BALL_RADIUS } from '../constants/basketball'
 
 // Group layout:  0 = environment, 1 = player, 2 = balls
 // Balls never interact with the player (group 1), only environment & each other

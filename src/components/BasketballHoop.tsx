@@ -4,21 +4,16 @@ import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 import { useBasketball } from '../contexts/BasketballContext'
 import { debugConfig } from '../debug/config'
-
-// Backboard geometry constants
-const BOARD_Z = 9.1
-const BOARD_THICKNESS = 0.075
-const BOARD_FRONT_FACE_Z = BOARD_Z - BOARD_THICKNESS / 2  // 9.0625
-
-// 10 feet = 3.048m
-const RIM_Y = 3.048
-// Interior radius of standard NBA rim: 9 inches = 0.2286m
-export const RIM_RADIUS = 0.2286
-// Standard basketball radius: ~4.7 inches = 0.12m
-export const BALL_RADIUS = 0.12
-
-// Rim center: back edge of torus flush with backboard front face
-export const HOOP_RIM_POS = new THREE.Vector3(0, RIM_Y, BOARD_FRONT_FACE_Z - RIM_RADIUS)
+import { BasketballNet } from './BasketballNet'
+import {
+  BOARD_Z,
+  BOARD_THICKNESS,
+  BOARD_FRONT_FACE_Z,
+  RIM_Y,
+  RIM_RADIUS,
+  BALL_RADIUS,
+  HOOP_RIM_POS
+} from '../constants/basketball'
 
 export function BasketballHoop() {
   const { ballRefs } = useBasketball()
@@ -132,11 +127,8 @@ export function BasketballHoop() {
         </mesh>
       </RigidBody>
 
-      {/* Net — tapered open cylinder hanging below rim (visual + matches funnel zone) */}
-      <mesh position={[HOOP_RIM_POS.x, RIM_Y - 0.225, HOOP_RIM_POS.z]}>
-        <cylinderGeometry args={[RIM_RADIUS, 0.05, 0.45, 16, 4, true]} />
-        <meshStandardMaterial color="white" wireframe side={THREE.DoubleSide} />
-      </mesh>
+      {/* Net — visually simulated spring net with ball drag physics */}
+      <BasketballNet position={[HOOP_RIM_POS.x, RIM_Y, HOOP_RIM_POS.z]} />
 
       {/* Support pole from backboard base to floor (visual only) */}
       <mesh position={[0, (boardY - 0.535) / 2, BOARD_Z + 0.04]}>
