@@ -50,6 +50,10 @@ export function PlayerController() {
   const qPressTime = useRef(0)
   const throwCharge = useRef(0)
 
+  // Dribble state
+  const dribbleTime = useRef(0)
+  const dribbleBlend = useRef(0) // 0 = held still, 1 = dribbling
+
   // DOM refs for throw meter — updated imperatively in useFrame (no re-renders)
   const meterEl = useRef<HTMLDivElement | null>(null)
   const meterFillEl = useRef<HTMLDivElement | null>(null)
@@ -65,7 +69,7 @@ export function PlayerController() {
     meterLabelEl.current = document.getElementById('throw-meter-label') as HTMLDivElement
   }, [])
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!ref.current) return
 
     // --- Movement ---
@@ -173,16 +177,40 @@ export function PlayerController() {
     }
     prevQ.current = qPressed
 
-    // --- Update held ball position (in front of camera) ---
+    // --- Update held ball position (hold still or dribble) ---
     if (heldBallRef.current !== -1) {
       const ball = ballRefs.current[heldBallRef.current]
       if (ball) {
+        const isMoving = Math.abs(direction.x) > 0.1 || Math.abs(direction.z) > 0.1
+        const targetBlend = isMoving ? 1 : 0
+        dribbleBlend.current += (targetBlend - dribbleBlend.current) * Math.min(delta * 8, 1)
+
         _forward.set(0, 0, -1).applyEuler(state.camera.rotation)
+        _right.set(1, 0, 0).applyEuler(state.camera.rotation)
+
+        // Hold position: slightly in front of camera
         _holdPos
           .copy(state.camera.position)
           .addScaledVector(_forward, BALL_RADIUS * 2 + 0.55)
-        // Kinematic position update — no physics fighting
-        ball.setNextKinematicTranslation({ x: _holdPos.x, y: _holdPos.y - 0.15, z: _holdPos.z })
+        const holdX = _holdPos.x
+        const holdY = _holdPos.y - 0.15
+        const holdZ = _holdPos.z
+
+        // Dribble position: to the right side, bouncing on the floor
+        if (isMoving) dribbleTime.current += delta * Math.PI * 2.2
+        const bounceT = Math.pow(Math.abs(Math.sin(dribbleTime.current)), 0.4)
+        const floorY = pos.y - 1 + BALL_RADIUS
+        const hipY = holdY
+        const dribbleX = state.camera.position.x + _right.x * 0.3 + _forward.x * 0.6
+        const dribbleY = floorY + (hipY - floorY) * bounceT
+        const dribbleZ = state.camera.position.z + _right.z * 0.3 + _forward.z * 0.6
+
+        const b = dribbleBlend.current
+        ball.setNextKinematicTranslation({
+          x: holdX + (dribbleX - holdX) * b,
+          y: holdY + (dribbleY - holdY) * b,
+          z: holdZ + (dribbleZ - holdZ) * b,
+        })
       }
     }
 
