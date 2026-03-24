@@ -130,12 +130,6 @@ export function BasketballHoop() {
       {/* Net — visually simulated spring net with ball drag physics */}
       <BasketballNet position={[HOOP_RIM_POS.x, RIM_Y, HOOP_RIM_POS.z]} />
 
-      {/* Support pole from backboard base to floor (visual only) */}
-      <mesh position={[0, (boardY - 0.535) / 2, BOARD_Z + 0.04]}>
-        <boxGeometry args={[0.08, boardY - 0.535, 0.08]} />
-        <meshLambertMaterial color="#888888" />
-      </mesh>
-
       {/* Scoring indicator light on top of backboard */}
       <mesh position={[0, boardY + 0.535 + 0.06, BOARD_Z]}>
         <boxGeometry args={[0.5, 0.12, 0.12]} />
