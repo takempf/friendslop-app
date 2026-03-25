@@ -24,6 +24,64 @@ const vert = /* glsl */ `
   }
 `;
 
+// FXAA antialiasing pass — applied to the raw game render before dithering.
+// Uses the classic Timothy Lottes FXAA algorithm (simplified 3.11 variant).
+const fragAA = /* glsl */ `
+  precision highp float;
+
+  uniform sampler2D tAA;
+  uniform vec2 texelSize;
+  varying vec2 vUv;
+
+  const float FXAA_SPAN_MAX   = 8.0;
+  const float FXAA_REDUCE_MUL = 1.0 / 8.0;
+  const float FXAA_REDUCE_MIN = 1.0 / 128.0;
+  const vec3  LUMA            = vec3(0.299, 0.587, 0.114);
+
+  void main() {
+    vec3 rgbNW = texture2D(tAA, vUv + vec2(-1.0, -1.0) * texelSize).rgb;
+    vec3 rgbNE = texture2D(tAA, vUv + vec2( 1.0, -1.0) * texelSize).rgb;
+    vec3 rgbSW = texture2D(tAA, vUv + vec2(-1.0,  1.0) * texelSize).rgb;
+    vec3 rgbSE = texture2D(tAA, vUv + vec2( 1.0,  1.0) * texelSize).rgb;
+    vec3 rgbM  = texture2D(tAA, vUv).rgb;
+
+    float lumaNW = dot(rgbNW, LUMA);
+    float lumaNE = dot(rgbNE, LUMA);
+    float lumaSW = dot(rgbSW, LUMA);
+    float lumaSE = dot(rgbSE, LUMA);
+    float lumaM  = dot(rgbM,  LUMA);
+
+    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+
+    vec2 dir;
+    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+
+    float dirReduce = max(
+      (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL),
+      FXAA_REDUCE_MIN
+    );
+    float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+    dir = min(vec2(FXAA_SPAN_MAX), max(vec2(-FXAA_SPAN_MAX), dir * rcpDirMin)) * texelSize;
+
+    vec3 rgbA = 0.5 * (
+      texture2D(tAA, vUv + dir * (1.0 / 3.0 - 0.5)).rgb +
+      texture2D(tAA, vUv + dir * (2.0 / 3.0 - 0.5)).rgb
+    );
+    vec3 rgbB = rgbA * 0.5 + 0.25 * (
+      texture2D(tAA, vUv + dir * -0.5).rgb +
+      texture2D(tAA, vUv + dir *  0.5).rgb
+    );
+
+    float lumaB = dot(rgbB, LUMA);
+    gl_FragColor = vec4(
+      (lumaB < lumaMin || lumaB > lumaMax) ? rgbA : rgbB,
+      1.0
+    );
+  }
+`;
+
 // Dithering pass — runs at 640p so gl_FragCoord.xy are exact game-pixel integers.
 //
 // Replicates the PS1 GPU dithering pipeline:
@@ -200,16 +258,32 @@ export function CRTRenderer() {
 
   const crtRef = useRef<{
     gameTarget: WebGLRenderTarget;
+    aaTarget: WebGLRenderTarget;
     ditherTarget: WebGLRenderTarget;
+    aaMat: ShaderMaterial;
     ditherMat: ShaderMaterial;
     mat: ShaderMaterial;
     crtScene: Scene;
+    aaScene: Scene;
     ditherScene: Scene;
     crtCamera: OrthographicCamera;
   } | null>(null);
 
   if (crtRef.current == null) {
     const w0 = Math.round(TARGET_HEIGHT * (16 / 9));
+
+    const aaMat = new ShaderMaterial({
+      vertexShader: vert,
+      fragmentShader: fragAA,
+      uniforms: {
+        tAA: { value: null },
+        texelSize: { value: [1 / w0, 1 / TARGET_HEIGHT] },
+      },
+      depthTest: false,
+      depthWrite: false,
+    });
+    const aaScene = new Scene();
+    aaScene.add(new Mesh(new PlaneGeometry(2, 2), aaMat));
 
     const ditherMat = new ShaderMaterial({
       vertexShader: vert,
@@ -226,7 +300,7 @@ export function CRTRenderer() {
       fragmentShader: frag,
       uniforms: {
         tDiffuse: { value: null },
-        scanlineIntensity: { value: 0.33 },
+        scanlineIntensity: { value: 0.5 },
         scanlineCount: { value: 320.0 },
         time: { value: 0.0 },
         yOffset: { value: 0.0 },
@@ -252,10 +326,16 @@ export function CRTRenderer() {
         minFilter: NearestFilter,
         magFilter: NearestFilter,
       }),
+      aaTarget: new WebGLRenderTarget(w0, TARGET_HEIGHT, {
+        minFilter: LinearFilter,
+        magFilter: LinearFilter,
+      }),
       ditherTarget: new WebGLRenderTarget(w0, TARGET_HEIGHT, {
         minFilter: LinearFilter,
         magFilter: LinearFilter,
       }),
+      aaMat,
+      aaScene,
       ditherMat,
       mat,
       crtScene,
@@ -266,9 +346,22 @@ export function CRTRenderer() {
 
   useEffect(
     () => () => {
-      const { gameTarget, ditherTarget, ditherMat, mat, crtScene, ditherScene } = crtRef.current!;
+      const {
+        gameTarget,
+        aaTarget,
+        ditherTarget,
+        aaMat,
+        ditherMat,
+        mat,
+        crtScene,
+        aaScene,
+        ditherScene,
+      } = crtRef.current!;
       gameTarget.dispose();
+      aaTarget.dispose();
       ditherTarget.dispose();
+      (aaScene.children[0] as Mesh).geometry.dispose();
+      aaMat.dispose();
       (ditherScene.children[0] as Mesh).geometry.dispose();
       ditherMat.dispose();
       (crtScene.children[0] as Mesh).geometry.dispose();
@@ -280,7 +373,8 @@ export function CRTRenderer() {
   useFrame((_, delta) => {
     timeRef.current += delta;
 
-    const { ditherMat, mat, crtScene, ditherScene, crtCamera } = crtRef.current!;
+    const { aaMat, ditherMat, mat, crtScene, aaScene, ditherScene, crtCamera } =
+      crtRef.current!;
 
     // Rebuild render targets if aspect ratio or smoothing filter changes
     const aspect = gl.domElement.width / gl.domElement.height;
@@ -295,13 +389,19 @@ export function CRTRenderer() {
         minFilter: filter,
         magFilter: filter,
       });
+      crtRef.current!.aaTarget.dispose();
+      crtRef.current!.aaTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
+        minFilter: LinearFilter,
+        magFilter: LinearFilter,
+      });
       crtRef.current!.ditherTarget.dispose();
       crtRef.current!.ditherTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
         minFilter: LinearFilter,
         magFilter: LinearFilter,
       });
+      aaMat.uniforms.texelSize.value = [1 / w, 1 / TARGET_HEIGHT];
     }
-    const { gameTarget, ditherTarget } = crtRef.current!;
+    const { gameTarget, aaTarget, ditherTarget } = crtRef.current!;
 
     if (!debugConfig.crtEnabled) {
       // Bypass: render scene directly to canvas at native resolution
@@ -314,12 +414,17 @@ export function CRTRenderer() {
     gl.setRenderTarget(gameTarget);
     gl.render(scene, camera);
 
-    // Pass 2 — dither the game render to 64 colours, still at 640p
-    ditherMat.uniforms.tGame.value = gameTarget.texture;
+    // Pass 2 — FXAA on the raw game render, still at 640p
+    aaMat.uniforms.tAA.value = gameTarget.texture;
+    gl.setRenderTarget(aaTarget);
+    gl.render(aaScene, crtCamera);
+
+    // Pass 3 — dither the AA'd game render to 64 colours, still at 640p
+    ditherMat.uniforms.tGame.value = aaTarget.texture;
     gl.setRenderTarget(ditherTarget);
     gl.render(ditherScene, crtCamera);
 
-    // Pass 3 — CRT shader at display resolution → canvas
+    // Pass 4 — CRT shader at display resolution → canvas
     mat.uniforms.tDiffuse.value = ditherTarget.texture;
     mat.uniforms.time.value = timeRef.current;
     gl.setRenderTarget(null);
