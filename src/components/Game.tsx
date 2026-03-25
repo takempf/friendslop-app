@@ -7,18 +7,25 @@ import { PlayerController } from './PlayerController'
 import { RemotePlayers } from './RemotePlayers'
 import { BasketballProvider } from '../contexts/BasketballContext'
 import { BasketballSync } from './BasketballSync'
-import { debugConfig } from '../debug/config'
 
-function RenderScaleManager() {
-  const gl = useThree(state => state.gl)
-  
+const TARGET_HEIGHT = 640
+
+function PixelRenderer() {
+  const { gl, size } = useThree()
+
+  useEffect(() => {
+    gl.domElement.style.imageRendering = 'pixelated'
+  }, [gl])
+
   useFrame(() => {
-    const baseDpr = Math.min(window.devicePixelRatio, 1.5)
-    const desiredRatio = baseDpr * debugConfig.renderScale
-    if (gl.getPixelRatio() !== desiredRatio) {
-      gl.setPixelRatio(desiredRatio)
+    const aspect = size.width / size.height
+    const w = Math.round(TARGET_HEIGHT * aspect)
+    const h = TARGET_HEIGHT
+    if (gl.domElement.width !== w || gl.domElement.height !== h) {
+      gl.setSize(w, h, false)
     }
   })
+
   return null
 }
 
@@ -36,7 +43,8 @@ export function Game() {
       <Canvas
         shadows
         camera={{ position: [0, 2, 0], fov: 75 }}
-        dpr={Math.min(window.devicePixelRatio, 1.5)}
+        dpr={1}
+        gl={{ antialias: false }}
       >
         <BasketballProvider>
           <Physics gravity={[0, -9.81, 0]}>
@@ -46,7 +54,7 @@ export function Game() {
             <BasketballSync />
           </Physics>
         </BasketballProvider>
-        <RenderScaleManager />
+        <PixelRenderer />
         <Stats className="!absolute !bottom-0 !left-0 !top-auto !right-auto" />
       </Canvas>
 
