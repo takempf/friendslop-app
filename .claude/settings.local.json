@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const pkg = require\\(''@react-three/postprocessing''\\); console.log\\(Object.keys\\(pkg\\).join\\('', ''\\)\\)\")",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "WebFetch(domain:gingerbeardman.github.io)"
+    ]
+  }
+}

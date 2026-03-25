@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { Stats } from '@react-three/drei'
 import { Physics } from '@react-three/rapier'
 import { SchoolEnvironment } from './SchoolEnvironment'
@@ -7,27 +7,7 @@ import { PlayerController } from './PlayerController'
 import { RemotePlayers } from './RemotePlayers'
 import { BasketballProvider } from '../contexts/BasketballContext'
 import { BasketballSync } from './BasketballSync'
-
-const TARGET_HEIGHT = 640
-
-function PixelRenderer() {
-  const { gl, size } = useThree()
-
-  useEffect(() => {
-    gl.domElement.style.imageRendering = 'pixelated'
-  }, [gl])
-
-  useFrame(() => {
-    const aspect = size.width / size.height
-    const w = Math.round(TARGET_HEIGHT * aspect)
-    const h = TARGET_HEIGHT
-    if (gl.domElement.width !== w || gl.domElement.height !== h) {
-      gl.setSize(w, h, false)
-    }
-  })
-
-  return null
-}
+import { CRTRenderer } from './CRTRenderer'
 
 export function Game() {
   const [locked, setLocked] = useState(false)
@@ -43,8 +23,6 @@ export function Game() {
       <Canvas
         shadows
         camera={{ position: [0, 2, 0], fov: 75 }}
-        dpr={1}
-        gl={{ antialias: false }}
       >
         <BasketballProvider>
           <Physics gravity={[0, -9.81, 0]}>
@@ -54,7 +32,7 @@ export function Game() {
             <BasketballSync />
           </Physics>
         </BasketballProvider>
-        <PixelRenderer />
+        <CRTRenderer />
         <Stats className="!absolute !bottom-0 !left-0 !top-auto !right-auto" />
       </Canvas>
 

@@ -26,6 +26,24 @@ export function DebugPanel() {
     <div className="bg-black/40 p-3 rounded-md text-white border border-zinc-800 font-mono text-xs">
       <div className="text-xs font-bold mb-2 text-gray-300 font-sans">PHYSICS DEBUG</div>
       <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400 font-semibold">CRT Filter</span>
+          <button
+            onClick={() => { debugConfig.crtEnabled = !debugConfig.crtEnabled; tick(n => n + 1) }}
+            className={`px-2 py-0.5 rounded text-xs font-bold ${debugConfig.crtEnabled ? 'bg-yellow-300 text-black' : 'bg-zinc-700 text-gray-400'}`}
+          >
+            {debugConfig.crtEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400 font-semibold">CRT Smoothing</span>
+          <button
+            onClick={() => { debugConfig.crtSmoothing = !debugConfig.crtSmoothing; tick(n => n + 1) }}
+            className={`px-2 py-0.5 rounded text-xs font-bold ${debugConfig.crtSmoothing ? 'bg-yellow-300 text-black' : 'bg-zinc-700 text-gray-400'}`}
+          >
+            {debugConfig.crtSmoothing ? 'ON' : 'OFF'}
+          </button>
+        </div>
         {PARAMS.map(({ key, label, min, max, step }) => (
           <div key={key}>
             <div className="flex justify-between mb-1">
