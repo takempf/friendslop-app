@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "party": "partykit dev",
-    "validate": "tsc --noEmit && eslint . && prettier --check ."
+    "validate": "tsc -b --noEmit && eslint . && prettier --check ."
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

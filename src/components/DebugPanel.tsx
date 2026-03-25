@@ -2,9 +2,12 @@ import { useState } from "react";
 import { debugConfig } from "../debug/config";
 
 type ConfigKey = keyof typeof debugConfig;
+type NumericConfigKey = {
+  [K in ConfigKey]: (typeof debugConfig)[K] extends number ? K : never;
+}[ConfigKey];
 
 const PARAMS: {
-  key: ConfigKey;
+  key: NumericConfigKey;
   label: string;
   min: number;
   max: number;
@@ -59,7 +62,7 @@ const PARAMS: {
 export function DebugPanel() {
   const [, tick] = useState(0);
 
-  const update = (key: ConfigKey, value: number) => {
+  const update = (key: NumericConfigKey, value: number) => {
     // eslint-disable-next-line react-hooks/immutability
     debugConfig[key] = value;
     tick((n) => n + 1);

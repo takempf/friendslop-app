@@ -7,7 +7,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:cdn.jsdelivr.net)",
-      "WebFetch(domain:gingerbeardman.github.io)"
+      "WebFetch(domain:gingerbeardman.github.io)",
+      "Bash(npm run:*)"
     ]
   }
 }
