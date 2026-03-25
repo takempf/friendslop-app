@@ -24,6 +24,47 @@ const vert = /* glsl */ `
   }
 `;
 
+// Dithering pass — runs at 640p so gl_FragCoord.xy are exact game-pixel integers.
+//
+// Replicates the PS1 GPU dithering pipeline:
+//   1. Convert linear light → gamma (PS1 processed raw CRT-destined 8-bit values)
+//   2. Add the exact 4×4 hardware dither offset (range [-4, 3]) to the 8-bit value
+//   3. Clamp to [0, 255] and truncate to 5-bit (>> 3) → RGB555, 32 levels/channel
+//   4. Convert back to linear so the CRT shader's gamma correction fires once normally
+const fragDither = /* glsl */ `
+  precision highp float;
+
+  uniform sampler2D tGame;
+  varying vec2 vUv;
+
+  // PS1 hardware dither matrix — offsets added to 8-bit colour before 5-bit truncation.
+  // Source: No$PSX GPU documentation / PSYDEV SDK dither table.
+  float ps1Offset(vec2 pos) {
+    ivec2 p = ivec2(pos) & ivec2(3);
+    int m[16] = int[16](
+      -4,  0, -3,  1,
+       2, -2,  3, -1,
+      -3,  1, -4,  0,
+       3, -1,  2, -2
+    );
+    return float(m[p.y * 4 + p.x]);
+  }
+
+  void main() {
+    vec3 lin = texture2D(tGame, vUv).rgb;
+
+    // Linear → gamma (PS1 worked in gamma-encoded 8-bit space)
+    vec3 g = pow(max(lin, vec3(0.0)), vec3(1.0 / 2.2));
+
+    // Add PS1 dither offset in 8-bit space, clamp, truncate to 5-bit, normalise
+    float offset = ps1Offset(gl_FragCoord.xy);
+    vec3 rgb555 = floor(clamp(g * 255.0 + offset, 0.0, 255.0) / 8.0) / 31.0;
+
+    // Back to linear for the CRT shader
+    gl_FragColor = vec4(pow(rgb555, vec3(2.2)), 1.0);
+  }
+`;
+
 // Fragment shader from https://github.com/gingerbeardman/webgl-crt-shader/
 // PI renamed → CRT_PI to avoid collision with any Three.js preamble #define.
 // curvature and vignetteStrength are set to 0 by default (per project preference).
@@ -158,13 +199,28 @@ export function CRTRenderer() {
   const timeRef = useRef(0);
 
   const crtRef = useRef<{
-    target: WebGLRenderTarget;
+    gameTarget: WebGLRenderTarget;
+    ditherTarget: WebGLRenderTarget;
+    ditherMat: ShaderMaterial;
     mat: ShaderMaterial;
     crtScene: Scene;
+    ditherScene: Scene;
     crtCamera: OrthographicCamera;
   } | null>(null);
 
   if (crtRef.current == null) {
+    const w0 = Math.round(TARGET_HEIGHT * (16 / 9));
+
+    const ditherMat = new ShaderMaterial({
+      vertexShader: vert,
+      fragmentShader: fragDither,
+      uniforms: { tGame: { value: null } },
+      depthTest: false,
+      depthWrite: false,
+    });
+    const ditherScene = new Scene();
+    ditherScene.add(new Mesh(new PlaneGeometry(2, 2), ditherMat));
+
     const mat = new ShaderMaterial({
       vertexShader: vert,
       fragmentShader: frag,
@@ -190,22 +246,31 @@ export function CRTRenderer() {
     });
     const crtScene = new Scene();
     crtScene.add(new Mesh(new PlaneGeometry(2, 2), mat));
+
     crtRef.current = {
-      target: new WebGLRenderTarget(
-        Math.round(TARGET_HEIGHT * (16 / 9)),
-        TARGET_HEIGHT,
-        { minFilter: NearestFilter, magFilter: NearestFilter },
-      ),
+      gameTarget: new WebGLRenderTarget(w0, TARGET_HEIGHT, {
+        minFilter: NearestFilter,
+        magFilter: NearestFilter,
+      }),
+      ditherTarget: new WebGLRenderTarget(w0, TARGET_HEIGHT, {
+        minFilter: LinearFilter,
+        magFilter: LinearFilter,
+      }),
+      ditherMat,
       mat,
       crtScene,
+      ditherScene,
       crtCamera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
     };
   }
 
   useEffect(
     () => () => {
-      const { target, mat, crtScene } = crtRef.current!;
-      target.dispose();
+      const { gameTarget, ditherTarget, ditherMat, mat, crtScene, ditherScene } = crtRef.current!;
+      gameTarget.dispose();
+      ditherTarget.dispose();
+      (ditherScene.children[0] as Mesh).geometry.dispose();
+      ditherMat.dispose();
       (crtScene.children[0] as Mesh).geometry.dispose();
       mat.dispose();
     },
@@ -215,23 +280,28 @@ export function CRTRenderer() {
   useFrame((_, delta) => {
     timeRef.current += delta;
 
-    const { mat, crtScene, crtCamera } = crtRef.current!;
+    const { ditherMat, mat, crtScene, ditherScene, crtCamera } = crtRef.current!;
 
-    // Rebuild render target if aspect ratio or smoothing filter changes
+    // Rebuild render targets if aspect ratio or smoothing filter changes
     const aspect = gl.domElement.width / gl.domElement.height;
     const w = Math.round(TARGET_HEIGHT * aspect);
     const filter = debugConfig.crtSmoothing ? LinearFilter : NearestFilter;
     if (
-      crtRef.current!.target.width !== w ||
-      crtRef.current!.target.texture.magFilter !== filter
+      crtRef.current!.gameTarget.width !== w ||
+      crtRef.current!.gameTarget.texture.magFilter !== filter
     ) {
-      crtRef.current!.target.dispose();
-      crtRef.current!.target = new WebGLRenderTarget(w, TARGET_HEIGHT, {
+      crtRef.current!.gameTarget.dispose();
+      crtRef.current!.gameTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
         minFilter: filter,
         magFilter: filter,
       });
+      crtRef.current!.ditherTarget.dispose();
+      crtRef.current!.ditherTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
+        minFilter: LinearFilter,
+        magFilter: LinearFilter,
+      });
     }
-    const target = crtRef.current!.target;
+    const { gameTarget, ditherTarget } = crtRef.current!;
 
     if (!debugConfig.crtEnabled) {
       // Bypass: render scene directly to canvas at native resolution
@@ -240,12 +310,17 @@ export function CRTRenderer() {
       return;
     }
 
-    // Pass 1 — render game scene into 640p target
-    gl.setRenderTarget(target);
+    // Pass 1 — render game scene into 640p target (full colour)
+    gl.setRenderTarget(gameTarget);
     gl.render(scene, camera);
 
-    // Pass 2 — CRT shader at display resolution → canvas
-    mat.uniforms.tDiffuse.value = target.texture;
+    // Pass 2 — dither the game render to 64 colours, still at 640p
+    ditherMat.uniforms.tGame.value = gameTarget.texture;
+    gl.setRenderTarget(ditherTarget);
+    gl.render(ditherScene, crtCamera);
+
+    // Pass 3 — CRT shader at display resolution → canvas
+    mat.uniforms.tDiffuse.value = ditherTarget.texture;
     mat.uniforms.time.value = timeRef.current;
     gl.setRenderTarget(null);
     gl.render(crtScene, crtCamera);

@@ -10,7 +10,8 @@
       "WebFetch(domain:gingerbeardman.github.io)",
       "Bash(npm run:*)",
       "Bash(grep -E \"\\\\.tsx?$\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep -r \"devicePixelRatio\\\\|dpr\\\\|drawImage\" /z/repos/friendslop-app/src --include=*.ts --include=*.tsx)"
     ]
   }
 }
