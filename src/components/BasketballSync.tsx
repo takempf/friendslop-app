@@ -1,85 +1,102 @@
-import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { useRapier } from '@react-three/rapier'
-import { useBasketball } from '../contexts/BasketballContext'
-import { useGameSync } from '../sync/GameSyncProvider'
-import type { RemoteBallState } from '../sync/IGameSync'
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useRapier } from "@react-three/rapier";
+import { useBasketball } from "../contexts/BasketballContext";
+import { useGameSync } from "../sync/GameSyncProvider";
+import type { RemoteBallState } from "../sync/IGameSync";
 
-const SYNC_INTERVAL_MS = 33   // ~30Hz broadcast rate
-const SETTLE_TICKS = 60       // stop broadcasting after 60 ticks (~2s) of stillness
-const SETTLE_SPEED_SQ = 0.05 * 0.05 // squared threshold for speed + angspeed
+const SYNC_INTERVAL_MS = 33; // ~30Hz broadcast rate
+const SETTLE_TICKS = 60; // stop broadcasting after 60 ticks (~2s) of stillness
+const SETTLE_SPEED_SQ = 0.05 * 0.05; // squared threshold for speed + angspeed
 
 export function BasketballSync() {
-  const { rapier } = useRapier()
-  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions } = useBasketball()
-  const { sync, remoteBallStates } = useGameSync()
-  const lastBroadcastTime = useRef(0)
-  const settleCounters = useRef<Map<number, number>>(new Map())
+  const { rapier } = useRapier();
+  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions } =
+    useBasketball();
+  const { sync, remoteBallStates } = useGameSync();
+  const lastBroadcastTime = useRef(0);
+  const settleCounters = useRef<Map<number, number>>(new Map());
 
   useFrame(() => {
     // --- Apply remote ball states every frame ---
     remoteBallStates.current.forEach((state, ballId) => {
-      const ball = ballRefs.current[ballId]
-      if (!ball) return
-      const remoteOwnerVersion = state.ownerVersion || 0
-      const localOwnerVersion = ballOwnerVersions.current.get(ballId) || 0
+      const ball = ballRefs.current[ballId];
+      if (!ball) return;
+      const remoteOwnerVersion = state.ownerVersion || 0;
+      const localOwnerVersion = ballOwnerVersions.current.get(ballId) || 0;
 
       // Surrender logic for steals
       if (remoteOwnerVersion > localOwnerVersion) {
         if (heldBallRef.current === ballId) {
-          heldBallRef.current = -1
+          heldBallRef.current = -1;
         }
-        ownedBallIds.current.delete(ballId)
-        ballOwnerVersions.current.set(ballId, remoteOwnerVersion)
+        ownedBallIds.current.delete(ballId);
+        ballOwnerVersions.current.set(ballId, remoteOwnerVersion);
       } else {
         // Never override a ball we're holding or currently own (threw/dropped)
         // Also clear any stale remote state so it doesn't snap back when we let go
         if (heldBallRef.current === ballId) {
-          remoteBallStates.current.delete(ballId)
-          return
+          remoteBallStates.current.delete(ballId);
+          return;
         }
         if (ownedBallIds.current.has(ballId)) {
-          remoteBallStates.current.delete(ballId)
-          return
+          remoteBallStates.current.delete(ballId);
+          return;
         }
       }
 
       if (state.held) {
         // Remote player is holding this ball — kinematic so it follows them smoothly
         if (ball.bodyType() !== rapier.RigidBodyType.KinematicPositionBased) {
-          ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true)
+          ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
         }
-        ball.setNextKinematicTranslation({ x: state.pos[0], y: state.pos[1], z: state.pos[2] })
+        ball.setNextKinematicTranslation({
+          x: state.pos[0],
+          y: state.pos[1],
+          z: state.pos[2],
+        });
       } else {
         // Ball is in flight or at rest — dynamic physics driven by owner's state
         if (ball.bodyType() !== rapier.RigidBodyType.Dynamic) {
-          ball.setBodyType(rapier.RigidBodyType.Dynamic, false)
-          ball.setGravityScale(1, false)
+          ball.setBodyType(rapier.RigidBodyType.Dynamic, false);
+          ball.setGravityScale(1, false);
         }
-        ball.setTranslation({ x: state.pos[0], y: state.pos[1], z: state.pos[2] }, true)
-        ball.setLinvel({ x: state.vel[0], y: state.vel[1], z: state.vel[2] }, true)
-        ball.setAngvel({ x: state.angvel[0], y: state.angvel[1], z: state.angvel[2] }, true)
+        ball.setTranslation(
+          { x: state.pos[0], y: state.pos[1], z: state.pos[2] },
+          true,
+        );
+        ball.setLinvel(
+          { x: state.vel[0], y: state.vel[1], z: state.vel[2] },
+          true,
+        );
+        ball.setAngvel(
+          { x: state.angvel[0], y: state.angvel[1], z: state.angvel[2] },
+          true,
+        );
       }
-    })
+    });
 
     // --- Broadcast owned ball states at 30Hz ---
-    const now = performance.now()
-    if (now - lastBroadcastTime.current < SYNC_INTERVAL_MS) return
-    lastBroadcastTime.current = now
+    const now = performance.now();
+    if (now - lastBroadcastTime.current < SYNC_INTERVAL_MS) return;
+    lastBroadcastTime.current = now;
 
-    if (!sync || ownedBallIds.current.size === 0) return
+    if (!sync || ownedBallIds.current.size === 0) return;
 
-    const ballStates: Record<number, RemoteBallState> = {}
-    const toRemove: number[] = []
+    const ballStates: Record<number, RemoteBallState> = {};
+    const toRemove: number[] = [];
 
-    ownedBallIds.current.forEach(ballId => {
-      const ball = ballRefs.current[ballId]
-      if (!ball) { toRemove.push(ballId); return }
+    ownedBallIds.current.forEach((ballId) => {
+      const ball = ballRefs.current[ballId];
+      if (!ball) {
+        toRemove.push(ballId);
+        return;
+      }
 
-      const pos = ball.translation()
-      const vel = ball.linvel()
-      const angvel = ball.angvel()
-      const isHeld = heldBallRef.current === ballId
+      const pos = ball.translation();
+      const vel = ball.linvel();
+      const angvel = ball.angvel();
+      const isHeld = heldBallRef.current === ballId;
 
       ballStates[ballId] = {
         pos: [pos.x, pos.y, pos.z],
@@ -87,32 +104,32 @@ export function BasketballSync() {
         angvel: [angvel.x, angvel.y, angvel.z],
         held: isHeld || undefined,
         ownerVersion: ballOwnerVersions.current.get(ballId) || 0,
-      }
+      };
 
       // Settle detection: stop broadcasting once ball is still for SETTLE_TICKS ticks
       if (!isHeld) {
-        const speedSq = vel.x ** 2 + vel.y ** 2 + vel.z ** 2
-        const angSpeedSq = angvel.x ** 2 + angvel.y ** 2 + angvel.z ** 2
+        const speedSq = vel.x ** 2 + vel.y ** 2 + vel.z ** 2;
+        const angSpeedSq = angvel.x ** 2 + angvel.y ** 2 + angvel.z ** 2;
         if (speedSq < SETTLE_SPEED_SQ && angSpeedSq < SETTLE_SPEED_SQ) {
-          const count = (settleCounters.current.get(ballId) ?? 0) + 1
-          settleCounters.current.set(ballId, count)
+          const count = (settleCounters.current.get(ballId) ?? 0) + 1;
+          settleCounters.current.set(ballId, count);
           if (count >= SETTLE_TICKS) {
-            toRemove.push(ballId)
-            settleCounters.current.delete(ballId)
+            toRemove.push(ballId);
+            settleCounters.current.delete(ballId);
           }
         } else {
-          settleCounters.current.delete(ballId)
+          settleCounters.current.delete(ballId);
         }
       }
-    })
+    });
 
-    toRemove.forEach(id => {
-      ownedBallIds.current.delete(id)
-      remoteBallStates.current.delete(id)
-    })
+    toRemove.forEach((id) => {
+      ownedBallIds.current.delete(id);
+      remoteBallStates.current.delete(id);
+    });
 
-    sync.updateMyPresence({ ballStates })
-  })
+    sync.updateMyPresence({ ballStates });
+  });
 
-  return null
+  return null;
 }

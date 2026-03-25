@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
-import * as THREE from 'three'
-import { useBasketball } from '../contexts/BasketballContext'
-import { debugConfig } from '../debug/config'
-import { BasketballNet } from './BasketballNet'
+import { useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+import { RigidBody, type RapierRigidBody } from "@react-three/rapier";
+import * as THREE from "three";
+import { useBasketball } from "../contexts/BasketballContext";
+import { debugConfig } from "../debug/config";
+import { BasketballNet } from "./BasketballNet";
 import {
   BOARD_Z,
   BOARD_THICKNESS,
@@ -12,84 +12,101 @@ import {
   RIM_Y,
   RIM_RADIUS,
   BALL_RADIUS,
-  HOOP_RIM_POS
-} from '../constants/basketball'
+  HOOP_RIM_POS,
+} from "../constants/basketball";
 
 export function BasketballHoop() {
-  const { ballRefs } = useBasketball()
-  const [scored, setScored] = useState(false)
-  const scoredTimer = useRef(0)
-  const prevBallY = useRef<number[]>([-999, -999, -999, -999])
+  const { ballRefs } = useBasketball();
+  const [scored, setScored] = useState(false);
+  const scoredTimer = useRef(0);
+  const prevBallY = useRef<number[]>([-999, -999, -999, -999]);
 
   // Create a static target for the spotlight to point at the hoop rim
   const [lightTarget] = useState(() => {
-    const obj = new THREE.Object3D()
-    obj.position.set(0, HOOP_RIM_POS.y, HOOP_RIM_POS.z)
-    return obj
-  })
+    const obj = new THREE.Object3D();
+    obj.position.set(0, HOOP_RIM_POS.y, HOOP_RIM_POS.z);
+    return obj;
+  });
 
   // Refs for live restitution updates via Rapier API
-  const backboardRbRef = useRef<RapierRigidBody>(null)
-  const rimRbRef = useRef<RapierRigidBody>(null)
-  const prevBackboardRest = useRef(debugConfig.backboardRestitution)
-  const prevRimRest = useRef(debugConfig.rimRestitution)
+  const backboardRbRef = useRef<RapierRigidBody>(null);
+  const rimRbRef = useRef<RapierRigidBody>(null);
+  const prevBackboardRest = useRef(debugConfig.backboardRestitution);
+  const prevRimRest = useRef(debugConfig.rimRestitution);
 
   useFrame((_, delta) => {
     // Tick scored timer
     if (scored) {
-      scoredTimer.current += delta
+      scoredTimer.current += delta;
       if (scoredTimer.current >= 3) {
-        setScored(false)
-        scoredTimer.current = 0
+        setScored(false);
+        scoredTimer.current = 0;
       }
     }
 
     // Live restitution update: poll for debug config changes and push to Rapier colliders
-    if (backboardRbRef.current && debugConfig.backboardRestitution !== prevBackboardRest.current) {
-      prevBackboardRest.current = debugConfig.backboardRestitution
-      const n = backboardRbRef.current.numColliders()
-      for (let i = 0; i < n; i++) backboardRbRef.current.collider(i).setRestitution(debugConfig.backboardRestitution)
+    if (
+      backboardRbRef.current &&
+      debugConfig.backboardRestitution !== prevBackboardRest.current
+    ) {
+      prevBackboardRest.current = debugConfig.backboardRestitution;
+      const n = backboardRbRef.current.numColliders();
+      for (let i = 0; i < n; i++)
+        backboardRbRef.current
+          .collider(i)
+          .setRestitution(debugConfig.backboardRestitution);
     }
-    if (rimRbRef.current && debugConfig.rimRestitution !== prevRimRest.current) {
-      prevRimRest.current = debugConfig.rimRestitution
-      const n = rimRbRef.current.numColliders()
-      for (let i = 0; i < n; i++) rimRbRef.current.collider(i).setRestitution(debugConfig.rimRestitution)
+    if (
+      rimRbRef.current &&
+      debugConfig.rimRestitution !== prevRimRest.current
+    ) {
+      prevRimRest.current = debugConfig.rimRestitution;
+      const n = rimRbRef.current.numColliders();
+      for (let i = 0; i < n; i++)
+        rimRbRef.current.collider(i).setRestitution(debugConfig.rimRestitution);
     }
 
     ballRefs.current.forEach((ballRef, i) => {
-      if (!ballRef) return
-      const pos = ballRef.translation()
-      const vel = ballRef.linvel()
+      if (!ballRef) return;
+      const pos = ballRef.translation();
+      const vel = ballRef.linvel();
 
       // Net funnel: strictly below rim, width matches the net cylinder
       if (vel.y < 0 && pos.y < RIM_Y && pos.y >= RIM_Y - 0.45) {
-        const dx = pos.x - HOOP_RIM_POS.x
-        const dz = pos.z - HOOP_RIM_POS.z
-        const dist = Math.sqrt(dx * dx + dz * dz)
+        const dx = pos.x - HOOP_RIM_POS.x;
+        const dz = pos.z - HOOP_RIM_POS.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < RIM_RADIUS * 1.15 && dist > 0.01) {
-          ballRef.applyImpulse({ x: -dx * debugConfig.funnelStrength, y: 0, z: -dz * debugConfig.funnelStrength }, true)
+          ballRef.applyImpulse(
+            {
+              x: -dx * debugConfig.funnelStrength,
+              y: 0,
+              z: -dz * debugConfig.funnelStrength,
+            },
+            true,
+          );
         }
       }
 
       // Scoring detection
       if (!scored) {
-        const prev = prevBallY.current[i]
+        const prev = prevBallY.current[i];
         if (prev > HOOP_RIM_POS.y && pos.y <= HOOP_RIM_POS.y) {
-          const dx = pos.x - HOOP_RIM_POS.x
-          const dz = pos.z - HOOP_RIM_POS.z
-          const dist = Math.sqrt(dx * dx + dz * dz)
+          const dx = pos.x - HOOP_RIM_POS.x;
+          const dz = pos.z - HOOP_RIM_POS.z;
+          const dist = Math.sqrt(dx * dx + dz * dz);
           if (dist < RIM_RADIUS - BALL_RADIUS + 0.08) {
-            setScored(true)
-            scoredTimer.current = 0
+            setScored(true);
+            scoredTimer.current = 0;
           }
         }
       }
 
-      prevBallY.current[i] = pos.y
-    })
-  })
+      prevBallY.current[i] = pos.y;
+    });
+  });
 
-  const boardY = 3.45
+  const boardY = 3.45;
 
   return (
     <>
@@ -123,7 +140,11 @@ export function BasketballHoop() {
       >
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <torusGeometry args={[RIM_RADIUS, 0.025, 8, 32]} />
-          <meshStandardMaterial color="#e63900" metalness={0.8} roughness={0.3} />
+          <meshStandardMaterial
+            color="#e63900"
+            metalness={0.8}
+            roughness={0.3}
+          />
         </mesh>
       </RigidBody>
 
@@ -134,8 +155,8 @@ export function BasketballHoop() {
       <mesh position={[0, boardY + 0.535 + 0.06, BOARD_Z]}>
         <boxGeometry args={[0.5, 0.12, 0.12]} />
         <meshStandardMaterial
-          color={scored ? '#00ff44' : '#1a1a1a'}
-          emissive={scored ? '#00ff44' : '#000000'}
+          color={scored ? "#00ff44" : "#1a1a1a"}
+          emissive={scored ? "#00ff44" : "#000000"}
           emissiveIntensity={scored ? 3 : 0}
         />
       </mesh>
@@ -158,5 +179,5 @@ export function BasketballHoop() {
       />
       <primitive object={lightTarget} />
     </>
-  )
+  );
 }

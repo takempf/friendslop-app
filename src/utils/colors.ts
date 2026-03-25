@@ -4,7 +4,20 @@ export function getPlayerColor(clientId: number): string {
   return `hsl(${hue}, 80%, 60%)`;
 }
 
-const EMOJIS = ['😀', '😅', '😂', '😎', '🤓', '🤠', '🥳', '🥸', '🥺', '😳', '🤔', '🤫'];
+const EMOJIS = [
+  "😀",
+  "😅",
+  "😂",
+  "😎",
+  "🤓",
+  "🤠",
+  "🥳",
+  "🥸",
+  "🥺",
+  "😳",
+  "🤔",
+  "🤫",
+];
 
 export function getPlayerEmoji(clientId: number): string {
   return EMOJIS[clientId % 12];

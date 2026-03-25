@@ -10,8 +10,6 @@ import {
   Mesh,
   PlaneGeometry,
   ShaderMaterial,
-  Vector2,
-  Uniform,
 } from "three";
 
 const TARGET_HEIGHT = 640;

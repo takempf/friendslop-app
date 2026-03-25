@@ -27,7 +27,9 @@ export default class YWebrtcSignalingServer implements PartyServer {
   }
 
   onMessage(message: string | ArrayBuffer, conn: PartyConnection) {
-    let parsed: { type?: string; topics?: string[]; topic?: string; clients?: number } | undefined;
+    let parsed:
+      | { type?: string; topics?: string[]; topic?: string; clients?: number }
+      | undefined;
     try {
       if (typeof message === "string") {
         parsed = JSON.parse(message);

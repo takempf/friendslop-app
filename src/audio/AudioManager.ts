@@ -4,7 +4,7 @@ function createMockIR(ctx: AudioContext, duration: number, decay: number) {
   const sampleRate = ctx.sampleRate;
   const length = sampleRate * duration;
   const impulse = ctx.createBuffer(2, length, sampleRate);
-  
+
   for (let i = 0; i < 2; i++) {
     const channel = impulse.getChannelData(i);
     for (let j = 0; j < length; j++) {
@@ -16,11 +16,11 @@ function createMockIR(ctx: AudioContext, duration: number, decay: number) {
 
 export class AudioManager {
   private ctx: AudioContext | null = null;
-  
+
   // Reverb nodes
   private convolverGym: ConvolverNode | null = null;
   private convolverRoom: ConvolverNode | null = null;
-  
+
   // Gain nodes for crossfading reverb environments
   // Gains
   private gainGym: GainNode | null = null;
@@ -36,24 +36,27 @@ export class AudioManager {
   private localStream: MediaStream | null = null;
 
   // Remote player audio graph: clientId -> nodes
-  private remotePeers = new Map<number, {
-    source: MediaStreamAudioSourceNode;
-    panner: PannerNode;
-    filter: BiquadFilterNode;
-    analyser: AnalyserNode;
-    dataArray: Uint8Array;
-    audioEl: HTMLAudioElement; // Fix for Chrome bug 933677
-  }>();
+  private remotePeers = new Map<
+    number,
+    {
+      source: MediaStreamAudioSourceNode;
+      panner: PannerNode;
+      filter: BiquadFilterNode;
+      analyser: AnalyserNode;
+      dataArray: Uint8Array;
+      audioEl: HTMLAudioElement; // Fix for Chrome bug 933677
+    }
+  >();
 
   public async init() {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') {
+      if (this.ctx.state === "suspended") {
         await this.ctx.resume();
       }
       return;
     }
     this.ctx = new AudioContext();
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx.state === "suspended") {
       await this.ctx.resume();
     }
 
@@ -64,7 +67,7 @@ export class AudioManager {
     // Create convolvers for Reverb (Acoustics)
     this.convolverGym = this.ctx.createConvolver();
     this.convolverGym.buffer = createMockIR(this.ctx, 3.0, 2.0); // large space
-    
+
     this.convolverRoom = this.ctx.createConvolver();
     this.convolverRoom.buffer = createMockIR(this.ctx, 1.0, 5.0); // small space
 
@@ -75,15 +78,15 @@ export class AudioManager {
 
     this.convolverGym.connect(this.gainGym);
     this.convolverRoom.connect(this.gainRoom);
-    
+
     this.gainGym.connect(this.analyserOut);
     this.gainRoom.connect(this.analyserOut);
     this.dryGain.connect(this.analyserOut);
-    
+
     this.analyserOut.connect(this.ctx.destination);
 
     // Default to gym acoustics
-    this.setRoom('gym');
+    this.setRoom("gym");
   }
 
   public async getLocalStream(deviceId?: string): Promise<MediaStream> {
@@ -93,32 +96,32 @@ export class AudioManager {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: true,
-        ...(deviceId ? { deviceId: { exact: deviceId } } : {})
-      }
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+      },
     });
 
     this.localStream = stream;
 
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') {
+      if (this.ctx.state === "suspended") {
         await this.ctx.resume();
       }
       this.micSource = this.ctx.createMediaStreamSource(stream);
-      
+
       // Manual "Automatic Gain Control" (AGC) circuit
       this.micGain = this.ctx.createGain();
       this.micGain.gain.value = 5.0; // Boost raw mic input by 5x (very helpful on quiet Macs)
-      
+
       const compressor = this.ctx.createDynamicsCompressor();
       // Web Audio applies default compression (threshold: -24, ratio: 12) which acts cleanly as a limiter
-      
+
       this.micSource.connect(this.micGain);
       this.micGain.connect(compressor);
 
       this.analyserMic = this.ctx.createAnalyser();
       this.analyserMic.fftSize = 256;
       this.micDataArray = new Uint8Array(this.analyserMic.frequencyBinCount);
-      
+
       // Connect compressor to local analyser meter
       compressor.connect(this.analyserMic);
 
@@ -139,8 +142,10 @@ export class AudioManager {
     // Attempting to ask for permission so device labels are not blank, if not already granted.
     try {
       if (!this.localStream) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(t => t.stop()); // close immediately, just unlocking permissions
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        stream.getTracks().forEach((t) => t.stop()); // close immediately, just unlocking permissions
       }
     } catch {
       // User blocked or no mic available
@@ -150,10 +155,10 @@ export class AudioManager {
 
   public async setInputDevice(deviceId: string) {
     if (!this.ctx || !this.micGain) return;
-    
+
     // Stop old tracks (turns off old hardware recording light)
     if (this.localStream) {
-      this.localStream.getTracks().forEach(t => t.stop());
+      this.localStream.getTracks().forEach((t) => t.stop());
     }
 
     // Get new stream
@@ -162,8 +167,8 @@ export class AudioManager {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: true,
-        deviceId: { exact: deviceId }
-      }
+        deviceId: { exact: deviceId },
+      },
     });
     this.localStream = stream;
 
@@ -180,14 +185,16 @@ export class AudioManager {
 
   public async setOutputDevice(deviceId: string) {
     if (!this.ctx) return;
-    
+
     // Route Spatial Audio context to chosen speaker (standard in modern browsers)
     // @ts-expect-error - setSinkId might not be correctly typed in standard DOM lib yet
-    if (typeof this.ctx.setSinkId === 'function') {
+    if (typeof this.ctx.setSinkId === "function") {
       // @ts-expect-error - setSinkId is relatively new and often missing from standard DOM types
       await this.ctx.setSinkId(deviceId);
     } else {
-      console.warn("AudioContext.setSinkId not supported in this browser. Output routing is unavailable.");
+      console.warn(
+        "AudioContext.setSinkId not supported in this browser. Output routing is unavailable.",
+      );
     }
   }
 
@@ -223,18 +230,18 @@ export class AudioManager {
   public playTestSound() {
     if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.value = 440 + Math.random() * 200; // random beep
     const gain = this.ctx.createGain();
-    
+
     osc.connect(gain);
     gain.connect(this.dryGain!); // Test sound output to dry gain directly
-    
+
     const now = this.ctx.currentTime;
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-    
+
     osc.start(now);
     osc.stop(now + 0.6);
   }
@@ -262,11 +269,11 @@ export class AudioManager {
     return volumes;
   }
 
-  public setRoom(roomName: 'gym' | 'classroom') {
+  public setRoom(roomName: "gym" | "classroom") {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    
-    if (roomName === 'gym') {
+
+    if (roomName === "gym") {
       this.gainGym!.gain.setTargetAtTime(0.6, now, 0.5);
       this.gainRoom!.gain.setTargetAtTime(0, now, 0.5);
       this.dryGain!.gain.setTargetAtTime(0.6, now, 0.5);
@@ -279,7 +286,7 @@ export class AudioManager {
 
   public addRemoteStream(clientId: number, stream: MediaStream) {
     if (!this.ctx) return;
-    
+
     // Prevent duplicated adds or self-loop
     if (this.remotePeers.has(clientId)) return;
 
@@ -287,14 +294,14 @@ export class AudioManager {
     // Actually we shouldn't receive our own stream via WebRTC if configured correctly.
 
     const source = this.ctx.createMediaStreamSource(stream);
-    
+
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
+    filter.type = "lowpass";
     filter.frequency.value = 20000; // Unmuffled by default
 
     const panner = this.ctx.createPanner();
-    panner.panningModel = 'HRTF';
-    panner.distanceModel = 'linear'; // Easier to hear from far away
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "linear"; // Easier to hear from far away
     panner.refDistance = 2; // Full volume up to 2 units
     panner.maxDistance = 50; // Drops to 0 only at 50 units
     panner.rolloffFactor = 1;
@@ -320,7 +327,14 @@ export class AudioManager {
       analyser.connect(this.analyserOut);
     }
 
-    this.remotePeers.set(clientId, { source, panner, filter, analyser, dataArray, audioEl });
+    this.remotePeers.set(clientId, {
+      source,
+      panner,
+      filter,
+      analyser,
+      dataArray,
+      audioEl,
+    });
   }
 
   public removeRemoteStream(clientId: number) {
@@ -333,30 +347,56 @@ export class AudioManager {
     }
   }
 
-  public updateListener(position: [number, number, number], forward: [number, number, number], up: [number, number, number]) {
+  public updateListener(
+    position: [number, number, number],
+    forward: [number, number, number],
+    up: [number, number, number],
+  ) {
     if (!this.ctx) return;
     const listener = this.ctx.listener;
-    
+
     // Check if listener properties are AudioParams (newer API) or methods
     if (listener.positionX) {
-      listener.positionX.setTargetAtTime(position[0], this.ctx.currentTime, 0.1);
-      listener.positionY.setTargetAtTime(position[1], this.ctx.currentTime, 0.1);
-      listener.positionZ.setTargetAtTime(position[2], this.ctx.currentTime, 0.1);
-      
+      listener.positionX.setTargetAtTime(
+        position[0],
+        this.ctx.currentTime,
+        0.1,
+      );
+      listener.positionY.setTargetAtTime(
+        position[1],
+        this.ctx.currentTime,
+        0.1,
+      );
+      listener.positionZ.setTargetAtTime(
+        position[2],
+        this.ctx.currentTime,
+        0.1,
+      );
+
       listener.forwardX.setTargetAtTime(forward[0], this.ctx.currentTime, 0.1);
       listener.forwardY.setTargetAtTime(forward[1], this.ctx.currentTime, 0.1);
       listener.forwardZ.setTargetAtTime(forward[2], this.ctx.currentTime, 0.1);
-      
+
       listener.upX.setTargetAtTime(up[0], this.ctx.currentTime, 0.1);
       listener.upY.setTargetAtTime(up[1], this.ctx.currentTime, 0.1);
       listener.upZ.setTargetAtTime(up[2], this.ctx.currentTime, 0.1);
     } else {
       listener.setPosition(position[0], position[1], position[2]);
-      listener.setOrientation(forward[0], forward[1], forward[2], up[0], up[1], up[2]);
+      listener.setOrientation(
+        forward[0],
+        forward[1],
+        forward[2],
+        up[0],
+        up[1],
+        up[2],
+      );
     }
   }
 
-  public updateRemotePlayer(clientId: number, position: [number, number, number]) {
+  public updateRemotePlayer(
+    clientId: number,
+    position: [number, number, number],
+  ) {
     if (!this.ctx) return;
     const peer = this.remotePeers.get(clientId);
     if (!peer) return;
@@ -378,7 +418,11 @@ export class AudioManager {
 
     // Apply low-pass filter if occluded (muffles sound through walls)
     const targetFreq = isOccluded ? 800 : 20000;
-    peer.filter.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
+    peer.filter.frequency.setTargetAtTime(
+      targetFreq,
+      this.ctx.currentTime,
+      0.1,
+    );
   }
 }
 

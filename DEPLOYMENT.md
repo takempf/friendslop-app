@@ -1,6 +1,7 @@
 # Deploying Friendslop 3D
 
 This application consists of two main parts that need to be deployed:
+
 1. **The Backend (PartyKit)**: Handles WebRTC signaling for multiplayer and chat.
 2. **The Frontend (Vite/React)**: The 3D game client.
 
@@ -14,7 +15,7 @@ The backend is powered by [PartyKit](https://docs.partykit.io/), which runs on C
    npx partykit deploy
    ```
 3. The CLI will prompt you to log in via GitHub and create a free PartyKit account.
-4. Once deployed, PartyKit will output your production URL. 
+4. Once deployed, PartyKit will output your production URL.
    It usually looks like: `friendslop-app.<your-github-username>.partykit.dev`
 5. Save this URL, as you will need it for the frontend configuration.
 
@@ -34,23 +35,27 @@ Now that your backend is live, you need to tell the frontend where to connect wh
 Because the frontend is a static Vite application, you can deploy it to any static hosting provider like Vercel, Netlify, GitHub Pages, or Cloudflare Pages.
 
 ### General Settings for Any Host
+
 - **Build Command**: `npm run build`
 - **Output Directory**: `dist`
 - **Node Version**: 18.x or higher
 
 ### Option A: Deploying to Vercel (Recommended)
+
 1. Install the Vercel CLI: `npm i -g vercel` (or deploy via the Vercel website by connecting your GitHub repo).
 2. Run the `vercel` command in your project root.
 3. Follow the prompts to set up and deploy the project. Accept the default settings for Vite (build command: `npm run build`, output dir: `dist`).
 4. Once finished, run `vercel --prod` to deploy to production.
 
 ### Option B: Deploying to Netlify
+
 1. Connect your GitHub repository to Netlify via their web dashboard.
 2. Set the build command to `npm run build` and output directory to `dist`.
 3. Click "Deploy Site".
 4. (Optional) If you have routing issues, you may need a `_redirects` file in your `public` folder with `/* /index.html 200`.
 
 ### Option C: Deploying to Cloudflare Pages
+
 1. Connect your GitHub repository to Cloudflare Pages via their dashboard.
 2. Select "React (Vite)" as the framework preset.
 3. The build command will automatically be `npm run build` and the output directory `dist`.

@@ -1,7 +1,7 @@
-import { Effect } from 'postprocessing'
-import { Uniform, Vector2, WebGLRenderer, WebGLRenderTarget } from 'three'
+import { Effect } from "postprocessing";
+import { Uniform, Vector2, WebGLRenderer, WebGLRenderTarget } from "three";
 
-const TARGET_HEIGHT = 640
+const TARGET_HEIGHT = 640;
 
 const fragmentShader = /* glsl */ `
   uniform vec2 uResolution; // always 640p dimensions, regardless of output size
@@ -34,27 +34,37 @@ const fragmentShader = /* glsl */ `
 
     outputColor = vec4(clamp(col, 0.0, 1.0), 1.0);
   }
-`
+`;
 
 export class CRTEffect extends Effect {
-  private _size = new Vector2()
+  private _size = new Vector2();
 
   constructor() {
-    super('CRTEffect', fragmentShader, {
+    super("CRTEffect", fragmentShader, {
       uniforms: new Map<string, Uniform>([
-        ['uResolution', new Uniform(new Vector2(TARGET_HEIGHT * (16 / 9), TARGET_HEIGHT))],
+        [
+          "uResolution",
+          new Uniform(new Vector2(TARGET_HEIGHT * (16 / 9), TARGET_HEIGHT)),
+        ],
       ]),
-    })
+    });
   }
 
-  update(renderer: WebGLRenderer, _inputBuffer: WebGLRenderTarget, _deltaTime: number) {
+  // These params are required by the parent Effect.update() signature
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  update(
+    renderer: WebGLRenderer,
+    _inputBuffer: WebGLRenderTarget,
+    _deltaTime?: number,
+  ) {
+    /* eslint-enable @typescript-eslint/no-unused-vars */
     // Always use 640p dimensions — not the actual output resolution — so that
     // scanline and mask frequencies stay locked to render pixels, not display pixels.
-    renderer.getSize(this._size)
-    const aspect = this._size.x / this._size.y
-    ;(this.uniforms.get('uResolution')!.value as Vector2).set(
+    renderer.getSize(this._size);
+    const aspect = this._size.x / this._size.y;
+    (this.uniforms.get("uResolution")!.value as Vector2).set(
       Math.round(TARGET_HEIGHT * aspect),
       TARGET_HEIGHT,
-    )
+    );
   }
 }

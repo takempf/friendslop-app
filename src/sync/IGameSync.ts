@@ -31,8 +31,15 @@ export interface IGameSync {
 
   onPlayerJoin: (clientId: number, state: PlayerState) => void;
   onPlayerLeave: (clientId: number) => void;
-  onPlayerMove: (clientId: number, position: [number, number, number], rotation: [number, number, number]) => void;
-  onBallStatesReceived: (ownerId: number, states: Record<number, RemoteBallState>) => void;
+  onPlayerMove: (
+    clientId: number,
+    position: [number, number, number],
+    rotation: [number, number, number],
+  ) => void;
+  onBallStatesReceived: (
+    ownerId: number,
+    states: Record<number, RemoteBallState>,
+  ) => void;
 
   onPlayerStream: (clientId: number, stream: MediaStream) => void;
   onPlayerStreamRemove: (clientId: number) => void;
