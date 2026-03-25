@@ -14,4 +14,24 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks: (id: string) => {
+          if (id.includes("/three/")) return "vendor-three";
+          if (
+            id.includes("@react-three/") ||
+            id.includes("/postprocessing/")
+          )
+            return "vendor-r3f";
+          if (
+            id.includes("/yjs/") ||
+            id.includes("/y-webrtc/") ||
+            id.includes("/partykit/")
+          )
+            return "vendor-sync";
+        },
+      },
+    },
+  },
 });

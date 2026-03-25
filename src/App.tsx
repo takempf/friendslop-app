@@ -1,14 +1,16 @@
+import { useState, useRef } from "react";
 import { Game } from "./components/Game";
 import { GameSyncProvider } from "./sync/GameSyncProvider";
 import { UIOverlay } from "./components/UIOverlay";
-import { useState } from "react";
 import { audioManager } from "./audio/AudioManager";
 
 function App() {
   const [started, setStarted] = useState(false);
+  const startingRef = useRef(false);
 
   const handleStart = async () => {
-    if (started) return;
+    if (started || startingRef.current) return;
+    startingRef.current = true;
     await audioManager.init();
     setStarted(true);
   };
