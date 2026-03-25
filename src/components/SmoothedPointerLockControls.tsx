@@ -1,23 +1,29 @@
 import { useEffect, useRef } from 'react'
+import React from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 interface Props {
   selector?: string
   sensitivity?: number
+  leanRef?: React.RefObject<number>
 }
 
-export function SmoothedPointerLockControls({ 
-  selector = '#game-container', 
-  sensitivity = 0.002
+export function SmoothedPointerLockControls({
+  selector = '#game-container',
+  sensitivity = 0.002,
+  leanRef,
 }: Props) {
   const { camera, gl } = useThree()
-  
+
   // Reusable Euler instance
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
-  
+
   // Accumulate raw mouse deltas to apply perfectly synchronously in useFrame
   const mouseDelta = useRef({ x: 0, y: 0 })
+
+  // Track previous lean to detect changes even when mouse is still
+  const prevLean = useRef(0)
 
   useEffect(() => {
     const el = document.querySelector(selector) as HTMLElement | null
@@ -66,19 +72,27 @@ export function SmoothedPointerLockControls({
 
   // Process mouse input EXACTLY once per rendering frame in the game loop
   useFrame(() => {
-    if (mouseDelta.current.x === 0 && mouseDelta.current.y === 0) return
-    
+    const leanAngle = leanRef?.current ?? 0
+    const hasMouse = mouseDelta.current.x !== 0 || mouseDelta.current.y !== 0
+    const leanChanged = leanAngle !== prevLean.current
+
+    if (!hasMouse && !leanChanged) return
+
     const PI_2 = Math.PI / 2
     euler.current.setFromQuaternion(camera.quaternion)
-    
+
     euler.current.y -= mouseDelta.current.x * sensitivity
     euler.current.x -= mouseDelta.current.y * sensitivity
-    
+
     // Clamp pitch to prevent looking past straight up/down
     euler.current.x = Math.max(-PI_2, Math.min(PI_2, euler.current.x))
-    
+
+    // Apply camera lean (roll) from strafing
+    euler.current.z = leanAngle
+    prevLean.current = leanAngle
+
     camera.quaternion.setFromEuler(euler.current)
-    
+
     // Reset delta for the next frame's accumulation
     mouseDelta.current.x = 0
     mouseDelta.current.y = 0

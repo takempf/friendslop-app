@@ -58,6 +58,9 @@ export function PlayerController() {
   const qPressTime = useRef(0)
   const throwCharge = useRef(0)
 
+  // Camera lean (roll when strafing)
+  const leanRef = useRef(0)
+
   // Dribble state
   const dribbleTime = useRef(0)
   const dribbleBlend = useRef(0) // 0 = held still, 1 = dribbling
@@ -100,6 +103,12 @@ export function PlayerController() {
 
     const pos = ref.current.translation()
     state.camera.position.set(pos.x, pos.y + 0.83, pos.z)
+
+    // --- Camera lean when strafing ---
+    const MAX_LEAN = 0.035
+    const strafe = (keys.current.KeyA ? 1 : 0) - (keys.current.KeyD ? 1 : 0)
+    const targetLean = strafe * MAX_LEAN
+    leanRef.current += (targetLean - leanRef.current) * Math.min(delta * 6, 1)
 
     // --- Jump ---
     const spacePressed = keys.current.Space
@@ -297,7 +306,7 @@ export function PlayerController() {
 
   return (
     <>
-      <SmoothedPointerLockControls selector="#game-container" />
+      <SmoothedPointerLockControls selector="#game-container" leanRef={leanRef} />
       <RigidBody
         ref={ref}
         position={spawnPoint}

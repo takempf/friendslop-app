@@ -7,6 +7,12 @@ import { getPlayerColor, getPlayerEmoji } from '../utils/colors'
 import { getEmojiTexture } from '../utils/emojiTexture'
 const _targetEuler = new THREE.Euler(0, 0, 0, 'XYZ')
 const _targetQuat = new THREE.Quaternion()
+const _leanAxis = new THREE.Vector3()
+const _leanQuat = new THREE.Quaternion()
+const _toTarget = new THREE.Vector3()
+const _right = new THREE.Vector3()
+
+const MAX_PILL_LEAN = 0.05
 
 export function RemotePlayers() {
   const { getPlayers } = useGameSync()
@@ -58,6 +64,15 @@ export function RemotePlayers() {
 
       // Smoothly interpolate position and rotation
       if (state.position) {
+         // Track lateral offset to target for lean computation (before lerp)
+         _toTarget.set(...state.position).sub(mesh.position)
+         const yaw = state.rotation ? state.rotation[1] : 0
+         _right.set(1, 0, 0).applyEuler(_targetEuler.set(0, yaw, 0))
+         const lateral = _toTarget.dot(_right)
+         const targetLean = Math.max(-MAX_PILL_LEAN, Math.min(MAX_PILL_LEAN, lateral * 0.4))
+         const currentLean = (mesh.userData.leanAngle ?? 0) as number
+         mesh.userData.leanAngle = currentLean + (targetLean - currentLean) * 0.12
+
          mesh.position.lerp(new THREE.Vector3(...state.position), 0.2)
          
          // Update audio positioning
@@ -86,6 +101,16 @@ export function RemotePlayers() {
       if (state.rotation) {
          _targetEuler.set(state.rotation[0], state.rotation[1], state.rotation[2], 'XYZ')
          _targetQuat.setFromEuler(_targetEuler)
+
+         // Apply lean: tilt pill around the player's horizontal forward axis
+         const leanAngle = (mesh.userData.leanAngle ?? 0) as number
+         if (Math.abs(leanAngle) > 0.0005) {
+           const yaw = state.rotation[1]
+           _leanAxis.set(0, 0, -1).applyEuler(_targetEuler.set(0, yaw, 0))
+           _leanQuat.setFromAxisAngle(_leanAxis, leanAngle)
+           _targetQuat.premultiply(_leanQuat)
+         }
+
          mesh.quaternion.slerp(_targetQuat, 0.2)
       }
     })
