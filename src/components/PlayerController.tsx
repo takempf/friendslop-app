@@ -61,6 +61,7 @@ export function PlayerController() {
   // Dribble state
   const dribbleTime = useRef(0)
   const dribbleBlend = useRef(0) // 0 = held still, 1 = dribbling
+  const dribbleSide = useRef(1) // -1 = left, 1 = right (smoothly interpolated)
 
   // Jump state
   const prevSpace = useRef(false)
@@ -226,14 +227,24 @@ export function PlayerController() {
         const holdY = _holdPos.y - 0.15
         const holdZ = _holdPos.z
 
-        // Dribble position: to the right side, bouncing on the floor
+        // Determine dribble side: pure sidestepping (A/D without W/S) switches sides
+        const isMovingForwardBack = keys.current.KeyW || keys.current.KeyS
+        const strafingRight = keys.current.KeyD && !keys.current.KeyA && !isMovingForwardBack
+        const strafingLeft = keys.current.KeyA && !keys.current.KeyD && !isMovingForwardBack
+        let targetSide = dribbleSide.current
+        if (strafingRight) targetSide = 1
+        else if (strafingLeft) targetSide = -1
+        dribbleSide.current += (targetSide - dribbleSide.current) * Math.min(delta * 5, 1)
+
+        // Dribble position: to the side (based on dribbleSide), bouncing on the floor
         if (isMoving) dribbleTime.current += delta * Math.PI * 2.2
         const bounceT = Math.pow(Math.abs(Math.sin(dribbleTime.current)), 0.4)
         const floorY = pos.y - 1 + BALL_RADIUS
         const hipY = holdY
-        const dribbleX = state.camera.position.x + _right.x * 0.3 + _forward.x * 0.6
+        const side = dribbleSide.current
+        const dribbleX = state.camera.position.x + _right.x * 0.3 * side + _forward.x * 0.6
         const dribbleY = floorY + (hipY - floorY) * bounceT
-        const dribbleZ = state.camera.position.z + _right.z * 0.3 + _forward.z * 0.6
+        const dribbleZ = state.camera.position.z + _right.z * 0.3 * side + _forward.z * 0.6
 
         const b = dribbleBlend.current
         ball.setNextKinematicTranslation({

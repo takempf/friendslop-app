@@ -172,7 +172,7 @@ export function CRTRenderer() {
       fragmentShader: frag,
       uniforms: {
         tDiffuse: { value: null },
-        scanlineIntensity: { value: 0.2 },
+        scanlineIntensity: { value: 0.33 },
         scanlineCount: { value: 320.0 },
         time: { value: 0.0 },
         yOffset: { value: 0.0 },
@@ -182,7 +182,7 @@ export function CRTRenderer() {
         bloomIntensity: { value: 0.25 },
         bloomThreshold: { value: 0.65 },
         rgbShift: { value: 1.0 },
-        adaptiveIntensity: { value: 0.0 },  // non-zero causes slow horizontal gradient bands
+        adaptiveIntensity: { value: 0.0 }, // non-zero causes slow horizontal gradient bands
         vignetteStrength: { value: 0.0 },
         curvature: { value: 0.0 },
         flickerStrength: { value: 0.01 },
@@ -223,7 +223,10 @@ export function CRTRenderer() {
     const aspect = gl.domElement.width / gl.domElement.height;
     const w = Math.round(TARGET_HEIGHT * aspect);
     const filter = debugConfig.crtSmoothing ? LinearFilter : NearestFilter;
-    if (crtRef.current!.target.width !== w || crtRef.current!.target.texture.magFilter !== filter) {
+    if (
+      crtRef.current!.target.width !== w ||
+      crtRef.current!.target.texture.magFilter !== filter
+    ) {
       crtRef.current!.target.dispose();
       crtRef.current!.target = new WebGLRenderTarget(w, TARGET_HEIGHT, {
         minFilter: filter,
