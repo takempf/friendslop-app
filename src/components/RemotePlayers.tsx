@@ -29,7 +29,7 @@ export function RemotePlayers() {
       
       if (!mesh) {
         // Create simple avatar representation (a capsule)
-        const geometry = new THREE.CapsuleGeometry(0.3, 1, 4, 8)
+        const geometry = new THREE.CapsuleGeometry(0.3, 1.4, 4, 8)
         
         // Use 12 equidistant HSL colors deterministically assigned by clientId
         const color = new THREE.Color(getPlayerColor(id))
@@ -48,7 +48,7 @@ export function RemotePlayers() {
           depthWrite: false
         })
         const faceMesh = new THREE.Mesh(faceGeometry, faceMaterial)
-        faceMesh.position.set(0, 0.2, -0.31)
+        faceMesh.position.set(0, 0.5, -0.31)
         faceMesh.rotation.y = Math.PI
         mesh.add(faceMesh)
 
