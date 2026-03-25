@@ -213,7 +213,7 @@ export function PlayerController() {
       const ball = ballRefs.current[heldBallRef.current]
       if (ball) {
         const isMoving = Math.abs(direction.x) > 0.1 || Math.abs(direction.z) > 0.1
-        const targetBlend = isMoving ? 1 : 0
+        const targetBlend = (isMoving && !qPressed) ? 1 : 0
         dribbleBlend.current += (targetBlend - dribbleBlend.current) * Math.min(delta * 8, 1)
 
         _forward.set(0, 0, -1).applyEuler(state.camera.rotation)
@@ -237,7 +237,7 @@ export function PlayerController() {
         dribbleSide.current += (targetSide - dribbleSide.current) * Math.min(delta * 5, 1)
 
         // Dribble position: to the side (based on dribbleSide), bouncing on the floor
-        if (isMoving) dribbleTime.current += delta * Math.PI * 2.2
+        if (isMoving && !qPressed) dribbleTime.current += delta * Math.PI * 2.2
         const bounceT = Math.pow(Math.abs(Math.sin(dribbleTime.current)), 0.4)
         const floorY = pos.y - 1 + BALL_RADIUS
         const hipY = holdY
