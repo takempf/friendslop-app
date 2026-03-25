@@ -14,14 +14,23 @@ import type {
 import { YjsWebRtcAdapter } from "./YjsWebRtcAdapter";
 import { audioManager } from "../audio/AudioManager";
 
+interface ConnectedPeer {
+  id: number;
+  name: string;
+  colorIndex: number;
+  emojiIndex: number;
+}
+
 interface SyncContextType {
   sync: IGameSync | null;
   getPlayers: () => Map<number, PlayerState>;
   chatMessages: ChatMessage[];
-  connectedPeers: { id: number; name: string }[];
+  connectedPeers: ConnectedPeer[];
   audioBlocked: boolean;
   myId: number;
   myName: string;
+  myColorIndex: number;
+  myEmojiIndex: number;
   remoteBallStates: React.MutableRefObject<
     Map<number, RemoteBallState & { ownerId: number }>
   >;
@@ -35,6 +44,8 @@ const SyncContext = createContext<SyncContextType>({
   audioBlocked: false,
   myId: 0,
   myName: "Connecting...",
+  myColorIndex: 0,
+  myEmojiIndex: 0,
   remoteBallStates: { current: new Map() },
 });
 
@@ -55,10 +66,10 @@ export function GameSyncProvider({
     Map<number, RemoteBallState & { ownerId: number }>
   >(new Map());
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [connectedPeers, setConnectedPeers] = useState<
-    { id: number; name: string }[]
-  >([]);
+  const [connectedPeers, setConnectedPeers] = useState<ConnectedPeer[]>([]);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [myColorIndex, setMyColorIndex] = useState(0);
+  const [myEmojiIndex, setMyEmojiIndex] = useState(0);
 
   useEffect(() => {
     const adapter = sync;
@@ -68,6 +79,8 @@ export function GameSyncProvider({
         ([id, state]) => ({
           id,
           name: state.name || `Player ${id}`,
+          colorIndex: state.colorIndex ?? 0,
+          emojiIndex: state.emojiIndex ?? 0,
         }),
       );
       setConnectedPeers(peers);
@@ -86,6 +99,15 @@ export function GameSyncProvider({
       for (const [ballId, state] of remoteBallStates.current.entries()) {
         if (state.ownerId === id) remoteBallStates.current.delete(ballId);
       }
+    };
+
+    adapter.onPlayerUpdate = (id: number, state: PlayerState) => {
+      const existing = playersRef.current.get(id);
+      if (existing) {
+        existing.colorIndex = state.colorIndex;
+        existing.emojiIndex = state.emojiIndex;
+      }
+      updatePeersList();
     };
 
     adapter.onBallStatesReceived = (ownerId, states) => {
@@ -128,14 +150,32 @@ export function GameSyncProvider({
           localStream.getTracks().forEach((t) => t.stop());
           return;
         }
-        adapter.connect(roomName, localStream).catch(console.error);
+        adapter.connect(roomName, localStream).then(() => {
+          // Poll until our indices are set (they're assigned in a 50ms timeout)
+          const poll = setInterval(() => {
+            if (adapter.myColorIndex !== 0 || adapter.myEmojiIndex !== 0) {
+              setMyColorIndex(adapter.myColorIndex);
+              setMyEmojiIndex(adapter.myEmojiIndex);
+              clearInterval(poll);
+            } else {
+              setMyColorIndex(adapter.myColorIndex);
+              setMyEmojiIndex(adapter.myEmojiIndex);
+            }
+          }, 60);
+          setTimeout(() => clearInterval(poll), 2000);
+        }).catch(console.error);
       } catch {
         console.warn(
           "Audio Context or Mic access blocked. Connecting without mic.",
         );
         if (isCancelled) return;
         setAudioBlocked(true);
-        adapter.connect(roomName).catch(console.error);
+        adapter.connect(roomName).then(() => {
+          setTimeout(() => {
+            setMyColorIndex(adapter.myColorIndex);
+            setMyEmojiIndex(adapter.myEmojiIndex);
+          }, 100);
+        }).catch(console.error);
       }
     };
 
@@ -161,6 +201,8 @@ export function GameSyncProvider({
         audioBlocked,
         myId: sync.myId,
         myName: sync.myName,
+        myColorIndex,
+        myEmojiIndex,
         remoteBallStates,
       }}
     >

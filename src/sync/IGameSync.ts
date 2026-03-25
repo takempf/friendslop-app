@@ -2,6 +2,8 @@ export interface PlayerState {
   position?: [number, number, number];
   rotation?: [number, number, number];
   name?: string;
+  colorIndex?: number;
+  emojiIndex?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
@@ -10,6 +12,8 @@ export interface ChatMessage {
   id: string;
   senderId: number;
   senderName: string;
+  senderColorIndex: number;
+  senderEmojiIndex: number;
   text: string;
   timestamp: number;
 }
@@ -28,9 +32,12 @@ export interface IGameSync {
 
   get myId(): number;
   get myName(): string;
+  get myColorIndex(): number;
+  get myEmojiIndex(): number;
 
   onPlayerJoin: (clientId: number, state: PlayerState) => void;
   onPlayerLeave: (clientId: number) => void;
+  onPlayerUpdate: (clientId: number, state: PlayerState) => void;
   onPlayerMove: (
     clientId: number,
     position: [number, number, number],

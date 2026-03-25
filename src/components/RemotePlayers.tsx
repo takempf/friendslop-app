@@ -37,15 +37,14 @@ export function RemotePlayers() {
         // Create simple avatar representation (a capsule)
         const geometry = new THREE.CapsuleGeometry(0.3, 1.4, 4, 8);
 
-        // Use 12 equidistant HSL colors deterministically assigned by clientId
-        const color = new THREE.Color(getPlayerColor(id));
+        const color = new THREE.Color(getPlayerColor(state.colorIndex ?? 0));
 
         const material = new THREE.MeshLambertMaterial({ color });
         mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
-        const emoji = getPlayerEmoji(id);
+        const emoji = getPlayerEmoji(state.emojiIndex ?? 0);
         const emojiTexture = getEmojiTexture(emoji);
         const faceGeometry = new THREE.PlaneGeometry(0.6, 0.6);
         const faceMaterial = new THREE.MeshBasicMaterial({

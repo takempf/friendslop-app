@@ -6,6 +6,7 @@ import type {
   ChatMessage,
   RemoteBallState,
 } from "./IGameSync";
+import { COLOR_POOL, EMOJI_POOL } from "../utils/colors";
 
 export class YjsWebRtcAdapter implements IGameSync {
   private doc: Y.Doc;
@@ -15,6 +16,8 @@ export class YjsWebRtcAdapter implements IGameSync {
   public onPlayerJoin: (clientId: number, state: PlayerState) => void =
     () => {};
   public onPlayerLeave: (clientId: number) => void = () => {};
+  public onPlayerUpdate: (clientId: number, state: PlayerState) => void =
+    () => {};
   public onPlayerMove: (
     clientId: number,
     position: [number, number, number],
@@ -25,7 +28,15 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   // Track known players to detect joins and leaves reliably
   private knownPlayers: Set<number> = new Set();
+  // Track last-seen appearance per player to detect changes
+  private knownAppearances = new Map<
+    number,
+    { colorIndex?: number; emojiIndex?: number }
+  >();
   private name: string = "Player_" + Math.floor(Math.random() * 1000);
+
+  private _colorIndex: number = 0;
+  private _emojiIndex: number = 0;
 
   constructor() {
     this.doc = new Y.Doc();
@@ -52,6 +63,14 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   public get myName(): string {
     return this.name;
+  }
+
+  public get myColorIndex(): number {
+    return this._colorIndex;
+  }
+
+  public get myEmojiIndex(): number {
+    return this._emojiIndex;
   }
 
   public async connect(
@@ -115,9 +134,35 @@ export class YjsWebRtcAdapter implements IGameSync {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const room = (this.provider as any)?.room;
       const peerId = room?.peerId;
+
+      // Pick unique color and emoji indices from current awareness states
+      const states = awareness.getStates();
+      const usedColors = new Set<number>();
+      const usedEmojis = new Set<number>();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      states.forEach((state: any, clientId: number) => {
+        if (clientId === this.doc.clientID) return;
+        const ps = state?.playerState as PlayerState | undefined;
+        if (ps?.colorIndex !== undefined) usedColors.add(ps.colorIndex);
+        if (ps?.emojiIndex !== undefined) usedEmojis.add(ps.emojiIndex);
+      });
+
+      let colorIdx = 0;
+      while (usedColors.has(colorIdx) && colorIdx < COLOR_POOL.length)
+        colorIdx++;
+      let emojiIdx = 0;
+      while (usedEmojis.has(emojiIdx) && emojiIdx < EMOJI_POOL.length)
+        emojiIdx++;
+
+      this._colorIndex = colorIdx % COLOR_POOL.length;
+      this._emojiIndex = emojiIdx % EMOJI_POOL.length;
+
       awareness.setLocalStateField("playerState", {
         name: this.name,
         webrtcId: peerId,
+        colorIndex: this._colorIndex,
+        emojiIndex: this._emojiIndex,
       });
     }, 50);
 
@@ -135,6 +180,10 @@ export class YjsWebRtcAdapter implements IGameSync {
 
         if (!this.knownPlayers.has(clientId)) {
           this.knownPlayers.add(clientId);
+          this.knownAppearances.set(clientId, {
+            colorIndex: playerState.colorIndex,
+            emojiIndex: playerState.emojiIndex,
+          });
 
           if (playerState.webrtcId) {
             this.webrtcToClientId.set(playerState.webrtcId, clientId);
@@ -147,16 +196,33 @@ export class YjsWebRtcAdapter implements IGameSync {
             }
           }
           this.onPlayerJoin(clientId, playerState);
-        } else if (
-          playerState.webrtcId &&
-          !this.webrtcToClientId.has(playerState.webrtcId)
-        ) {
-          // Catch up mapping if missed
-          this.webrtcToClientId.set(playerState.webrtcId, clientId);
-          const bufferedStream = this.bufferedStreams.get(playerState.webrtcId);
-          if (bufferedStream) {
-            this.onPlayerStream(clientId, bufferedStream);
-            this.bufferedStreams.delete(playerState.webrtcId);
+        } else {
+          if (
+            playerState.webrtcId &&
+            !this.webrtcToClientId.has(playerState.webrtcId)
+          ) {
+            // Catch up mapping if missed
+            this.webrtcToClientId.set(playerState.webrtcId, clientId);
+            const bufferedStream = this.bufferedStreams.get(
+              playerState.webrtcId,
+            );
+            if (bufferedStream) {
+              this.onPlayerStream(clientId, bufferedStream);
+              this.bufferedStreams.delete(playerState.webrtcId);
+            }
+          }
+
+          // Detect appearance changes and notify
+          const known = this.knownAppearances.get(clientId);
+          if (
+            known?.colorIndex !== playerState.colorIndex ||
+            known?.emojiIndex !== playerState.emojiIndex
+          ) {
+            this.knownAppearances.set(clientId, {
+              colorIndex: playerState.colorIndex,
+              emojiIndex: playerState.emojiIndex,
+            });
+            this.onPlayerUpdate(clientId, playerState);
           }
         }
 
@@ -177,6 +243,7 @@ export class YjsWebRtcAdapter implements IGameSync {
       changes.removed.forEach((clientId: number) => {
         if (this.knownPlayers.has(clientId)) {
           this.knownPlayers.delete(clientId);
+          this.knownAppearances.delete(clientId);
           this.onPlayerLeave(clientId);
 
           for (const [
@@ -248,6 +315,8 @@ export class YjsWebRtcAdapter implements IGameSync {
       id: Math.random().toString(36).substring(7),
       senderId: this.doc.clientID,
       senderName: this.name,
+      senderColorIndex: this._colorIndex,
+      senderEmojiIndex: this._emojiIndex,
       text: msg,
       timestamp: Date.now(),
     };
@@ -277,6 +346,8 @@ export class YjsWebRtcAdapter implements IGameSync {
       ...currentState,
       ...state,
       name: this.name, // ensure name is preserved
+      colorIndex: this._colorIndex,
+      emojiIndex: this._emojiIndex,
     });
   }
 

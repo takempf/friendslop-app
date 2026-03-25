@@ -2,7 +2,7 @@ import { useGameSync } from "../sync/GameSyncProvider";
 import { useState, useEffect, useRef } from "react";
 import { DebugPanel } from "./DebugPanel";
 import { audioManager } from "../audio/AudioManager";
-import { getPlayerColor } from "../utils/colors";
+import { getPlayerColor, getPlayerEmoji } from "../utils/colors";
 
 const isLocalhost =
   typeof window !== "undefined" &&
@@ -10,8 +10,15 @@ const isLocalhost =
     window.location.hostname === "127.0.0.1");
 
 export function UIOverlay() {
-  const { sync, chatMessages, connectedPeers, audioBlocked, myId, myName } =
-    useGameSync();
+  const {
+    sync,
+    chatMessages,
+    connectedPeers,
+    audioBlocked,
+    myName,
+    myColorIndex,
+    myEmojiIndex,
+  } = useGameSync();
   const [chatInput, setChatInput] = useState("");
   const micMeterRef = useRef<HTMLProgressElement>(null);
   const peerMeterRefs = useRef<Map<number, HTMLProgressElement>>(new Map());
@@ -86,18 +93,22 @@ export function UIOverlay() {
         </h3>
         <ul className="text-xs space-y-1 max-h-40 overflow-y-auto">
           <li
-            className="font-semibold drop-shadow"
-            style={{ color: getPlayerColor(myId) }}
+            className="font-semibold drop-shadow flex items-center gap-1"
+            style={{ color: getPlayerColor(myColorIndex) }}
           >
-            {myName} (You)
+            <span>{getPlayerEmoji(myEmojiIndex)}</span>
+            <span>{myName} (You)</span>
           </li>
           {connectedPeers.map((peer) => (
             <li
               key={peer.id}
               className="flex items-center justify-between gap-2 drop-shadow"
-              style={{ color: getPlayerColor(peer.id) }}
+              style={{ color: getPlayerColor(peer.colorIndex) }}
             >
-              <span className="truncate">{peer.name}</span>
+              <span className="flex items-center gap-1 truncate">
+                <span>{getPlayerEmoji(peer.emojiIndex)}</span>
+                <span className="truncate">{peer.name}</span>
+              </span>
               <progress
                 ref={(el) => {
                   if (el) peerMeterRefs.current.set(peer.id, el);
@@ -192,9 +203,9 @@ export function UIOverlay() {
             <div key={msg.id} className="break-words">
               <span
                 className="font-bold drop-shadow"
-                style={{ color: getPlayerColor(msg.senderId) }}
+                style={{ color: getPlayerColor(msg.senderColorIndex ?? 0) }}
               >
-                {msg.senderName}:{" "}
+                {getPlayerEmoji(msg.senderEmojiIndex ?? 0)} {msg.senderName}:{" "}
               </span>
               <span className="text-gray-100">{msg.text}</span>
             </div>
