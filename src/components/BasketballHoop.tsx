@@ -3,6 +3,8 @@ import { useFrame } from "@react-three/fiber";
 import { RigidBody, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { useBasketball } from "../contexts/BasketballContext";
+import { useGameSync } from "../sync/GameSyncProvider";
+import { COLOR_POOL } from "../utils/colors";
 import { debugConfig } from "../debug/config";
 import { BasketballNet } from "./BasketballNet";
 import {
@@ -15,10 +17,23 @@ import {
   HOOP_RIM_POS,
 } from "../constants/basketball";
 
+/** Extract hue from an HSL color string like "hsl(30, 80%, 60%)" */
+function hueFromHsl(hsl: string): number {
+  const m = hsl.match(/hsl\((\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
+/** Build a vivid light color from a hue value (high saturation, medium-high lightness). */
+function lightColorFromHue(hue: number): string {
+  return `hsl(${hue}, 100%, 55%)`;
+}
+
 export function BasketballHoop() {
-  const { ballRefs } = useBasketball();
+  const { ballRefs, ownedBallIds } = useBasketball();
+  const { myColorIndex, remoteBallStates, getPlayers } = useGameSync();
   const [scored, setScored] = useState(false);
   const scoredTimer = useRef(0);
+  const [scoredColor, setScoredColor] = useState("#00ff44");
   const prevBallY = useRef<number[]>([-999, -999, -999, -999]);
 
   // Create a static target for the spotlight to point at the hoop rim
@@ -88,17 +103,29 @@ export function BasketballHoop() {
         }
       }
 
-      // Scoring detection
-      if (!scored) {
-        const prev = prevBallY.current[i];
-        if (prev > HOOP_RIM_POS.y && pos.y <= HOOP_RIM_POS.y) {
-          const dx = pos.x - HOOP_RIM_POS.x;
-          const dz = pos.z - HOOP_RIM_POS.z;
-          const dist = Math.sqrt(dx * dx + dz * dz);
-          if (dist < RIM_RADIUS - BALL_RADIUS + 0.08) {
-            setScored(true);
-            scoredTimer.current = 0;
+      // Scoring detection — always check so back-to-back shots reset the timer
+      const prev = prevBallY.current[i];
+      if (prev > HOOP_RIM_POS.y && pos.y <= HOOP_RIM_POS.y) {
+        const dx = pos.x - HOOP_RIM_POS.x;
+        const dz = pos.z - HOOP_RIM_POS.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < RIM_RADIUS - BALL_RADIUS + 0.08) {
+          // Determine scorer's color
+          let colorIdx = myColorIndex; // default to local player
+          if (!ownedBallIds.current.has(i)) {
+            // Ball is owned by a remote player
+            const remote = remoteBallStates.current.get(i);
+            if (remote) {
+              const owner = getPlayers().get(remote.ownerId);
+              if (owner?.colorIndex !== undefined) {
+                colorIdx = owner.colorIndex;
+              }
+            }
           }
+          const hue = hueFromHsl(COLOR_POOL[colorIdx % COLOR_POOL.length]);
+          setScoredColor(lightColorFromHue(hue));
+          setScored(true);
+          scoredTimer.current = 0;
         }
       }
 
@@ -155,15 +182,15 @@ export function BasketballHoop() {
       <mesh position={[0, boardY + 0.535 + 0.06, BOARD_Z]}>
         <boxGeometry args={[0.5, 0.12, 0.12]} />
         <meshStandardMaterial
-          color={scored ? "#00ff44" : "#1a1a1a"}
-          emissive={scored ? "#00ff44" : "#000000"}
+          color={scored ? scoredColor : "#1a1a1a"}
+          emissive={scored ? scoredColor : "#000000"}
           emissiveIntensity={scored ? 3 : 0}
         />
       </mesh>
 
       <pointLight
         position={[0, boardY + 0.535 + 0.06, BOARD_Z]}
-        color="#00ff44"
+        color={scoredColor}
         intensity={scored ? 8 : 0}
         distance={5}
       />
