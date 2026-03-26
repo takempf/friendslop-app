@@ -7,6 +7,7 @@ import {
   CapsuleCollider,
   useRapier,
   interactionGroups,
+  CoefficientCombineRule,
 } from "@react-three/rapier";
 import * as THREE from "three";
 import { useKeyboard } from "../hooks/useKeyboard";
@@ -158,7 +159,7 @@ export function PlayerController() {
       { x: pos.x, y: pos.y, z: pos.z },
       { x: 0, y: -1, z: 0 },
     );
-    const hit = world.castRay(ray, GROUND_RAY_LEN, true);
+    const hit = world.castRay(ray, GROUND_RAY_LEN, true, undefined, PLAYER_GROUPS);
     const isGrounded = !!hit && hit.timeOfImpact <= GROUND_RAY_LEN;
 
     if (spacePressed && !prevSpace.current && isGrounded) {
@@ -395,7 +396,7 @@ export function PlayerController() {
         type="dynamic"
         enabledRotations={[false, false, false]}
       >
-        <CapsuleCollider args={[0.5, 0.5]} collisionGroups={PLAYER_GROUPS} />
+        <CapsuleCollider args={[0.5, 0.5]} collisionGroups={PLAYER_GROUPS} restitution={0} restitutionCombineRule={CoefficientCombineRule.Min} />
       </RigidBody>
     </>
   );
