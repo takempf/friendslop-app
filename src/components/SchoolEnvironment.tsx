@@ -36,7 +36,8 @@ export function SchoolEnvironment() {
   return (
     <group>
       {/* Lights */}
-      <ambientLight intensity={0.5} />
+      {/* Hemisphere light approximates GI: sky blue from above, warm ground bounce from below */}
+      <hemisphereLight args={["#aacfee", "#7a5230", 0.6]} />
       <directionalLight
         position={SUN_POSITION}
         intensity={1.5}
