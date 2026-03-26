@@ -102,7 +102,9 @@ export function Basketballs() {
             <meshStandardMaterial map={basketballTexture} roughness={0.7} />
           </mesh>
           <mesh
-            ref={(ref) => { outlineRefs.current[i] = ref; }}
+            ref={(ref) => {
+              outlineRefs.current[i] = ref;
+            }}
             visible={false}
           >
             <sphereGeometry args={[BALL_RADIUS + 0.02, 32, 32]} />

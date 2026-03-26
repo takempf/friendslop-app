@@ -24,7 +24,13 @@ export function BasketballProvider({
 
   return (
     <BasketballContext.Provider
-      value={{ ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions, grabCandidateRef }}
+      value={{
+        ballRefs,
+        heldBallRef,
+        ownedBallIds,
+        ballOwnerVersions,
+        grabCandidateRef,
+      }}
     >
       {children}
     </BasketballContext.Provider>

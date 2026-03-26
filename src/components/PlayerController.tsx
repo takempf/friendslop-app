@@ -54,8 +54,8 @@ const SPAWN_POINTS: [number, number, number][] = Array.from(
 export function PlayerController() {
   const ref = useRef<RapierRigidBody>(null);
   const keys = useKeyboard();
-  const { sync, remoteBallStates } = useGameSync();
-  const lastSyncTime = useRef(0);
+  const { remoteBallStates, queuePresenceUpdate } = useGameSync();
+  const lastAudioSyncTime = useRef(0);
   const [spawnPoint] = useState(
     () => SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)],
   );
@@ -64,13 +64,21 @@ export function PlayerController() {
 
   // Basketball pick-up / throw state
   const { rapier, world } = useRapier();
-  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions, grabCandidateRef } =
-    useBasketball();
+  const {
+    ballRefs,
+    heldBallRef,
+    ownedBallIds,
+    ballOwnerVersions,
+    grabCandidateRef,
+  } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
   const qPressTime = useRef(0);
   const throwCharge = useRef(0);
-  const lastThrowRef = useRef<{ idx: number; time: number }>({ idx: -1, time: 0 });
+  const lastThrowRef = useRef<{ idx: number; time: number }>({
+    idx: -1,
+    time: 0,
+  });
 
   // Camera lean (roll when strafing)
   const leanRef = useRef(0);
@@ -198,7 +206,11 @@ export function PlayerController() {
       const now = performance.now();
       ballRefs.current.forEach((ballRef, i) => {
         if (!ballRef) return;
-        if (i === lastThrowRef.current.idx && now - lastThrowRef.current.time < 250) return;
+        if (
+          i === lastThrowRef.current.idx &&
+          now - lastThrowRef.current.time < 250
+        )
+          return;
         const bpos = ballRef.translation();
         const dx = bpos.x - pos.x;
         const dy = bpos.y - eyeY;
@@ -306,7 +318,10 @@ export function PlayerController() {
             true,
           );
         }
-        lastThrowRef.current = { idx: heldBallRef.current, time: performance.now() };
+        lastThrowRef.current = {
+          idx: heldBallRef.current,
+          time: performance.now(),
+        };
         heldBallRef.current = -1;
       }
       throwCharge.current = 0;
@@ -386,15 +401,15 @@ export function PlayerController() {
 
     // --- Sync & audio ---
     const now = performance.now();
-    if (sync && now - lastSyncTime.current > 50) {
-      lastSyncTime.current = now;
-      const p = state.camera.position;
-      const r = state.camera.rotation;
-      sync.updateMyPresence({
-        position: [p.x, p.y, p.z],
-        rotation: [r.x, r.y, r.z],
-      });
+    const p = state.camera.position;
+    const r = state.camera.rotation;
+    queuePresenceUpdate({
+      position: [p.x, p.y, p.z],
+      rotation: [r.x, r.y, r.z],
+    });
 
+    if (now - lastAudioSyncTime.current > 50) {
+      lastAudioSyncTime.current = now;
       const forward = new THREE.Vector3(0, 0, -1).applyEuler(r);
       const up = new THREE.Vector3(0, 1, 0).applyEuler(r);
       audioManager.updateListener(

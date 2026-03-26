@@ -7,6 +7,7 @@ import { PlayerController } from "./PlayerController";
 import { RemotePlayers } from "./RemotePlayers";
 import { BasketballProvider } from "../contexts/BasketballContext";
 import { BasketballSync } from "./BasketballSync";
+import { SyncTicker } from "./SyncTicker";
 import { CRTRenderer } from "./CRTRenderer";
 import { PartlyCloudySky } from "./PartlyCloudySky";
 
@@ -29,6 +30,7 @@ export function Game() {
             <PlayerController />
             <RemotePlayers />
             <BasketballSync />
+            <SyncTicker />
           </Physics>
         </BasketballProvider>
         <CRTRenderer />

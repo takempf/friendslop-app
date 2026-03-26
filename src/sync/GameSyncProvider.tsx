@@ -31,9 +31,11 @@ interface SyncContextType {
   myName: string;
   myColorIndex: number;
   myEmojiIndex: number;
-  remoteBallStates: React.MutableRefObject<
+  remoteBallStates: React.RefObject<
     Map<number, RemoteBallState & { ownerId: number }>
   >;
+  pendingPresenceRef: React.RefObject<Partial<PlayerState>>;
+  queuePresenceUpdate: (patch: Partial<PlayerState>) => void;
 }
 
 const SyncContext = createContext<SyncContextType>({
@@ -47,6 +49,8 @@ const SyncContext = createContext<SyncContextType>({
   myColorIndex: 0,
   myEmojiIndex: 0,
   remoteBallStates: { current: new Map() },
+  pendingPresenceRef: { current: {} },
+  queuePresenceUpdate: () => {},
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -65,6 +69,13 @@ export function GameSyncProvider({
   const remoteBallStates = useRef<
     Map<number, RemoteBallState & { ownerId: number }>
   >(new Map());
+  const pendingPresenceRef = useRef<Partial<PlayerState>>({});
+  const queuePresenceUpdate = React.useCallback(
+    (patch: Partial<PlayerState>) => {
+      pendingPresenceRef.current = { ...pendingPresenceRef.current, ...patch };
+    },
+    [],
+  );
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [connectedPeers, setConnectedPeers] = useState<ConnectedPeer[]>([]);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -210,6 +221,8 @@ export function GameSyncProvider({
         myColorIndex,
         myEmojiIndex,
         remoteBallStates,
+        pendingPresenceRef,
+        queuePresenceUpdate,
       }}
     >
       {children}

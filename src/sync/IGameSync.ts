@@ -20,6 +20,7 @@ export interface ChatMessage {
 
 export interface RemoteBallState {
   pos: [number, number, number];
+  rot: [number, number, number, number];
   vel: [number, number, number];
   angvel: [number, number, number];
   held?: boolean;
