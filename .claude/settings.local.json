@@ -12,7 +12,9 @@
       "Bash(grep -E \"\\\\.tsx?$\")",
       "Bash(npx tsc:*)",
       "Bash(grep -r \"devicePixelRatio\\\\|dpr\\\\|drawImage\" /z/repos/friendslop-app/src --include=*.ts --include=*.tsx)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(find /z/repos/friendslop-app/src -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx \\\\\\))",
+      "Bash(xargs wc:*)"
     ]
   }
 }

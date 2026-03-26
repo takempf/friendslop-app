@@ -1,6 +1,7 @@
 import { RigidBody } from "@react-three/rapier";
 import { BasketballHoop } from "./BasketballHoop";
 import { Basketballs } from "./Basketballs";
+import { CourtMarkings } from "./CourtMarkings";
 
 // Helper component for Walls/Floors
 const Block = ({
@@ -158,6 +159,7 @@ export function SchoolEnvironment() {
       {/* Basketball */}
       <BasketballHoop />
       <Basketballs />
+      <CourtMarkings />
 
       {/* --- Classroom B (East of Hallway at Z=-25) --- */}
       {/* Opening in East Hallway wall is at Z=-25, width=2 */}
