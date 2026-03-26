@@ -4,7 +4,7 @@ import { RigidBody, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { useBasketball } from "../contexts/BasketballContext";
 import { useGameSync } from "../sync/GameSyncProvider";
-import { COLOR_POOL } from "../utils/colors";
+import { getPlayerLightColor } from "../utils/colors";
 import { debugConfig } from "../debug/config";
 import { BasketballNet } from "./BasketballNet";
 import {
@@ -17,16 +17,6 @@ import {
   HOOP_RIM_POS,
 } from "../constants/basketball";
 
-/** Extract hue from an HSL color string like "hsl(30, 80%, 60%)" */
-function hueFromHsl(hsl: string): number {
-  const m = hsl.match(/hsl\((\d+)/);
-  return m ? Number(m[1]) : 0;
-}
-
-/** Build a vivid light color from a hue value (high saturation, medium-high lightness). */
-function lightColorFromHue(hue: number): string {
-  return `hsl(${hue}, 100%, 55%)`;
-}
 
 export function BasketballHoop() {
   const { ballRefs, ownedBallIds } = useBasketball();
@@ -122,8 +112,7 @@ export function BasketballHoop() {
               }
             }
           }
-          const hue = hueFromHsl(COLOR_POOL[colorIdx % COLOR_POOL.length]);
-          setScoredColor(lightColorFromHue(hue));
+          setScoredColor(getPlayerLightColor(colorIdx));
           setScored(true);
           scoredTimer.current = 0;
         }

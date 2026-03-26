@@ -164,15 +164,12 @@ export function GameSyncProvider({
         adapter
           .connect(roomName, localStream)
           .then(() => {
-            // Poll until our indices are set (they're assigned in a 50ms timeout)
+            // Poll until appearance is assigned (happens ~150ms after connect)
             const poll = setInterval(() => {
-              if (adapter.myColorIndex !== 0 || adapter.myEmojiIndex !== 0) {
+              if (adapter.myColorAssigned) {
                 setMyColorIndex(adapter.myColorIndex);
                 setMyEmojiIndex(adapter.myEmojiIndex);
                 clearInterval(poll);
-              } else {
-                setMyColorIndex(adapter.myColorIndex);
-                setMyEmojiIndex(adapter.myEmojiIndex);
               }
             }, 60);
             setTimeout(() => clearInterval(poll), 3000);
@@ -187,10 +184,14 @@ export function GameSyncProvider({
         adapter
           .connect(roomName)
           .then(() => {
-            setTimeout(() => {
-              setMyColorIndex(adapter.myColorIndex);
-              setMyEmojiIndex(adapter.myEmojiIndex);
-            }, 500);
+            const poll = setInterval(() => {
+              if (adapter.myColorAssigned) {
+                setMyColorIndex(adapter.myColorIndex);
+                setMyEmojiIndex(adapter.myEmojiIndex);
+                clearInterval(poll);
+              }
+            }, 60);
+            setTimeout(() => clearInterval(poll), 3000);
           })
           .catch(console.error);
       }

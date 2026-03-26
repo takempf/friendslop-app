@@ -40,13 +40,14 @@ export function RemotePlayers() {
       if (!mesh) {
         // Create simple avatar representation (a capsule)
         const geometry = new THREE.CapsuleGeometry(0.3, 1.4, 4, 8);
-
-        const color = new THREE.Color(getPlayerColor(state.colorIndex ?? 0));
+        const colorIdx = state.colorIndex ?? 0;
+        const color = new THREE.Color(getPlayerColor(colorIdx));
 
         const material = new THREE.MeshLambertMaterial({ color });
         mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        mesh.userData.colorIndex = colorIdx;
 
         const emoji = getPlayerEmoji(state.emojiIndex ?? 0);
         const emojiTexture = getEmojiTexture(emoji);
@@ -63,6 +64,15 @@ export function RemotePlayers() {
 
         playerMeshes.current.set(id, mesh);
         groupRef.current!.add(mesh);
+      } else {
+        // Update color if the player's assigned color changed (e.g. after initial assignment)
+        const colorIdx = state.colorIndex ?? 0;
+        if (mesh.userData.colorIndex !== colorIdx) {
+          mesh.userData.colorIndex = colorIdx;
+          (mesh.material as THREE.MeshLambertMaterial).color.set(
+            getPlayerColor(colorIdx),
+          );
+        }
       }
 
       // Smoothly interpolate position and rotation

@@ -37,6 +37,7 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   private _colorIndex: number = 0;
   private _emojiIndex: number = 0;
+  private _colorAssigned: boolean = false;
 
   constructor() {
     this.doc = new Y.Doc();
@@ -67,6 +68,10 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   public get myColorIndex(): number {
     return this._colorIndex;
+  }
+
+  public get myColorAssigned(): boolean {
+    return this._colorAssigned;
   }
 
   public get myEmojiIndex(): number {
@@ -166,6 +171,7 @@ export class YjsWebRtcAdapter implements IGameSync {
       const { usedColors, usedEmojis } = getUsedIndices();
       this._colorIndex = pickRandomUnused(COLOR_POOL.length, usedColors);
       this._emojiIndex = pickRandomUnused(EMOJI_POOL.length, usedEmojis);
+      this._colorAssigned = true;
 
       awareness.setLocalStateField("playerState", {
         name: this.name,
@@ -363,7 +369,7 @@ export class YjsWebRtcAdapter implements IGameSync {
   }
 
   public updateMyPresence(state: PlayerState): void {
-    if (!this.provider) return;
+    if (!this.provider || !this._colorAssigned) return;
 
     const awareness = this.provider.awareness;
     const currentState = awareness.getLocalState()?.playerState || {};
