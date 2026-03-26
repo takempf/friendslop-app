@@ -23,13 +23,13 @@ function createCourtTexture(): THREE.CanvasTexture {
   // NBA measurements (meters)
   const BASKET_Z = BOARD_FRONT_FACE_Z - RIM_RADIUS; // ≈ 8.834m
   const BASELINE_Z = 10;
-  const THREE_PT_RADIUS = 7.24;   // 23 ft 9 in
+  const THREE_PT_RADIUS = 7.24; // 23 ft 9 in
   const THREE_PT_CORNER_X = 6.706; // 22 ft from basket center
   const FREE_THROW_LINE_Z = BOARD_FRONT_FACE_Z - 4.572; // 15 ft from backboard ≈ 4.49m
-  const LANE_HALF_W = 2.438;      // half of 16-ft lane
+  const LANE_HALF_W = 2.438; // half of 16-ft lane
   const FT_CIRCLE_RADIUS = 1.829; // 6 ft
   const RESTRICTED_RADIUS = 1.219; // 4 ft
-  const BLOCK_OUTER = 0.25;       // hash mark extends this far from lane line
+  const BLOCK_OUTER = 0.25; // hash mark extends this far from lane line
 
   const [bx, by] = worldToCanvas(0, BASKET_Z);
 
@@ -160,7 +160,11 @@ export function CourtMarkings() {
   const texture = useMemo(() => createCourtTexture(), []);
 
   return (
-    <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+    <mesh
+      position={[0, 0.002, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      receiveShadow
+    >
       <planeGeometry args={[20, 20]} />
       <meshBasicMaterial
         map={texture}

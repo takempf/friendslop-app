@@ -149,7 +149,9 @@ export function PlayerController() {
       2 *
       (180 / Math.PI) *
       Math.atan(Math.tan((90 * Math.PI) / 180 / 2) / perspCam.aspect);
-    const targetFov = keys.current.ShiftLeft ? baseFov * SPRINT_FOV_MULT : baseFov;
+    const targetFov = keys.current.ShiftLeft
+      ? baseFov * SPRINT_FOV_MULT
+      : baseFov;
     fovRef.current += (targetFov - fovRef.current) * Math.min(delta * 5, 1);
     perspCam.fov = fovRef.current;
     perspCam.updateProjectionMatrix();
@@ -160,7 +162,13 @@ export function PlayerController() {
       { x: pos.x, y: pos.y, z: pos.z },
       { x: 0, y: -1, z: 0 },
     );
-    const hit = world.castRay(ray, GROUND_RAY_LEN, true, undefined, PLAYER_GROUPS);
+    const hit = world.castRay(
+      ray,
+      GROUND_RAY_LEN,
+      true,
+      undefined,
+      PLAYER_GROUPS,
+    );
     const isGrounded = !!hit && hit.timeOfImpact <= GROUND_RAY_LEN;
 
     if (spacePressed && !prevSpace.current && isGrounded) {
@@ -304,7 +312,8 @@ export function PlayerController() {
           .addScaledVector(_forward, BALL_RADIUS * 2 + 0.55);
         const holdX = _holdPos.x;
         const targetLift = qPressed ? 1 : 0;
-        holdLift.current += (targetLift - holdLift.current) * Math.min(delta * 8, 1);
+        holdLift.current +=
+          (targetLift - holdLift.current) * Math.min(delta * 8, 1);
         const holdY = _holdPos.y - 0.15 - (1 - holdLift.current) * 0.2;
         const holdZ = _holdPos.z;
 
@@ -396,7 +405,12 @@ export function PlayerController() {
         type="dynamic"
         enabledRotations={[false, false, false]}
       >
-        <CapsuleCollider args={[0.5, 0.5]} collisionGroups={PLAYER_GROUPS} restitution={0} restitutionCombineRule={CoefficientCombineRule.Min} />
+        <CapsuleCollider
+          args={[0.5, 0.5]}
+          collisionGroups={PLAYER_GROUPS}
+          restitution={0}
+          restitutionCombineRule={CoefficientCombineRule.Min}
+        />
       </RigidBody>
     </>
   );

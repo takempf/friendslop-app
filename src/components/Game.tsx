@@ -8,6 +8,7 @@ import { RemotePlayers } from "./RemotePlayers";
 import { BasketballProvider } from "../contexts/BasketballContext";
 import { BasketballSync } from "./BasketballSync";
 import { CRTRenderer } from "./CRTRenderer";
+import { PartlyCloudySky } from "./PartlyCloudySky";
 
 export function Game() {
   const [locked, setLocked] = useState(false);
@@ -21,6 +22,7 @@ export function Game() {
   return (
     <div className="w-full h-full relative bg-black" id="game-container">
       <Canvas shadows camera={{ position: [0, 2, 0], fov: 75 }}>
+        <PartlyCloudySky />
         <BasketballProvider>
           <Physics gravity={[0, -9.81, 0]}>
             <SchoolEnvironment />

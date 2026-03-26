@@ -1,4 +1,5 @@
 import { RigidBody } from "@react-three/rapier";
+import { SUN_POSITION } from "./sunPosition";
 import { BasketballHoop } from "./BasketballHoop";
 import { Basketballs } from "./Basketballs";
 import { CourtMarkings } from "./CourtMarkings";
@@ -37,7 +38,7 @@ export function SchoolEnvironment() {
       {/* Lights */}
       <ambientLight intensity={0.5} />
       <directionalLight
-        position={[20, 40, 20]}
+        position={SUN_POSITION}
         intensity={1.5}
         castShadow
         shadow-mapSize-width={2048}
