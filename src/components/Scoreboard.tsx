@@ -76,8 +76,7 @@ function drawScoreboard(
     const emoji = getPlayerEmoji(player.emojiIndex);
 
     // Alternating row tint
-    ctx.fillStyle =
-      i % 2 === 0 ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.12)";
+    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.12)";
     ctx.fillRect(8, y, W - 16, rowH);
 
     // Emoji
@@ -151,7 +150,11 @@ export function Scoreboard() {
     const seen = new Set<number>();
     const players: PlayerEntry[] = [];
 
-    players.push({ name: myName, colorIndex: myColorIndex, emojiIndex: myEmojiIndex });
+    players.push({
+      name: myName,
+      colorIndex: myColorIndex,
+      emojiIndex: myEmojiIndex,
+    });
     seen.add(myColorIndex);
 
     for (const peer of connectedPeers) {
@@ -173,7 +176,7 @@ export function Scoreboard() {
   // On the north wall face (z≈9.70, just in front of z=9.75 wall surface)
   // rotation [0, π, 0] so the display faces the player (toward -Z)
   return (
-    <group position={[5, 4.0, 9.70]} rotation={[0, Math.PI, 0]}>
+    <group position={[5, 4.0, 9.7]} rotation={[0, Math.PI, 0]}>
       {/* Backing frame — sits behind the display (local -Z = world +Z toward wall) */}
       <mesh position={[0, 0, -0.012]}>
         <boxGeometry args={[BOARD_W + 0.06, BOARD_H + 0.06, 0.02]} />

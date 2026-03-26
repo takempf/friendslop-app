@@ -5,7 +5,10 @@ import { useBasketball } from "../contexts/BasketballContext";
 function ScoreResetBridge() {
   const { subscribeToReset } = useGameSync();
   const { resetScores } = useBasketball();
-  useEffect(() => subscribeToReset(resetScores), [subscribeToReset, resetScores]);
+  useEffect(
+    () => subscribeToReset(resetScores),
+    [subscribeToReset, resetScores],
+  );
   return null;
 }
 import { Canvas } from "@react-three/fiber";

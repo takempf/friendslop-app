@@ -17,7 +17,6 @@ import {
   HOOP_RIM_POS,
 } from "../constants/basketball";
 
-
 export function BasketballHoop() {
   const { ballRefs, ownedBallIds, addScore } = useBasketball();
   const { myColorIndex, remoteBallStates, getPlayers } = useGameSync();

@@ -67,7 +67,6 @@ function createBasketballTexture(): THREE.CanvasTexture {
 // Created once at module load — shared by all ball instances
 const basketballTexture = createBasketballTexture();
 
-
 const INITIAL_POSITIONS: [number, number, number][] = [
   [2, 0.6, 2],
   [-2, 0.6, 3],
@@ -116,7 +115,9 @@ export function Basketballs() {
             <meshStandardMaterial map={basketballTexture} roughness={0.7} />
           </mesh>
           <mesh
-            ref={(ref) => { strokeRefs.current[i] = ref; }}
+            ref={(ref) => {
+              strokeRefs.current[i] = ref;
+            }}
             visible={false}
             renderOrder={1}
             material={sharedStrokeMat}
@@ -124,7 +125,9 @@ export function Basketballs() {
             <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
           </mesh>
           <mesh
-            ref={(ref) => { outlineRefs.current[i] = ref; }}
+            ref={(ref) => {
+              outlineRefs.current[i] = ref;
+            }}
             visible={false}
             renderOrder={2}
             material={sharedOutlineMat}

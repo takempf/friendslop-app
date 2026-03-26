@@ -221,7 +221,9 @@ export function GameSyncProvider({
 
   const subscribeToReset = React.useCallback((cb: () => void) => {
     resetListeners.current.add(cb);
-    return () => { resetListeners.current.delete(cb); };
+    return () => {
+      resetListeners.current.delete(cb);
+    };
   }, []);
 
   const broadcastReset = React.useCallback(() => sync.broadcastReset(), [sync]);

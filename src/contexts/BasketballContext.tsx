@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 import type { RapierRigidBody } from "@react-three/rapier";
 
 interface BasketballContextType {

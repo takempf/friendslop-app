@@ -70,11 +70,21 @@ export function ResetButton() {
         <meshBasicMaterial map={labelTexture} transparent />
       </mesh>
       {/* Outline: black outer stroke */}
-      <mesh ref={strokeRef} visible={false} renderOrder={1} material={sharedStrokeMat}>
+      <mesh
+        ref={strokeRef}
+        visible={false}
+        renderOrder={1}
+        material={sharedStrokeMat}
+      >
         <boxGeometry args={[BUTTON_W, BUTTON_H, BUTTON_D]} />
       </mesh>
       {/* Outline: white inner fill */}
-      <mesh ref={outlineRef} visible={false} renderOrder={2} material={sharedOutlineMat}>
+      <mesh
+        ref={outlineRef}
+        visible={false}
+        renderOrder={2}
+        material={sharedOutlineMat}
+      >
         <boxGeometry args={[BUTTON_W, BUTTON_H, BUTTON_D]} />
       </mesh>
     </group>

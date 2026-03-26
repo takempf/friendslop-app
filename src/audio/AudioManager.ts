@@ -57,7 +57,9 @@ export class AudioManager {
     {
       source: MediaStreamAudioSourceNode;
       panner: PannerNode;
-      filter: BiquadFilterNode;
+      occlusionFilter: BiquadFilterNode; // Wall occlusion low-pass
+      airFilter: BiquadFilterNode; // Distance-based air absorption low-pass
+      reverbSend: GainNode; // Send to room convolver (wet path)
       gain: GainNode;
       analyser: AnalyserNode;
       dataArray: Uint8Array;
@@ -66,6 +68,9 @@ export class AudioManager {
       _muted: boolean;
     }
   >();
+
+  // Last known listener position for distance calculations
+  private _listenerPos: [number, number, number] = [0, 0, 0];
 
   public async init() {
     if (this.ctx) {
@@ -317,20 +322,32 @@ export class AudioManager {
 
     const source = this.ctx.createMediaStreamSource(stream);
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 20000; // Unmuffled by default
+    // Air absorption: high-frequency rolloff increases with distance (updated in updateRemotePlayer)
+    const airFilter = this.ctx.createBiquadFilter();
+    airFilter.type = "lowpass";
+    airFilter.frequency.value = 20000; // Start unfiltered; updated per-frame by distance
+
+    // Occlusion filter: muffles sound through walls (updated by setOcclusion)
+    const occlusionFilter = this.ctx.createBiquadFilter();
+    occlusionFilter.type = "lowpass";
+    occlusionFilter.frequency.value = 20000; // Unmuffled by default
 
     const panner = this.ctx.createPanner();
     panner.panningModel = "HRTF";
-    panner.distanceModel = "linear"; // Easier to hear from far away
-    panner.refDistance = 2; // Full volume up to 2 units
-    panner.maxDistance = 50; // Drops to 0 only at 50 units
+    // Inverse model: gain = refDistance / distance, physically accurate 1/r falloff.
+    // At 2 units: gain=1.0, at 10 units: 0.2, at 30 units: 0.07
+    panner.distanceModel = "inverse";
+    panner.refDistance = 2;
     panner.rolloffFactor = 1;
 
     // Per-peer gain node for individual volume control
     const gain = this.ctx.createGain();
     gain.gain.value = 1.0; // Default: unity (slider 100)
+
+    // Reverb send: routes dry signal into room convolver for wet room acoustics.
+    // Fixed send level so reverb-to-direct ratio naturally increases with distance (physically correct).
+    const reverbSend = this.ctx.createGain();
+    reverbSend.gain.value = 0.15;
 
     // Chrome requires MediaStream to be attached to a playing HTML audio element to prevent silence
     const audioEl = new Audio();
@@ -344,20 +361,29 @@ export class AudioManager {
     analyser.fftSize = 256;
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    // Source -> Filter -> Gain -> Panner (HRTF spatial) -> Analyser -> Master
-    source.connect(filter);
-    filter.connect(gain);
+    // Dry path:   source → airFilter → occlusionFilter → gain → panner → analyser → analyserOut
+    // Reverb send: gain → reverbSend → convolverGym / convolverRoom → gainGym/Room → analyserOut
+    source.connect(airFilter);
+    airFilter.connect(occlusionFilter);
+    occlusionFilter.connect(gain);
     gain.connect(panner);
+    gain.connect(reverbSend);
     panner.connect(analyser);
 
     if (this.analyserOut) {
       analyser.connect(this.analyserOut);
     }
 
+    // Route into room convolver for wet acoustics (reverb-to-direct ratio increases naturally with distance)
+    if (this.convolverGym) reverbSend.connect(this.convolverGym);
+    if (this.convolverRoom) reverbSend.connect(this.convolverRoom);
+
     this.remotePeers.set(clientId, {
       source,
       panner,
-      filter,
+      occlusionFilter,
+      airFilter,
+      reverbSend,
       gain,
       analyser,
       dataArray,
@@ -371,9 +397,12 @@ export class AudioManager {
     const peer = this.remotePeers.get(clientId);
     if (peer) {
       peer.source.disconnect();
-      peer.filter.disconnect();
+      peer.airFilter.disconnect();
+      peer.occlusionFilter.disconnect();
       peer.gain.disconnect();
+      peer.reverbSend.disconnect();
       peer.panner.disconnect();
+      peer.analyser.disconnect();
       this.remotePeers.delete(clientId);
     }
   }
@@ -384,6 +413,7 @@ export class AudioManager {
     up: [number, number, number],
   ) {
     if (!this.ctx) return;
+    this._listenerPos = position;
     const listener = this.ctx.listener;
 
     // Check if listener properties are AudioParams (newer API) or methods
@@ -432,7 +462,7 @@ export class AudioManager {
     const peer = this.remotePeers.get(clientId);
     if (!peer) return;
 
-    const { panner } = peer;
+    const { panner, airFilter } = peer;
     if (panner.positionX) {
       panner.positionX.setTargetAtTime(position[0], this.ctx.currentTime, 0.1);
       panner.positionY.setTargetAtTime(position[1], this.ctx.currentTime, 0.1);
@@ -440,6 +470,19 @@ export class AudioManager {
     } else {
       panner.setPosition(position[0], position[1], position[2]);
     }
+
+    // Air absorption: high frequencies roll off with distance, simulating real acoustics.
+    // Formula: 20000 * e^(-d * 0.04) — at 30 units: ~8 kHz, at 60 units: ~3 kHz
+    const dx = position[0] - this._listenerPos[0];
+    const dy = position[1] - this._listenerPos[1];
+    const dz = position[2] - this._listenerPos[2];
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const absorbedFreq = Math.max(800, 20000 * Math.exp(-distance * 0.04));
+    airFilter.frequency.setTargetAtTime(
+      absorbedFreq,
+      this.ctx.currentTime,
+      0.05,
+    );
   }
 
   public setOcclusion(clientId: number, isOccluded: boolean) {
@@ -449,7 +492,7 @@ export class AudioManager {
 
     // Apply low-pass filter if occluded (muffles sound through walls)
     const targetFreq = isOccluded ? 800 : 20000;
-    peer.filter.frequency.setTargetAtTime(
+    peer.occlusionFilter.frequency.setTargetAtTime(
       targetFreq,
       this.ctx.currentTime,
       0.1,

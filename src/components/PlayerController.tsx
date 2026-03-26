@@ -54,7 +54,8 @@ const SPAWN_POINTS: [number, number, number][] = Array.from(
 export function PlayerController() {
   const ref = useRef<RapierRigidBody>(null);
   const keys = useKeyboard();
-  const { remoteBallStates, queuePresenceUpdate, broadcastReset } = useGameSync();
+  const { remoteBallStates, queuePresenceUpdate, broadcastReset } =
+    useGameSync();
   const lastAudioSyncTime = useRef(0);
   const [spawnPoint] = useState(
     () => SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)],
