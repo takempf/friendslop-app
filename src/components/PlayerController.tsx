@@ -73,6 +73,10 @@ export function PlayerController() {
   // Camera lean (roll when strafing)
   const leanRef = useRef(0);
 
+  // Sprint FOV — base derived from aspect ratio (targets ~90° horizontal FOV)
+  const SPRINT_FOV_MULT = 1.15;
+  const fovRef = useRef(60);
+
   // Dribble state
   const dribbleTime = useRef(0);
   const dribbleBlend = useRef(0); // 0 = held still, 1 = dribbling
@@ -136,6 +140,17 @@ export function PlayerController() {
     const strafe = (keys.current.KeyA ? 1 : 0) - (keys.current.KeyD ? 1 : 0);
     const targetLean = strafe * MAX_LEAN;
     leanRef.current += (targetLean - leanRef.current) * Math.min(delta * 6, 1);
+
+    // --- Sprint FOV (wider when sprinting, aspect-ratio-aware base) ---
+    const perspCam = state.camera as THREE.PerspectiveCamera;
+    const baseFov =
+      2 *
+      (180 / Math.PI) *
+      Math.atan(Math.tan((90 * Math.PI) / 180 / 2) / perspCam.aspect);
+    const targetFov = keys.current.ShiftLeft ? baseFov * SPRINT_FOV_MULT : baseFov;
+    fovRef.current += (targetFov - fovRef.current) * Math.min(delta * 5, 1);
+    perspCam.fov = fovRef.current;
+    perspCam.updateProjectionMatrix();
 
     // --- Jump ---
     const spacePressed = keys.current.Space;
