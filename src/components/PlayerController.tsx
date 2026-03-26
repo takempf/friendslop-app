@@ -146,10 +146,12 @@ export function PlayerController() {
 
     // --- Sprint FOV (wider when sprinting, aspect-ratio-aware base) ---
     const perspCam = state.camera as THREE.PerspectiveCamera;
-    const baseFov =
+    const baseFov = Math.min(
       2 *
-      (180 / Math.PI) *
-      Math.atan(Math.tan((90 * Math.PI) / 180 / 2) / perspCam.aspect);
+        (180 / Math.PI) *
+        Math.atan(Math.tan((90 * Math.PI) / 180 / 2) / perspCam.aspect),
+      75,
+    );
     const targetFov = keys.current.ShiftLeft
       ? baseFov * SPRINT_FOV_MULT
       : baseFov;
