@@ -3,7 +3,7 @@
 export const debugConfig = {
   crtEnabled: true,
   crtSmoothing: true,
-  minThrowSpeed: 5.625, // m/s
+  minThrowSpeed: 4.5, // m/s
   maxThrowSpeed: 15.0, // m/s
   throwArcDeg: 30, // degrees of upward arc bias added to throw
   throwSpinMult: 9, // angular velocity = speed × this
