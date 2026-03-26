@@ -344,11 +344,11 @@ export class AudioManager {
     analyser.fftSize = 256;
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    // BYPASS SPATIAL AUDIO FOR DEBUGGING
-    // Source -> Filter -> Gain -> Analyser -> Direct Master AnalyserOut
+    // Source -> Filter -> Gain -> Panner (HRTF spatial) -> Analyser -> Master
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(analyser);
+    gain.connect(panner);
+    panner.connect(analyser);
 
     if (this.analyserOut) {
       analyser.connect(this.analyserOut);
