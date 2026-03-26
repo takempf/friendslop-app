@@ -14,6 +14,10 @@ const _right = new THREE.Vector3();
 
 const MAX_PILL_LEAN = 0.05;
 
+// Synced position is camera/eye level (rigidBody.y + 0.83 from PlayerController).
+// Offset the mesh back down so the pill sits on the ground.
+const CAMERA_HEIGHT_OFFSET = 0.83;
+
 export function RemotePlayers() {
   const { getPlayers } = useGameSync();
   const { camera, scene } = useThree();
@@ -53,7 +57,7 @@ export function RemotePlayers() {
           depthWrite: false,
         });
         const faceMesh = new THREE.Mesh(faceGeometry, faceMaterial);
-        faceMesh.position.set(0, 0.5, -0.31);
+        faceMesh.position.set(0, CAMERA_HEIGHT_OFFSET, -0.31);
         faceMesh.rotation.y = Math.PI;
         mesh.add(faceMesh);
 
@@ -64,7 +68,9 @@ export function RemotePlayers() {
       // Smoothly interpolate position and rotation
       if (state.position) {
         // Track lateral offset to target for lean computation (before lerp)
-        _toTarget.set(...state.position).sub(mesh.position);
+        const [tx, ty, tz] = state.position;
+        const adjustedY = ty - CAMERA_HEIGHT_OFFSET;
+        _toTarget.set(tx, adjustedY, tz).sub(mesh.position);
         const yaw = state.rotation ? state.rotation[1] : 0;
         _right.set(1, 0, 0).applyEuler(_targetEuler.set(0, yaw, 0));
         const lateral = _toTarget.dot(_right);
@@ -76,7 +82,7 @@ export function RemotePlayers() {
         mesh.userData.leanAngle =
           currentLean + (targetLean - currentLean) * 0.12;
 
-        mesh.position.lerp(new THREE.Vector3(...state.position), 0.2);
+        mesh.position.lerp(new THREE.Vector3(tx, adjustedY, tz), 0.2);
 
         // Update audio positioning
         audioManager.updateRemotePlayer(id, [
