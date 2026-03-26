@@ -129,17 +129,11 @@ export class YjsWebRtcAdapter implements IGameSync {
 
     const awareness = this.provider.awareness;
 
-    // Set initial presence data, waiting slightly for provider context
-    setTimeout(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const room = (this.provider as any)?.room;
-      const peerId = room?.peerId;
-
-      // Pick unique color and emoji indices from current awareness states
+    // Helper: collect used color/emoji indices from other peers
+    const getUsedIndices = () => {
       const states = awareness.getStates();
       const usedColors = new Set<number>();
       const usedEmojis = new Set<number>();
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       states.forEach((state: any, clientId: number) => {
         if (clientId === this.doc.clientID) return;
@@ -147,16 +141,31 @@ export class YjsWebRtcAdapter implements IGameSync {
         if (ps?.colorIndex !== undefined) usedColors.add(ps.colorIndex);
         if (ps?.emojiIndex !== undefined) usedEmojis.add(ps.emojiIndex);
       });
+      return { usedColors, usedEmojis };
+    };
 
-      let colorIdx = 0;
-      while (usedColors.has(colorIdx) && colorIdx < COLOR_POOL.length)
-        colorIdx++;
-      let emojiIdx = 0;
-      while (usedEmojis.has(emojiIdx) && emojiIdx < EMOJI_POOL.length)
-        emojiIdx++;
+    // Helper: pick a random index from a pool that isn't in the used set
+    const pickRandomUnused = (poolSize: number, used: Set<number>): number => {
+      const available = [];
+      for (let i = 0; i < poolSize; i++) {
+        if (!used.has(i)) available.push(i);
+      }
+      if (available.length === 0) {
+        // All taken – pick a truly random one
+        return Math.floor(Math.random() * poolSize);
+      }
+      return available[Math.floor(Math.random() * available.length)];
+    };
 
-      this._colorIndex = colorIdx % COLOR_POOL.length;
-      this._emojiIndex = emojiIdx % EMOJI_POOL.length;
+    // Helper: assign unique color/emoji and broadcast via awareness
+    const assignAppearance = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const room = (this.provider as any)?.room;
+      const peerId = room?.peerId;
+
+      const { usedColors, usedEmojis } = getUsedIndices();
+      this._colorIndex = pickRandomUnused(COLOR_POOL.length, usedColors);
+      this._emojiIndex = pickRandomUnused(EMOJI_POOL.length, usedEmojis);
 
       awareness.setLocalStateField("playerState", {
         name: this.name,
@@ -164,7 +173,24 @@ export class YjsWebRtcAdapter implements IGameSync {
         colorIndex: this._colorIndex,
         emojiIndex: this._emojiIndex,
       });
-    }, 50);
+    };
+
+    // Set initial presence after a short delay for awareness to sync
+    setTimeout(() => {
+      assignAppearance();
+
+      // Re-check once more after additional peers may have synced
+      setTimeout(() => {
+        const { usedColors, usedEmojis } = getUsedIndices();
+        // If our indices conflict with another peer, re-assign
+        if (
+          usedColors.has(this._colorIndex) ||
+          usedEmojis.has(this._emojiIndex)
+        ) {
+          assignAppearance();
+        }
+      }, 300);
+    }, 150);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     awareness.on("change", (changes: any) => {

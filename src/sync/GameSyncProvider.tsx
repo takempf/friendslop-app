@@ -164,7 +164,7 @@ export function GameSyncProvider({
                 setMyEmojiIndex(adapter.myEmojiIndex);
               }
             }, 60);
-            setTimeout(() => clearInterval(poll), 2000);
+            setTimeout(() => clearInterval(poll), 3000);
           })
           .catch(console.error);
       } catch {
@@ -179,7 +179,7 @@ export function GameSyncProvider({
             setTimeout(() => {
               setMyColorIndex(adapter.myColorIndex);
               setMyEmojiIndex(adapter.myEmojiIndex);
-            }, 100);
+            }, 500);
           })
           .catch(console.error);
       }
