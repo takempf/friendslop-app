@@ -62,6 +62,63 @@ function createBasketballTexture(): THREE.CanvasTexture {
 // Created once at module load — shared by all ball instances
 const basketballTexture = createBasketballTexture();
 
+// Vertex shader that expands back-faces by a fixed number of screen-space pixels.
+// Multiplying the NDC offset by clipPos.w undoes the perspective divide so the
+// expansion is constant in pixels regardless of camera distance.
+const outlineVert = /* glsl */ `
+  uniform vec2 resolution;
+  uniform float outlineWidth;
+  void main() {
+    vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec3 viewNormal = normalize(normalMatrix * normal);
+    vec2 screenNormal = normalize(vec2(
+      projectionMatrix[0][0] * viewNormal.x,
+      projectionMatrix[1][1] * viewNormal.y
+    ));
+    clipPos.xy += screenNormal * (outlineWidth * 2.0 / resolution) * clipPos.w;
+    gl_Position = clipPos;
+  }
+`;
+
+const outlineFrag = /* glsl */ `
+  uniform vec3 color;
+  uniform float opacity;
+  void main() {
+    gl_FragColor = vec4(color, opacity);
+  }
+`;
+
+// White 5 px outline — shared across all ball instances
+const whiteOutlineMat = new THREE.ShaderMaterial({
+  vertexShader: outlineVert,
+  fragmentShader: outlineFrag,
+  uniforms: {
+    resolution: { value: new THREE.Vector2(1, 1) },
+    outlineWidth: { value: 5.0 },
+    color: { value: new THREE.Color(1, 1, 1) },
+    opacity: { value: 1.0 },
+  },
+  side: THREE.BackSide,
+  transparent: true,
+  depthWrite: false,
+});
+
+// Black stroke slightly wider than white (6.5 px) — only the thin outer ring is
+// visible once the white outline paints over the inner portion.
+const blackStrokeMat = new THREE.ShaderMaterial({
+  vertexShader: outlineVert,
+  fragmentShader: outlineFrag,
+  uniforms: {
+    resolution: { value: new THREE.Vector2(1, 1) },
+    outlineWidth: { value: 6.5 },
+    color: { value: new THREE.Color(0, 0, 0) },
+    opacity: { value: 0.5 },
+  },
+  side: THREE.BackSide,
+  transparent: true,
+  depthWrite: false,
+});
+
 const INITIAL_POSITIONS: [number, number, number][] = [
   [2, 0.6, 2],
   [-2, 0.6, 3],
@@ -72,10 +129,21 @@ const INITIAL_POSITIONS: [number, number, number][] = [
 export function Basketballs() {
   const { ballRefs, grabCandidateRef } = useBasketball();
   const outlineRefs = useRef<(THREE.Mesh | null)[]>([null, null, null, null]);
+  const strokeRefs = useRef<(THREE.Mesh | null)[]>([null, null, null, null]);
 
-  useFrame(() => {
+  useFrame(({ gl }) => {
+    // Keep resolution in sync with the game render target (640p-based) so the
+    // screen-space outline stays at a constant pixel width.
+    const aspect = gl.domElement.width / gl.domElement.height;
+    const gameW = Math.round(640 * aspect);
+    whiteOutlineMat.uniforms.resolution.value.set(gameW, 640);
+    blackStrokeMat.uniforms.resolution.value.set(gameW, 640);
+
     const candidate = grabCandidateRef.current;
     outlineRefs.current.forEach((mesh, i) => {
+      if (mesh) mesh.visible = i === candidate;
+    });
+    strokeRefs.current.forEach((mesh, i) => {
       if (mesh) mesh.visible = i === candidate;
     });
   });
@@ -102,13 +170,20 @@ export function Basketballs() {
             <meshStandardMaterial map={basketballTexture} roughness={0.7} />
           </mesh>
           <mesh
-            ref={(ref) => {
-              outlineRefs.current[i] = ref;
-            }}
+            ref={(ref) => { strokeRefs.current[i] = ref; }}
             visible={false}
+            renderOrder={1}
+            material={blackStrokeMat}
           >
-            <sphereGeometry args={[BALL_RADIUS + 0.02, 32, 32]} />
-            <meshBasicMaterial color="white" side={THREE.BackSide} />
+            <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
+          </mesh>
+          <mesh
+            ref={(ref) => { outlineRefs.current[i] = ref; }}
+            visible={false}
+            renderOrder={2}
+            material={whiteOutlineMat}
+          >
+            <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
           </mesh>
         </RigidBody>
       ))}
