@@ -6,6 +6,7 @@ interface BasketballContextType {
   heldBallRef: React.MutableRefObject<number>;
   ownedBallIds: React.MutableRefObject<Set<number>>;
   ballOwnerVersions: React.MutableRefObject<Map<number, number>>;
+  grabCandidateRef: React.MutableRefObject<number>;
 }
 
 const BasketballContext = createContext<BasketballContextType | null>(null);
@@ -19,10 +20,11 @@ export function BasketballProvider({
   const heldBallRef = useRef(-1);
   const ownedBallIds = useRef<Set<number>>(new Set());
   const ballOwnerVersions = useRef<Map<number, number>>(new Map());
+  const grabCandidateRef = useRef(-1);
 
   return (
     <BasketballContext.Provider
-      value={{ ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions }}
+      value={{ ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions, grabCandidateRef }}
     >
       {children}
     </BasketballContext.Provider>

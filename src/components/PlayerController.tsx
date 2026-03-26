@@ -23,7 +23,7 @@ const PLAYER_GROUPS = interactionGroups([1], [0]);
 
 const SPEED = 5;
 const SPRINT_SPEED = 7.5;
-const PICKUP_RANGE = 2.5;
+const PICKUP_RANGE = 2.0;
 // Throw params are now driven by debugConfig (see src/debug/config.ts)
 const MAX_CHARGE_TIME = 2.5; // seconds to reach full charge
 
@@ -64,12 +64,13 @@ export function PlayerController() {
 
   // Basketball pick-up / throw state
   const { rapier, world } = useRapier();
-  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions } =
+  const { ballRefs, heldBallRef, ownedBallIds, ballOwnerVersions, grabCandidateRef } =
     useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
   const qPressTime = useRef(0);
   const throwCharge = useRef(0);
+  const lastThrowRef = useRef<{ idx: number; time: number }>({ idx: -1, time: 0 });
 
   // Camera lean (roll when strafing)
   const leanRef = useRef(0);
@@ -186,6 +187,37 @@ export function PlayerController() {
     }
     prevSpace.current = spacePressed;
 
+    // --- Grab candidate — updated every frame so outline renders correctly ---
+    if (heldBallRef.current === -1) {
+      state.camera.getWorldDirection(_forward);
+      const eyeY = pos.y + 0.8;
+      let candidateIdx = -1;
+      let candidateDist = PICKUP_RANGE;
+      const now = performance.now();
+      ballRefs.current.forEach((ballRef, i) => {
+        if (!ballRef) return;
+        if (i === lastThrowRef.current.idx && now - lastThrowRef.current.time < 250) return;
+        const bpos = ballRef.translation();
+        const dx = bpos.x - pos.x;
+        const dy = bpos.y - eyeY;
+        const dz = bpos.z - pos.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < candidateDist) {
+          const dot =
+            (dx / dist) * _forward.x +
+            (dy / dist) * _forward.y +
+            (dz / dist) * _forward.z;
+          if (dot > 0) {
+            candidateDist = dist;
+            candidateIdx = i;
+          }
+        }
+      });
+      grabCandidateRef.current = candidateIdx;
+    } else {
+      grabCandidateRef.current = -1;
+    }
+
     // --- Basketball pick-up (E key) ---
     const ePressed = keys.current.KeyE;
     if (ePressed && !prevE.current) {
@@ -199,22 +231,7 @@ export function PlayerController() {
         }
         heldBallRef.current = -1;
       } else {
-        // Find nearest ball within pickup range
-        let nearestIdx = -1;
-        let nearestDist = PICKUP_RANGE;
-
-        ballRefs.current.forEach((ballRef, i) => {
-          if (!ballRef) return;
-          const bpos = ballRef.translation();
-          const dx = bpos.x - pos.x;
-          const dy = bpos.y - (pos.y + 0.8);
-          const dz = bpos.z - pos.z;
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          if (dist < nearestDist) {
-            nearestDist = dist;
-            nearestIdx = i;
-          }
-        });
+        const nearestIdx = grabCandidateRef.current;
 
         if (nearestIdx !== -1) {
           heldBallRef.current = nearestIdx;
@@ -287,6 +304,7 @@ export function PlayerController() {
             true,
           );
         }
+        lastThrowRef.current = { idx: heldBallRef.current, time: performance.now() };
         heldBallRef.current = -1;
       }
       throwCharge.current = 0;

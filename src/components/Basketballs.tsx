@@ -5,6 +5,8 @@ import {
   interactionGroups,
 } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import { useBasketball } from "../contexts/BasketballContext";
 import { BALL_RADIUS } from "../constants/basketball";
 
@@ -68,7 +70,15 @@ const INITIAL_POSITIONS: [number, number, number][] = [
 ];
 
 export function Basketballs() {
-  const { ballRefs } = useBasketball();
+  const { ballRefs, grabCandidateRef } = useBasketball();
+  const outlineRefs = useRef<(THREE.Mesh | null)[]>([null, null, null, null]);
+
+  useFrame(() => {
+    const candidate = grabCandidateRef.current;
+    outlineRefs.current.forEach((mesh, i) => {
+      if (mesh) mesh.visible = i === candidate;
+    });
+  });
 
   return (
     <>
@@ -90,6 +100,13 @@ export function Basketballs() {
           <mesh castShadow>
             <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
             <meshStandardMaterial map={basketballTexture} roughness={0.7} />
+          </mesh>
+          <mesh
+            ref={(ref) => { outlineRefs.current[i] = ref; }}
+            visible={false}
+          >
+            <sphereGeometry args={[BALL_RADIUS + 0.02, 32, 32]} />
+            <meshBasicMaterial color="white" side={THREE.BackSide} />
           </mesh>
         </RigidBody>
       ))}
