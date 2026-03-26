@@ -12,6 +12,15 @@ function App() {
     if (started || startingRef.current) return;
     startingRef.current = true;
     await audioManager.init();
+
+    // Restore persisted audio settings
+    const savedVol = localStorage.getItem("friendslop_masterVolume");
+    if (savedVol !== null) audioManager.setMasterVolume(Number(savedVol));
+    if (localStorage.getItem("friendslop_masterMuted") === "true")
+      audioManager.setMasterMuted(true);
+    if (localStorage.getItem("friendslop_micMuted") === "true")
+      audioManager.setMicMuted(true);
+
     setStarted(true);
   };
 

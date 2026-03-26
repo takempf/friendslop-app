@@ -14,6 +14,16 @@ function createMockIR(ctx: AudioContext, duration: number, decay: number) {
   return impulse;
 }
 
+/**
+ * Convert a linear slider value to a perceptual gain using a quadratic curve.
+ * Each equal slider distance maps to roughly equal perceived loudness change.
+ * @param sliderValue  0–100 for master, 0–200 for per-peer
+ * @returns gain multiplier (0 at 0, 1.0 at 100, 4.0 at 200)
+ */
+function perceptualGain(sliderValue: number): number {
+  return Math.pow(sliderValue / 100, 2);
+}
+
 export class AudioManager {
   private ctx: AudioContext | null = null;
 
@@ -35,6 +45,12 @@ export class AudioManager {
   private micGain: GainNode | null = null;
   private localStream: MediaStream | null = null;
 
+  // Master output gain (controlled by global volume slider)
+  private masterGain: GainNode | null = null;
+  private _masterVolume: number = 100; // slider value 0–100
+  private _masterMuted: boolean = false;
+  private _micMuted: boolean = false;
+
   // Remote player audio graph: clientId -> nodes
   private remotePeers = new Map<
     number,
@@ -42,9 +58,12 @@ export class AudioManager {
       source: MediaStreamAudioSourceNode;
       panner: PannerNode;
       filter: BiquadFilterNode;
+      gain: GainNode;
       analyser: AnalyserNode;
       dataArray: Uint8Array;
       audioEl: HTMLAudioElement; // Fix for Chrome bug 933677
+      _volume: number; // slider value 0–200
+      _muted: boolean;
     }
   >();
 
@@ -83,7 +102,10 @@ export class AudioManager {
     this.gainRoom.connect(this.analyserOut);
     this.dryGain.connect(this.analyserOut);
 
-    this.analyserOut.connect(this.ctx.destination);
+    // Master gain sits between analyserOut and destination
+    this.masterGain = this.ctx.createGain();
+    this.analyserOut.connect(this.masterGain);
+    this.masterGain.connect(this.ctx.destination);
 
     // Default to gym acoustics
     this.setRoom("gym");
@@ -306,6 +328,10 @@ export class AudioManager {
     panner.maxDistance = 50; // Drops to 0 only at 50 units
     panner.rolloffFactor = 1;
 
+    // Per-peer gain node for individual volume control
+    const gain = this.ctx.createGain();
+    gain.gain.value = 1.0; // Default: unity (slider 100)
+
     // Chrome requires MediaStream to be attached to a playing HTML audio element to prevent silence
     const audioEl = new Audio();
     audioEl.srcObject = stream;
@@ -319,9 +345,10 @@ export class AudioManager {
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
     // BYPASS SPATIAL AUDIO FOR DEBUGGING
-    // Source -> Filter -> Analyser -> Direct Master AnalyserOut
+    // Source -> Filter -> Gain -> Analyser -> Direct Master AnalyserOut
     source.connect(filter);
-    filter.connect(analyser);
+    filter.connect(gain);
+    gain.connect(analyser);
 
     if (this.analyserOut) {
       analyser.connect(this.analyserOut);
@@ -331,9 +358,12 @@ export class AudioManager {
       source,
       panner,
       filter,
+      gain,
       analyser,
       dataArray,
       audioEl,
+      _volume: 100,
+      _muted: false,
     });
   }
 
@@ -342,6 +372,7 @@ export class AudioManager {
     if (peer) {
       peer.source.disconnect();
       peer.filter.disconnect();
+      peer.gain.disconnect();
       peer.panner.disconnect();
       this.remotePeers.delete(clientId);
     }
@@ -423,6 +454,73 @@ export class AudioManager {
       this.ctx.currentTime,
       0.1,
     );
+  }
+  // ─── Volume & Mute Controls ────────────────────────────────────────
+
+  /** Set master output volume. @param pct 0–100 slider value */
+  public setMasterVolume(pct: number) {
+    this._masterVolume = pct;
+    if (this.masterGain && !this._masterMuted) {
+      this.masterGain.gain.value = perceptualGain(pct);
+    }
+  }
+
+  public getMasterVolume(): number {
+    return this._masterVolume;
+  }
+
+  /** Mute/unmute all output */
+  public setMasterMuted(muted: boolean) {
+    this._masterMuted = muted;
+    if (this.masterGain) {
+      this.masterGain.gain.value = muted
+        ? 0
+        : perceptualGain(this._masterVolume);
+    }
+  }
+
+  public isMasterMuted(): boolean {
+    return this._masterMuted;
+  }
+
+  /** Mute/unmute the local microphone (stops transmitting audio to peers) */
+  public setMicMuted(muted: boolean) {
+    this._micMuted = muted;
+    if (this.localStream) {
+      this.localStream.getAudioTracks().forEach((t) => {
+        t.enabled = !muted;
+      });
+    }
+  }
+
+  public isMicMuted(): boolean {
+    return this._micMuted;
+  }
+
+  /** Set per-peer volume. @param pct 0–200 slider value (100 = unity) */
+  public setPeerVolume(clientId: number, pct: number) {
+    const peer = this.remotePeers.get(clientId);
+    if (!peer) return;
+    peer._volume = pct;
+    if (!peer._muted) {
+      peer.gain.gain.value = perceptualGain(pct);
+    }
+  }
+
+  public getPeerVolume(clientId: number): number {
+    return this.remotePeers.get(clientId)?._volume ?? 100;
+  }
+
+  /** Mute/unmute a specific peer */
+  public setPeerMuted(clientId: number, muted: boolean) {
+    const peer = this.remotePeers.get(clientId);
+    if (!peer) return;
+    peer._muted = muted;
+    peer.gain.gain.value = muted ? 0 : perceptualGain(peer._volume);
+  }
+
+  public isPeerMuted(clientId: number): boolean {
+    return this.remotePeers.get(clientId)?._muted ?? false;
   }
 }
 

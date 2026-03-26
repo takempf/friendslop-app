@@ -150,32 +150,38 @@ export function GameSyncProvider({
           localStream.getTracks().forEach((t) => t.stop());
           return;
         }
-        adapter.connect(roomName, localStream).then(() => {
-          // Poll until our indices are set (they're assigned in a 50ms timeout)
-          const poll = setInterval(() => {
-            if (adapter.myColorIndex !== 0 || adapter.myEmojiIndex !== 0) {
-              setMyColorIndex(adapter.myColorIndex);
-              setMyEmojiIndex(adapter.myEmojiIndex);
-              clearInterval(poll);
-            } else {
-              setMyColorIndex(adapter.myColorIndex);
-              setMyEmojiIndex(adapter.myEmojiIndex);
-            }
-          }, 60);
-          setTimeout(() => clearInterval(poll), 2000);
-        }).catch(console.error);
+        adapter
+          .connect(roomName, localStream)
+          .then(() => {
+            // Poll until our indices are set (they're assigned in a 50ms timeout)
+            const poll = setInterval(() => {
+              if (adapter.myColorIndex !== 0 || adapter.myEmojiIndex !== 0) {
+                setMyColorIndex(adapter.myColorIndex);
+                setMyEmojiIndex(adapter.myEmojiIndex);
+                clearInterval(poll);
+              } else {
+                setMyColorIndex(adapter.myColorIndex);
+                setMyEmojiIndex(adapter.myEmojiIndex);
+              }
+            }, 60);
+            setTimeout(() => clearInterval(poll), 2000);
+          })
+          .catch(console.error);
       } catch {
         console.warn(
           "Audio Context or Mic access blocked. Connecting without mic.",
         );
         if (isCancelled) return;
         setAudioBlocked(true);
-        adapter.connect(roomName).then(() => {
-          setTimeout(() => {
-            setMyColorIndex(adapter.myColorIndex);
-            setMyEmojiIndex(adapter.myEmojiIndex);
-          }, 100);
-        }).catch(console.error);
+        adapter
+          .connect(roomName)
+          .then(() => {
+            setTimeout(() => {
+              setMyColorIndex(adapter.myColorIndex);
+              setMyEmojiIndex(adapter.myEmojiIndex);
+            }, 100);
+          })
+          .catch(console.error);
       }
     };
 
