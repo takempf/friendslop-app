@@ -47,12 +47,22 @@ export class YjsWebRtcAdapter implements IGameSync {
       const messages = this.chatArray.toArray();
       this.chatListeners.forEach((cb) => cb(messages));
     });
+
+    this.doc.getArray<number>("resets").observe(() => {
+      this.onResetScores();
+    });
   }
 
   public onBallStatesReceived: (
     ownerId: number,
     states: Record<number, RemoteBallState>,
   ) => void = () => {};
+
+  public onResetScores: () => void = () => {};
+
+  public broadcastReset(): void {
+    this.doc.getArray<number>("resets").push([Date.now()]);
+  }
 
   public onPlayerStream: (clientId: number, stream: MediaStream) => void =
     () => {};

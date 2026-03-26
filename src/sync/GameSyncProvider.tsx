@@ -36,6 +36,8 @@ interface SyncContextType {
   >;
   pendingPresenceRef: React.RefObject<Partial<PlayerState>>;
   queuePresenceUpdate: (patch: Partial<PlayerState>) => void;
+  broadcastReset: () => void;
+  subscribeToReset: (cb: () => void) => () => void;
 }
 
 const SyncContext = createContext<SyncContextType>({
@@ -51,6 +53,8 @@ const SyncContext = createContext<SyncContextType>({
   remoteBallStates: { current: new Map() },
   pendingPresenceRef: { current: {} },
   queuePresenceUpdate: () => {},
+  broadcastReset: () => {},
+  subscribeToReset: () => () => {},
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -148,6 +152,10 @@ export function GameSyncProvider({
       audioManager.removeRemoteStream(id);
     };
 
+    adapter.onResetScores = () => {
+      resetListeners.current.forEach((cb) => cb());
+    };
+
     const unsubChat = adapter.subscribeToChat(setChatMessages);
 
     let isCancelled = false;
@@ -209,6 +217,15 @@ export function GameSyncProvider({
   // stabilize the callback so it isn't recreated every render
   const getPlayers = React.useCallback(() => playersRef.current, []);
 
+  const resetListeners = useRef<Set<() => void>>(new Set());
+
+  const subscribeToReset = React.useCallback((cb: () => void) => {
+    resetListeners.current.add(cb);
+    return () => { resetListeners.current.delete(cb); };
+  }, []);
+
+  const broadcastReset = React.useCallback(() => sync.broadcastReset(), [sync]);
+
   return (
     <SyncContext.Provider
       value={{
@@ -224,6 +241,8 @@ export function GameSyncProvider({
         remoteBallStates,
         pendingPresenceRef,
         queuePresenceUpdate,
+        broadcastReset,
+        subscribeToReset,
       }}
     >
       {children}

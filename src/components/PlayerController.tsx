@@ -54,7 +54,7 @@ const SPAWN_POINTS: [number, number, number][] = Array.from(
 export function PlayerController() {
   const ref = useRef<RapierRigidBody>(null);
   const keys = useKeyboard();
-  const { remoteBallStates, queuePresenceUpdate } = useGameSync();
+  const { remoteBallStates, queuePresenceUpdate, broadcastReset } = useGameSync();
   const lastAudioSyncTime = useRef(0);
   const [spawnPoint] = useState(
     () => SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)],
@@ -70,6 +70,7 @@ export function PlayerController() {
     ownedBallIds,
     ballOwnerVersions,
     grabCandidateRef,
+    buttonCandidateRef,
   } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
@@ -262,6 +263,8 @@ export function PlayerController() {
             // Switch to kinematic so physics doesn't fight our position updates
             ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
           }
+        } else if (buttonCandidateRef.current) {
+          broadcastReset();
         }
       }
     }

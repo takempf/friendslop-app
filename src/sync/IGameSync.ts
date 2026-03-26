@@ -55,4 +55,7 @@ export interface IGameSync {
   sendChatMessage(msg: string): void;
   subscribeToChat(callback: (messages: ChatMessage[]) => void): () => void;
   updateMyPresence(state: PlayerState): void;
+
+  broadcastReset(): void;
+  onResetScores: () => void;
 }

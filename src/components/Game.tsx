@@ -1,4 +1,13 @@
 import { useState, useEffect } from "react";
+import { useGameSync } from "../sync/GameSyncProvider";
+import { useBasketball } from "../contexts/BasketballContext";
+
+function ScoreResetBridge() {
+  const { subscribeToReset } = useGameSync();
+  const { resetScores } = useBasketball();
+  useEffect(() => subscribeToReset(resetScores), [subscribeToReset, resetScores]);
+  return null;
+}
 import { Canvas } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
@@ -25,6 +34,7 @@ export function Game() {
       <Canvas shadows camera={{ position: [0, 2, 0], fov: 75 }}>
         <PartlyCloudySky />
         <BasketballProvider>
+          <ScoreResetBridge />
           <Physics gravity={[0, -9.81, 0]}>
             <SchoolEnvironment />
             <PlayerController />

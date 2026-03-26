@@ -19,7 +19,7 @@ import {
 
 
 export function BasketballHoop() {
-  const { ballRefs, ownedBallIds } = useBasketball();
+  const { ballRefs, ownedBallIds, addScore } = useBasketball();
   const { myColorIndex, remoteBallStates, getPlayers } = useGameSync();
   const [scored, setScored] = useState(false);
   const scoredTimer = useRef(0);
@@ -115,6 +115,7 @@ export function BasketballHoop() {
           setScoredColor(getPlayerLightColor(colorIdx));
           setScored(true);
           scoredTimer.current = 0;
+          addScore(colorIdx);
         }
       }
 

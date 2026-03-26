@@ -3,6 +3,8 @@ import { SUN_POSITION } from "./sunPosition";
 import { BasketballHoop } from "./BasketballHoop";
 import { Basketballs } from "./Basketballs";
 import { CourtMarkings } from "./CourtMarkings";
+import { Scoreboard } from "./Scoreboard";
+import { ResetButton } from "./ResetButton";
 
 // Helper component for Walls/Floors
 const Block = ({
@@ -160,6 +162,8 @@ export function SchoolEnvironment() {
 
       {/* Basketball */}
       <BasketballHoop />
+      <Scoreboard />
+      <ResetButton />
       <Basketballs />
       <CourtMarkings />
 
