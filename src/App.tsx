@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Game } from "./components/Game";
 import { GameSyncProvider } from "./sync/GameSyncProvider";
-import { GameMenu } from "./components/GameMenu/GameMenu";
 import { audioManager } from "./audio/AudioManager";
-import styles from "./App.module.css";
+
+import css from "./App.module.css";
 
 function App() {
   const [started, setStarted] = useState(false);
@@ -37,12 +37,12 @@ function App() {
   }, []);
 
   return (
-    <div className={styles.root} onClick={!started ? handleStart : undefined}>
+    <div className={css.root} onClick={!started ? handleStart : undefined}>
       {!started && (
-        <div className={styles.startScreen}>
-          <div className={styles.startContent}>
-            <h1 className={styles.startTitle}>Friendslop 3D</h1>
-            <p className={styles.startHint}>
+        <div className={css.startScreen}>
+          <div className={css.startContent}>
+            <h1 className={css.startTitle}>Friendslop 3D</h1>
+            <p className={css.startHint}>
               Click anywhere to connect &amp; enable audio
             </p>
           </div>
@@ -51,9 +51,8 @@ function App() {
 
       {started && (
         <GameSyncProvider roomName="friendslop-lobby-1">
-          <div className={styles.layout}>
+          <div className={css.layout}>
             <Game />
-            <GameMenu />
           </div>
         </GameSyncProvider>
       )}

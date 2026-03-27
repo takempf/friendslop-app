@@ -25,7 +25,13 @@ const TABS = [
   ...(isLocalhost ? [{ value: "debug", label: "Debug" }] : []),
 ];
 
-export function GameMenu() {
+export function GameMenu({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const {
     sync,
     chatMessages,
@@ -36,7 +42,6 @@ export function GameMenu() {
     myEmojiIndex,
   } = useGameSync();
 
-  const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("audio");
 
   // ── Open on ESC (Base UI handles ESC-to-close automatically) ──
@@ -44,12 +49,12 @@ export function GameMenu() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !open) {
         e.preventDefault();
-        setOpen(true);
+        onOpenChange(true);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, onOpenChange]);
 
   // ── Audio state (persisted) ───────────────────────────────────
   const [masterVolume, setMasterVolume] = useState(() => {
@@ -112,12 +117,12 @@ export function GameMenu() {
   );
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className={styles.backdrop} />
         <Dialog.Popup className={styles.popup}>
           <div className={styles.header}>
-            <Dialog.Title className={styles.title}>Menu</Dialog.Title>
+            <Dialog.Title className={styles.title}>Friend Slop 3D</Dialog.Title>
             <Dialog.Close className={styles.closeBtn} aria-label="Close">
               ✕
             </Dialog.Close>

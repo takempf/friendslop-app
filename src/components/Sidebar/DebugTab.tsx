@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { debugConfig } from "../../debug/config";
-import { audioManager } from "../../audio/AudioManager";
 import { Button } from "../../ui/Button";
-import { Select, type SelectOption } from "../../ui/Select";
 import { Slider } from "../../ui/Slider";
 import styles from "./DebugTab.module.css";
 
@@ -66,43 +64,12 @@ const PHYSICS_PARAMS: {
 
 export function DebugTab() {
   const [, tick] = useState(0);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedInput, setSelectedInput] = useState("default");
-  const [selectedOutput, setSelectedOutput] = useState("default");
-
-  useEffect(() => {
-    let mounted = true;
-    audioManager.enumerateDevices().then((devs) => {
-      if (mounted) setDevices(devs);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const updateParam = (key: NumericConfigKey, value: number) => {
     // eslint-disable-next-line react-hooks/immutability
     debugConfig[key] = value;
     tick((n) => n + 1);
   };
-
-  const inputOptions: SelectOption[] = devices
-    .filter((d) => d.kind === "audioinput")
-    .map((d) => ({
-      value: d.deviceId,
-      label: d.label || `Mic ${d.deviceId.slice(0, 5)}…`,
-    }));
-  if (inputOptions.length === 0)
-    inputOptions.push({ value: "default", label: "Default Mic" });
-
-  const outputOptions: SelectOption[] = devices
-    .filter((d) => d.kind === "audiooutput")
-    .map((d) => ({
-      value: d.deviceId,
-      label: d.label || `Speaker ${d.deviceId.slice(0, 5)}…`,
-    }));
-  if (outputOptions.length === 0)
-    outputOptions.push({ value: "default", label: "Default Speaker" });
 
   return (
     <>
@@ -163,35 +130,6 @@ export function DebugTab() {
       </div>
 
       <div className={styles.divider} />
-
-      {/* Audio devices */}
-      <div className={styles.section}>
-        <span className={styles.sectionLabel}>
-          Audio Devices (Press B to test)
-        </span>
-        <div>
-          <div className={styles.selectLabel}>Microphone</div>
-          <Select
-            value={selectedInput}
-            onChange={(v) => {
-              setSelectedInput(v);
-              audioManager.setInputDevice(v).catch(console.error);
-            }}
-            options={inputOptions}
-          />
-        </div>
-        <div>
-          <div className={styles.selectLabel}>Speaker</div>
-          <Select
-            value={selectedOutput}
-            onChange={(v) => {
-              setSelectedOutput(v);
-              audioManager.setOutputDevice(v).catch(console.error);
-            }}
-            options={outputOptions}
-          />
-        </div>
-      </div>
     </>
   );
 }

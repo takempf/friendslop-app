@@ -1,20 +1,19 @@
-import { useEffect, useRef } from "react";
-import React from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { usePointerLock } from "../hooks/usePointerLock";
 
 interface Props {
-  selector?: string;
   sensitivity?: number;
-  leanRef?: React.RefObject<number>;
+  leanRef?: RefObject<number>;
 }
 
 export function SmoothedPointerLockControls({
-  selector = "#game-container",
   sensitivity = 0.002,
   leanRef,
 }: Props) {
-  const { camera, gl } = useThree();
+  const { camera } = useThree();
+  const { locked } = usePointerLock();
 
   // Reusable Euler instance
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
@@ -26,31 +25,11 @@ export function SmoothedPointerLockControls({
   const prevLean = useRef(0);
 
   useEffect(() => {
-    const el = document.querySelector(selector) as HTMLElement | null;
-    const targetElement = el || gl.domElement;
-
-    const onClick = () => {
-      // Request pointer lock synchronously within the user gesture handler.
-      // async/await would defer the fallback into a microtask, which Firefox
-      // may reject as outside the user-activation context.
-      try {
-        const promise = targetElement.requestPointerLock({
-          unadjustedMovement: true,
-        });
-        if (promise instanceof Promise) {
-          // unadjustedMovement not supported — fall back immediately
-          promise.catch(() => targetElement.requestPointerLock());
-        }
-      } catch {
-        targetElement.requestPointerLock();
-      }
-    };
+    if (!locked) return;
 
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
     const onMouseMove = (event: MouseEvent) => {
-      if (document.pointerLockElement !== targetElement) return;
-
       // Safari often fails to deliver raw sensor counts even with unadjustedMovement: true,
       // instead applying macOS's pointer acceleration curves. Trackpad movements report as
       // very tiny deltas. Here we apply a heuristic multiplier to normalize the speed to Chrome's.
@@ -63,21 +42,18 @@ export function SmoothedPointerLockControls({
       mouseDelta.current.y += (event.movementY || 0) * multiplier;
     };
 
-    targetElement.addEventListener("click", onClick);
     document.addEventListener("mousemove", onMouseMove);
 
     return () => {
-      targetElement.removeEventListener("click", onClick);
       document.removeEventListener("mousemove", onMouseMove);
     };
-  }, [gl.domElement, selector]);
+  }, [locked]);
 
   // Process mouse input EXACTLY once per rendering frame in the game loop
   useFrame(() => {
     const leanAngle = leanRef?.current ?? 0;
     const hasMouse = mouseDelta.current.x !== 0 || mouseDelta.current.y !== 0;
     const leanChanged = leanAngle !== prevLean.current;
-
     if (!hasMouse && !leanChanged) return;
 
     const PI_2 = Math.PI / 2;

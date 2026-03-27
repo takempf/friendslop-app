@@ -1,8 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { audioManager } from "../../audio/AudioManager";
 import { Button } from "../../ui/Button";
 import { Progress, type ProgressHandle } from "../../ui/Progress";
 import { Slider } from "../../ui/Slider";
+import { Select, type SelectOption } from "../../ui/Select";
+
 import styles from "./AudioTab.module.css";
 
 interface AudioTabProps {
@@ -25,6 +27,38 @@ export function AudioTab({
   onMicMuted,
 }: AudioTabProps) {
   const micMeterRef = useRef<ProgressHandle>(null);
+  const [selectedInput, setSelectedInput] = useState("default");
+  const [selectedOutput, setSelectedOutput] = useState("default");
+
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    audioManager.enumerateDevices().then((devs) => {
+      if (mounted) setDevices(devs);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const inputOptions: SelectOption[] = devices
+    .filter((d) => d.kind === "audioinput")
+    .map((d) => ({
+      value: d.deviceId,
+      label: d.label || `Mic ${d.deviceId.slice(0, 5)}…`,
+    }));
+  if (inputOptions.length === 0)
+    inputOptions.push({ value: "default", label: "Default Mic" });
+
+  const outputOptions: SelectOption[] = devices
+    .filter((d) => d.kind === "audiooutput")
+    .map((d) => ({
+      value: d.deviceId,
+      label: d.label || `Speaker ${d.deviceId.slice(0, 5)}…`,
+    }));
+  if (outputOptions.length === 0)
+    outputOptions.push({ value: "default", label: "Default Speaker" });
 
   useEffect(() => {
     let raf: number;
@@ -87,6 +121,35 @@ export function AudioTab({
         <div className={styles.meterRow}>
           <span className={styles.meterLabel}>MIC</span>
           <Progress ref={micMeterRef} variant="green" />
+        </div>
+      </div>
+
+      {/* Audio devices */}
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>
+          Audio Devices (Press B to test)
+        </span>
+        <div>
+          <div className={styles.selectLabel}>Microphone</div>
+          <Select
+            value={selectedInput}
+            onChange={(v) => {
+              setSelectedInput(v);
+              audioManager.setInputDevice(v).catch(console.error);
+            }}
+            options={inputOptions}
+          />
+        </div>
+        <div>
+          <div className={styles.selectLabel}>Speaker</div>
+          <Select
+            value={selectedOutput}
+            onChange={(v) => {
+              setSelectedOutput(v);
+              audioManager.setOutputDevice(v).catch(console.error);
+            }}
+            options={outputOptions}
+          />
         </div>
       </div>
     </>

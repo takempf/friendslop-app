@@ -462,10 +462,7 @@ export function PlayerController() {
 
   return (
     <>
-      <SmoothedPointerLockControls
-        selector="#game-container"
-        leanRef={leanRef}
-      />
+      <SmoothedPointerLockControls leanRef={leanRef} />
       <RigidBody
         ref={ref}
         position={spawnPoint}

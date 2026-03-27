@@ -24,7 +24,6 @@
   background: transparent;
   color: var(--clr-text-3);
   font-family: var(--font-ui);
-  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -38,10 +37,9 @@
 
 .tab:hover {
   color: var(--clr-text-2);
-  background: var(--clr-surface-2);
 }
 
-.tab[data-selected] {
+.tab[data-active] {
   color: var(--clr-accent);
 }
 

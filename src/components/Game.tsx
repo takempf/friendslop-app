@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
@@ -10,21 +10,23 @@ import { BasketballSync } from "./BasketballSync";
 import { SyncTicker } from "./SyncTicker";
 import { CRTRenderer } from "./CRTRenderer";
 import { PartlyCloudySky } from "./PartlyCloudySky";
+import { GameMenu } from "./GameMenu/GameMenu";
+import { usePointerLock } from "../hooks/usePointerLock";
 
 import css from "./Game.module.css";
 
 export function Game() {
-  const [locked, setLocked] = useState(false);
-
-  useEffect(() => {
-    const onChange = () => setLocked(!!document.pointerLockElement);
-    document.addEventListener("pointerlockchange", onChange);
-    return () => document.removeEventListener("pointerlockchange", onChange);
-  }, []);
+  const gameContainerRef = useRef<HTMLCanvasElement>(null);
+  const { locked, setPointerLockOnElement } = usePointerLock();
 
   return (
     <div className={css.gameContainer}>
-      <Canvas shadows camera={{ position: [0, 2, 0], fov: 75 }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 2, 0], fov: 75 }}
+        id="game-container"
+        ref={gameContainerRef}
+      >
         <PartlyCloudySky />
         <BasketballProvider>
           <Physics gravity={[0, -9.81, 0]}>
@@ -68,8 +70,6 @@ export function Game() {
         <circle cx="8" cy="8" r="1.5" fill="white" />
       </svg>
 
-      {!locked && <div className={css.clickToPlay}>Click to Play</div>}
-
       <div className={css.controls}>
         WASD · Move
         <br />
@@ -101,6 +101,13 @@ export function Game() {
           />
         </div>
       </div>
+
+      <GameMenu
+        open={!locked}
+        onOpenChange={(open) =>
+          !open && setPointerLockOnElement(gameContainerRef.current!)
+        }
+      />
     </div>
   );
 }
