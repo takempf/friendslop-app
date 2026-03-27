@@ -18,6 +18,34 @@ const MAX_PILL_LEAN = 0.05;
 // Offset the mesh back down so the pill sits on the ground.
 const CAMERA_HEIGHT_OFFSET = 0.83;
 
+// Height above the mesh center to place the name label (just above capsule top).
+const LABEL_Y_OFFSET = 1.15;
+
+function createNameTexture(
+  name: string,
+  colorHex: string,
+): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+  ctx.beginPath();
+  ctx.roundRect(4, 4, 248, 56, 28);
+  ctx.fill();
+
+  ctx.fillStyle = colorHex;
+  ctx.font = "bold 30px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(name, 128, 34, 240);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export function RemotePlayers() {
   const { getPlayers } = useGameSync();
   const { camera, scene } = useThree();
@@ -25,6 +53,7 @@ export function RemotePlayers() {
 
   // Use a map to track existing player meshes
   const playerMeshes = useRef(new Map<number, THREE.Mesh>());
+  const labelMeshes = useRef(new Map<number, THREE.Mesh>());
   const raycaster = useRef(new THREE.Raycaster());
 
   // We manually manage the children of the group based on getPlayers()
@@ -64,6 +93,22 @@ export function RemotePlayers() {
 
         playerMeshes.current.set(id, mesh);
         groupRef.current!.add(mesh);
+
+        // Create name label
+        const name = state.name ?? "Player";
+        const colorHex = getPlayerColor(state.colorIndex ?? 0);
+        const labelTexture = createNameTexture(name, colorHex);
+        const labelGeo = new THREE.PlaneGeometry(1.0, 0.25);
+        const labelMat = new THREE.MeshBasicMaterial({
+          map: labelTexture,
+          transparent: true,
+          depthWrite: false,
+        });
+        const label = new THREE.Mesh(labelGeo, labelMat);
+        label.userData.labelName = name;
+        label.userData.colorHex = colorHex;
+        labelMeshes.current.set(id, label);
+        groupRef.current!.add(label);
       } else {
         // Update color if the player's assigned color changed (e.g. after initial assignment)
         const colorIdx = state.colorIndex ?? 0;
@@ -73,6 +118,35 @@ export function RemotePlayers() {
             getPlayerColor(colorIdx),
           );
         }
+
+        // Update label texture if name changed
+        const label = labelMeshes.current.get(id);
+        if (label) {
+          const name = state.name ?? "Player";
+          const colorHex = getPlayerColor(state.colorIndex ?? 0);
+          if (
+            label.userData.labelName !== name ||
+            label.userData.colorHex !== colorHex
+          ) {
+            const oldMat = label.material as THREE.MeshBasicMaterial;
+            oldMat.map?.dispose();
+            oldMat.map = createNameTexture(name, colorHex);
+            oldMat.needsUpdate = true;
+            label.userData.labelName = name;
+            label.userData.colorHex = colorHex;
+          }
+        }
+      }
+
+      // Billboard label above player's head
+      const label = labelMeshes.current.get(id);
+      if (label && mesh.position) {
+        label.position.set(
+          mesh.position.x,
+          mesh.position.y + LABEL_Y_OFFSET,
+          mesh.position.z,
+        );
+        label.quaternion.copy(camera.quaternion);
       }
 
       // Smoothly interpolate position and rotation
@@ -157,6 +231,13 @@ export function RemotePlayers() {
       if (!players.has(id)) {
         groupRef.current!.remove(mesh);
         playerMeshes.current.delete(id);
+
+        const label = labelMeshes.current.get(id);
+        if (label) {
+          groupRef.current!.remove(label);
+          (label.material as THREE.MeshBasicMaterial).map?.dispose();
+          labelMeshes.current.delete(id);
+        }
       }
     });
   });
