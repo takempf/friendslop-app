@@ -44,16 +44,22 @@ export function GameMenu({
 
   const [activeTab, setActiveTab] = useState("audio");
 
-  // ── Open on ESC (Base UI handles ESC-to-close automatically) ──
+  // ── ESC handling ─────────────────────────────────────────────
+  // Capture phase fires before Base UI's listener, so we can suppress
+  // its built-in ESC-to-close. When closed, ESC opens the menu instead.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !open) {
+      if (e.key !== "Escape") return;
+      if (open) {
+        e.stopImmediatePropagation(); // prevent Base UI from closing
+      } else {
         e.preventDefault();
         onOpenChange(true);
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [open, onOpenChange]);
 
   // ── Audio state (persisted) ───────────────────────────────────
