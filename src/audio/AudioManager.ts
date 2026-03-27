@@ -633,43 +633,152 @@ export class AudioManager {
       const vol = intensity * 1.1;
       // Main thump: low sine with quick pitch sweep down (rubber compression)
       const thumpFreq = (95 + intensity * 25) * pitchJitter;
-      this._bounceSynth_osc(ctx, now, "sine", thumpFreq * 2.2, thumpFreq, 0.012, 0.28 + intensity * 0.1, vol * 0.85, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        thumpFreq * 2.2,
+        thumpFreq,
+        0.012,
+        0.28 + intensity * 0.1,
+        vol * 0.85,
+        bounceGain,
+      );
       // Sub-bass body resonance
-      this._bounceSynth_osc(ctx, now, "triangle", 52 * pitchJitter, 42 * pitchJitter, 0.0, 0.14, vol * 0.5, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "triangle",
+        52 * pitchJitter,
+        42 * pitchJitter,
+        0.0,
+        0.14,
+        vol * 0.5,
+        bounceGain,
+      );
       // Rubber contact attack (high-passed slap)
-      this._bounceSynth_noise(ctx, now, 380 + intensity * 120, 2.2, 0.065 + intensity * 0.025, vol * 0.45, bounceGain);
-
+      this._bounceSynth_noise(
+        ctx,
+        now,
+        380 + intensity * 120,
+        2.2,
+        0.065 + intensity * 0.025,
+        vol * 0.45,
+        bounceGain,
+      );
     } else if (surface === "wall") {
       // Concrete/drywall: dead, dull thud with minimal bounce character
       const vol = intensity * 0.85;
       const thumpFreq = (68 + intensity * 18) * pitchJitter;
-      this._bounceSynth_osc(ctx, now, "sine", thumpFreq * 1.8, thumpFreq, 0.01, 0.14 + intensity * 0.05, vol * 0.7, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        thumpFreq * 1.8,
+        thumpFreq,
+        0.01,
+        0.14 + intensity * 0.05,
+        vol * 0.7,
+        bounceGain,
+      );
       // Heavy low-pass on noise for dull contact sound
-      this._bounceSynth_noise(ctx, now, 220 + intensity * 60, 3.5, 0.04, vol * 0.3, bounceGain);
-
+      this._bounceSynth_noise(
+        ctx,
+        now,
+        220 + intensity * 60,
+        3.5,
+        0.04,
+        vol * 0.3,
+        bounceGain,
+      );
     } else if (surface === "backboard") {
       // Glass/fiberglass: hollow higher-pitched thud, slightly bright
       const vol = intensity * 0.95;
       const thumpFreq = (165 + intensity * 45) * pitchJitter;
-      this._bounceSynth_osc(ctx, now, "sine", thumpFreq * 2.0, thumpFreq, 0.01, 0.17 + intensity * 0.06, vol * 0.75, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        thumpFreq * 2.0,
+        thumpFreq,
+        0.01,
+        0.17 + intensity * 0.06,
+        vol * 0.75,
+        bounceGain,
+      );
       // Slightly hollow sub component
-      this._bounceSynth_osc(ctx, now, "triangle", 88 * pitchJitter, 70 * pitchJitter, 0.0, 0.09, vol * 0.4, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "triangle",
+        88 * pitchJitter,
+        70 * pitchJitter,
+        0.0,
+        0.09,
+        vol * 0.4,
+        bounceGain,
+      );
       // Bright contact attack (glass character)
-      this._bounceSynth_noise(ctx, now, 850 + intensity * 250, 2.0, 0.048, vol * 0.55, bounceGain);
-
+      this._bounceSynth_noise(
+        ctx,
+        now,
+        850 + intensity * 250,
+        2.0,
+        0.048,
+        vol * 0.55,
+        bounceGain,
+      );
     } else {
       // Rim (solid steel ring): deep low-frequency ring, like striking thick steel bar
       const vol = intensity * 1.05;
       // Dull rubber-on-steel thump — very low
       const impactFreq = (55 + intensity * 25) * pitchJitter;
-      this._bounceSynth_osc(ctx, now, "sine", impactFreq * 1.5, impactFreq, 0.015, 0.14, vol * 0.65, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        impactFreq * 1.5,
+        impactFreq,
+        0.015,
+        0.14,
+        vol * 0.65,
+        bounceGain,
+      );
       // Fundamental ring: heavy steel ring resonates around 90-130 Hz
       const ringBase = (85 + intensity * 35 + Math.random() * 15) * pitchJitter;
-      this._bounceSynth_osc(ctx, now, "sine", ringBase * 1.03, ringBase, 0.03, 0.7 + intensity * 0.35, vol * 0.9, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        ringBase * 1.03,
+        ringBase,
+        0.03,
+        0.7 + intensity * 0.35,
+        vol * 0.9,
+        bounceGain,
+      );
       // Inharmonic second partial (~2.7× fundamental, characteristic of a ring's bending modes)
-      this._bounceSynth_osc(ctx, now, "sine", ringBase * 2.73, ringBase * 2.71, 0.02, 0.4 + intensity * 0.2, vol * 0.45, bounceGain);
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        ringBase * 2.73,
+        ringBase * 2.71,
+        0.02,
+        0.4 + intensity * 0.2,
+        vol * 0.45,
+        bounceGain,
+      );
       // Short low-mid attack noise — the clang of contact, not a screech
-      this._bounceSynth_noise(ctx, now, 200 + intensity * 100, 2.5, 0.05, vol * 0.4, bounceGain);
+      this._bounceSynth_noise(
+        ctx,
+        now,
+        200 + intensity * 100,
+        2.5,
+        0.05,
+        vol * 0.4,
+        bounceGain,
+      );
     }
   }
 
@@ -689,7 +798,10 @@ export class AudioManager {
     osc.type = type;
     osc.frequency.setValueAtTime(startFreq, now);
     if (pitchSweepDur > 0) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(endFreq, 1), now + pitchSweepDur);
+      osc.frequency.exponentialRampToValueAtTime(
+        Math.max(endFreq, 1),
+        now + pitchSweepDur,
+      );
     }
 
     const gain = ctx.createGain();

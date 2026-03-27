@@ -23,6 +23,8 @@ const PLAYER_GROUPS = interactionGroups([1], [0]);
 
 const SPEED = 5;
 const SPRINT_SPEED = 7.5;
+const CROUCH_SPEED = 2.5;
+const CROUCH_CAM_HEIGHT = 0.3; // eye level above body center when crouched (vs 0.83 standing)
 const PICKUP_RANGE = 2.0;
 // Throw params are now driven by debugConfig (see src/debug/config.ts)
 const MAX_CHARGE_TIME = 2.5; // seconds to reach full charge
@@ -54,8 +56,12 @@ const SPAWN_POINTS: [number, number, number][] = Array.from(
 export function PlayerController() {
   const ref = useRef<RapierRigidBody>(null);
   const keys = useKeyboard();
-  const { remoteBallStates, queuePresenceUpdate, broadcastReset, broadcastSoundEvent } =
-    useGameSync();
+  const {
+    remoteBallStates,
+    queuePresenceUpdate,
+    broadcastReset,
+    broadcastSoundEvent,
+  } = useGameSync();
   const lastAudioSyncTime = useRef(0);
   const [spawnPoint] = useState(
     () => SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)],
@@ -96,6 +102,9 @@ export function PlayerController() {
   const holdLift = useRef(0); // 0 = idle (low), 1 = shooting (raised)
   const prevDribbleSin = useRef(0); // sign of sin(dribbleTime) last frame — for floor-contact detection
 
+  // Crouch state (0 = standing, 1 = fully crouched)
+  const crouchRef = useRef(0);
+
   // Jump state
   const prevSpace = useRef(false);
 
@@ -133,7 +142,17 @@ export function PlayerController() {
       0,
     );
 
-    const speed = keys.current.ShiftLeft ? SPRINT_SPEED : SPEED;
+    // Smooth crouch interpolation
+    const crouchTarget = keys.current.KeyC ? 1 : 0;
+    crouchRef.current +=
+      (crouchTarget - crouchRef.current) * Math.min(delta * 10, 1);
+
+    const isCrouching = keys.current.KeyC;
+    const speed = isCrouching
+      ? CROUCH_SPEED
+      : keys.current.ShiftLeft
+        ? SPRINT_SPEED
+        : SPEED;
     direction
       .subVectors(frontVector, sideVector)
       .normalize()
@@ -147,7 +166,9 @@ export function PlayerController() {
     );
 
     const pos = ref.current.translation();
-    state.camera.position.set(pos.x, pos.y + 0.83, pos.z);
+    const camHeight =
+      CROUCH_CAM_HEIGHT + (0.83 - CROUCH_CAM_HEIGHT) * (1 - crouchRef.current);
+    state.camera.position.set(pos.x, pos.y + camHeight, pos.z);
 
     // --- Camera lean when strafing ---
     const MAX_LEAN = 0.035;
@@ -163,9 +184,10 @@ export function PlayerController() {
         Math.atan(Math.tan((90 * Math.PI) / 180 / 2) / perspCam.aspect),
       75,
     );
-    const targetFov = keys.current.ShiftLeft
-      ? baseFov * SPRINT_FOV_MULT
-      : baseFov;
+    const targetFov =
+      keys.current.ShiftLeft && !keys.current.KeyC
+        ? baseFov * SPRINT_FOV_MULT
+        : baseFov;
     fovRef.current += (targetFov - fovRef.current) * Math.min(delta * 5, 1);
     perspCam.fov = fovRef.current;
     perspCam.updateProjectionMatrix();
@@ -386,7 +408,12 @@ export function PlayerController() {
           const impactSpeed = 3.2 + dribbleBlend.current * 1.2;
           const pos: [number, number, number] = [dribbleX, floorY, dribbleZ];
           audioManager.playBounceSound(pos, "floor", impactSpeed);
-          broadcastSoundEvent({ id: Date.now() * 1000 + Math.random() * 1000 | 0, pos, surface: "floor", speed: impactSpeed });
+          broadcastSoundEvent({
+            id: (Date.now() * 1000 + Math.random() * 1000) | 0,
+            pos,
+            surface: "floor",
+            speed: impactSpeed,
+          });
         }
         prevDribbleSin.current = sinT;
 

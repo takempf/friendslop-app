@@ -26,7 +26,11 @@ import { audioManager } from "../audio/AudioManager";
 type BounceSurface = "floor" | "wall" | "backboard" | "rim";
 
 /** Infer surface type from ball world position at moment of collision. */
-function detectSurface(pos: { x: number; y: number; z: number }): BounceSurface {
+function detectSurface(pos: {
+  x: number;
+  y: number;
+  z: number;
+}): BounceSurface {
   // Floor: ball centre is near ground level (floor surface at y=0)
   if (pos.y < BALL_RADIUS + 0.15) return "floor";
 
@@ -34,14 +38,17 @@ function detectSurface(pos: { x: number; y: number; z: number }): BounceSurface 
   const dxRim = pos.x - HOOP_RIM_POS.x;
   const dzRim = pos.z - HOOP_RIM_POS.z;
   const distRim = Math.sqrt(dxRim * dxRim + dzRim * dzRim);
-  if (Math.abs(pos.y - RIM_Y) < 0.3 && distRim < RIM_RADIUS + 0.25) return "rim";
+  if (Math.abs(pos.y - RIM_Y) < 0.3 && distRim < RIM_RADIUS + 0.25)
+    return "rim";
 
   // Backboard: ball is in front of / at the board face within the board's width/height
   if (
     pos.z > BOARD_FRONT_FACE_Z - 0.25 &&
-    pos.y > 2.5 && pos.y < 5.0 &&
+    pos.y > 2.5 &&
+    pos.y < 5.0 &&
     Math.abs(pos.x) < 1.2
-  ) return "backboard";
+  )
+    return "backboard";
 
   return "wall";
 }
@@ -161,7 +168,9 @@ export function Basketballs() {
             lastBounceMs.current[i] = now;
 
             const pv = prevVelocities.current[i];
-            const impactSpeed = Math.sqrt(pv.x * pv.x + pv.y * pv.y + pv.z * pv.z);
+            const impactSpeed = Math.sqrt(
+              pv.x * pv.x + pv.y * pv.y + pv.z * pv.z,
+            );
 
             const ballRef = ballRefs.current[i];
             if (!ballRef) return;
@@ -170,7 +179,12 @@ export function Basketballs() {
             const surface = detectSurface(p);
             const pos: [number, number, number] = [p.x, p.y, p.z];
             audioManager.playBounceSound(pos, surface, impactSpeed);
-            broadcastSoundEvent({ id: Date.now() * 1000 + Math.random() * 1000 | 0, pos, surface, speed: impactSpeed });
+            broadcastSoundEvent({
+              id: (Date.now() * 1000 + Math.random() * 1000) | 0,
+              pos,
+              surface,
+              speed: impactSpeed,
+            });
           }}
         >
           <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />

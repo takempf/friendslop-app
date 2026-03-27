@@ -10,12 +10,14 @@ export const useKeyboard = () => {
     KeyQ: false,
     Space: false,
     ShiftLeft: false,
+    KeyC: false,
   });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (Object.prototype.hasOwnProperty.call(keys.current, e.code)) {
         keys.current[e.code] = true;
+        e.preventDefault();
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
