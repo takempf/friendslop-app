@@ -27,6 +27,14 @@ export interface RemoteBallState {
   ownerVersion?: number;
 }
 
+export interface SoundEvent {
+  /** Unique ID to distinguish consecutive events (e.g. two bounces in the same spot) */
+  id: number;
+  pos: [number, number, number];
+  surface: "floor" | "wall" | "backboard" | "rim";
+  speed: number;
+}
+
 export interface IGameSync {
   connect(roomName: string, localStream?: MediaStream): Promise<void>;
   disconnect(): void;
@@ -58,4 +66,7 @@ export interface IGameSync {
 
   broadcastReset(): void;
   onResetScores: () => void;
+
+  broadcastSoundEvent(event: SoundEvent): void;
+  onSoundEvent: (event: SoundEvent) => void;
 }

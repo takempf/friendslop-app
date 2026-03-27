@@ -10,6 +10,7 @@ import type {
   PlayerState,
   ChatMessage,
   RemoteBallState,
+  SoundEvent,
 } from "./IGameSync";
 import { YjsWebRtcAdapter } from "./YjsWebRtcAdapter";
 import { audioManager } from "../audio/AudioManager";
@@ -38,6 +39,7 @@ interface SyncContextType {
   queuePresenceUpdate: (patch: Partial<PlayerState>) => void;
   broadcastReset: () => void;
   subscribeToReset: (cb: () => void) => () => void;
+  broadcastSoundEvent: (event: SoundEvent) => void;
 }
 
 const SyncContext = createContext<SyncContextType>({
@@ -55,6 +57,7 @@ const SyncContext = createContext<SyncContextType>({
   queuePresenceUpdate: () => {},
   broadcastReset: () => {},
   subscribeToReset: () => () => {},
+  broadcastSoundEvent: () => {},
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -156,6 +159,10 @@ export function GameSyncProvider({
       resetListeners.current.forEach((cb) => cb());
     };
 
+    adapter.onSoundEvent = ({ pos, surface, speed }) => {
+      audioManager.playBounceSound(pos, surface, speed);
+    };
+
     const unsubChat = adapter.subscribeToChat(setChatMessages);
 
     let isCancelled = false;
@@ -227,6 +234,10 @@ export function GameSyncProvider({
   }, []);
 
   const broadcastReset = React.useCallback(() => sync.broadcastReset(), [sync]);
+  const broadcastSoundEvent = React.useCallback(
+    (event: SoundEvent) => sync.broadcastSoundEvent(event),
+    [sync],
+  );
 
   return (
     <SyncContext.Provider
@@ -245,6 +256,7 @@ export function GameSyncProvider({
         queuePresenceUpdate,
         broadcastReset,
         subscribeToReset,
+        broadcastSoundEvent,
       }}
     >
       {children}

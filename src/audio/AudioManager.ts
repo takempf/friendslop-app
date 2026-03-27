@@ -565,6 +565,177 @@ export class AudioManager {
   public isPeerMuted(clientId: number): boolean {
     return this.remotePeers.get(clientId)?._muted ?? false;
   }
+
+  // ─── Basketball Bounce Sound ─────────────────────────────────────────
+
+  /**
+   * Synthesize and play a realistic basketball bounce sound.
+   * @param position  World-space [x, y, z] of the ball at impact
+   * @param surface   Surface material hit
+   * @param impactSpeed  Ball speed (m/s) at moment of collision
+   */
+  public playBounceSound(
+    position: [number, number, number],
+    surface: "floor" | "wall" | "backboard" | "rim",
+    impactSpeed: number,
+  ) {
+    if (!this.ctx || !this.analyserOut) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Intensity: map speed to volume with a steep curve so low-speed contacts are quiet
+    // and only hard impacts are loud. ^1.5 gives natural acoustic scaling (energy ∝ v²).
+    const intensity = Math.pow(Math.min(impactSpeed / 12, 1), 1.5);
+    if (intensity < 0.02) return;
+
+    // Pitch jitter: ±8% random variation per bounce for naturalness
+    const pitchJitter = 1.0 + (Math.random() - 0.5) * 0.16;
+
+    // --- Routing: bounceGain → panner → analyserOut (dry spatial)
+    //                        → reverbSend → convolverGym (wet)
+    const bounceGain = ctx.createGain();
+    bounceGain.gain.value = 1.0;
+
+    const panner = ctx.createPanner();
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "inverse";
+    panner.refDistance = 3;
+    panner.rolloffFactor = 1.2;
+    if (panner.positionX) {
+      panner.positionX.value = position[0];
+      panner.positionY.value = position[1];
+      panner.positionZ.value = position[2];
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (panner as any).setPosition(...position);
+    }
+
+    const reverbSend = ctx.createGain();
+    reverbSend.gain.value = 0.25;
+
+    bounceGain.connect(panner);
+    panner.connect(this.analyserOut);
+    bounceGain.connect(reverbSend);
+    if (this.convolverGym) reverbSend.connect(this.convolverGym);
+
+    // Schedule cleanup after all synthesis nodes have stopped
+    const cleanupDelay = surface === "rim" ? 1800 : 800;
+    setTimeout(() => {
+      bounceGain.disconnect();
+      panner.disconnect();
+      reverbSend.disconnect();
+    }, cleanupDelay);
+
+    // --- Surface-specific synthesis ----------------------------------------
+
+    if (surface === "floor") {
+      // Hardwood floor: warm bassy thump + sub-bass + rubber slap attack
+      const vol = intensity * 1.1;
+      // Main thump: low sine with quick pitch sweep down (rubber compression)
+      const thumpFreq = (95 + intensity * 25) * pitchJitter;
+      this._bounceSynth_osc(ctx, now, "sine", thumpFreq * 2.2, thumpFreq, 0.012, 0.28 + intensity * 0.1, vol * 0.85, bounceGain);
+      // Sub-bass body resonance
+      this._bounceSynth_osc(ctx, now, "triangle", 52 * pitchJitter, 42 * pitchJitter, 0.0, 0.14, vol * 0.5, bounceGain);
+      // Rubber contact attack (high-passed slap)
+      this._bounceSynth_noise(ctx, now, 380 + intensity * 120, 2.2, 0.065 + intensity * 0.025, vol * 0.45, bounceGain);
+
+    } else if (surface === "wall") {
+      // Concrete/drywall: dead, dull thud with minimal bounce character
+      const vol = intensity * 0.85;
+      const thumpFreq = (68 + intensity * 18) * pitchJitter;
+      this._bounceSynth_osc(ctx, now, "sine", thumpFreq * 1.8, thumpFreq, 0.01, 0.14 + intensity * 0.05, vol * 0.7, bounceGain);
+      // Heavy low-pass on noise for dull contact sound
+      this._bounceSynth_noise(ctx, now, 220 + intensity * 60, 3.5, 0.04, vol * 0.3, bounceGain);
+
+    } else if (surface === "backboard") {
+      // Glass/fiberglass: hollow higher-pitched thud, slightly bright
+      const vol = intensity * 0.95;
+      const thumpFreq = (165 + intensity * 45) * pitchJitter;
+      this._bounceSynth_osc(ctx, now, "sine", thumpFreq * 2.0, thumpFreq, 0.01, 0.17 + intensity * 0.06, vol * 0.75, bounceGain);
+      // Slightly hollow sub component
+      this._bounceSynth_osc(ctx, now, "triangle", 88 * pitchJitter, 70 * pitchJitter, 0.0, 0.09, vol * 0.4, bounceGain);
+      // Bright contact attack (glass character)
+      this._bounceSynth_noise(ctx, now, 850 + intensity * 250, 2.0, 0.048, vol * 0.55, bounceGain);
+
+    } else {
+      // Rim (solid steel ring): deep low-frequency ring, like striking thick steel bar
+      const vol = intensity * 1.05;
+      // Dull rubber-on-steel thump — very low
+      const impactFreq = (55 + intensity * 25) * pitchJitter;
+      this._bounceSynth_osc(ctx, now, "sine", impactFreq * 1.5, impactFreq, 0.015, 0.14, vol * 0.65, bounceGain);
+      // Fundamental ring: heavy steel ring resonates around 90-130 Hz
+      const ringBase = (85 + intensity * 35 + Math.random() * 15) * pitchJitter;
+      this._bounceSynth_osc(ctx, now, "sine", ringBase * 1.03, ringBase, 0.03, 0.7 + intensity * 0.35, vol * 0.9, bounceGain);
+      // Inharmonic second partial (~2.7× fundamental, characteristic of a ring's bending modes)
+      this._bounceSynth_osc(ctx, now, "sine", ringBase * 2.73, ringBase * 2.71, 0.02, 0.4 + intensity * 0.2, vol * 0.45, bounceGain);
+      // Short low-mid attack noise — the clang of contact, not a screech
+      this._bounceSynth_noise(ctx, now, 200 + intensity * 100, 2.5, 0.05, vol * 0.4, bounceGain);
+    }
+  }
+
+  /** Oscillator with pitch-sweep envelope: startFreq → endFreq, then exponential volume decay */
+  private _bounceSynth_osc(
+    ctx: AudioContext,
+    now: number,
+    type: OscillatorType,
+    startFreq: number,
+    endFreq: number,
+    pitchSweepDur: number,
+    decayDur: number,
+    volume: number,
+    destination: AudioNode,
+  ) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startFreq, now);
+    if (pitchSweepDur > 0) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(endFreq, 1), now + pitchSweepDur);
+    }
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + decayDur);
+
+    osc.connect(gain);
+    gain.connect(destination);
+    osc.start(now);
+    osc.stop(now + decayDur + 0.05);
+  }
+
+  /** Short bandpass-filtered noise burst (rubber/material contact attack) */
+  private _bounceSynth_noise(
+    ctx: AudioContext,
+    now: number,
+    filterFreq: number,
+    filterQ: number,
+    decayDur: number,
+    volume: number,
+    destination: AudioNode,
+  ) {
+    const bufLen = Math.ceil(ctx.sampleRate * (decayDur + 0.02));
+    const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = filterFreq;
+    filter.Q.value = filterQ;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + decayDur);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(destination);
+    source.start(now);
+    source.stop(now + decayDur + 0.02);
+  }
 }
 
 // Export a singleton

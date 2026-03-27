@@ -54,7 +54,7 @@ const SPAWN_POINTS: [number, number, number][] = Array.from(
 export function PlayerController() {
   const ref = useRef<RapierRigidBody>(null);
   const keys = useKeyboard();
-  const { remoteBallStates, queuePresenceUpdate, broadcastReset } =
+  const { remoteBallStates, queuePresenceUpdate, broadcastReset, broadcastSoundEvent } =
     useGameSync();
   const lastAudioSyncTime = useRef(0);
   const [spawnPoint] = useState(
@@ -94,6 +94,7 @@ export function PlayerController() {
   const dribbleBlend = useRef(0); // 0 = held still, 1 = dribbling
   const dribbleSide = useRef(1); // -1 = left, 1 = right (smoothly interpolated)
   const holdLift = useRef(0); // 0 = idle (low), 1 = shooting (raised)
+  const prevDribbleSin = useRef(0); // sign of sin(dribbleTime) last frame — for floor-contact detection
 
   // Jump state
   const prevSpace = useRef(false);
@@ -376,6 +377,18 @@ export function PlayerController() {
         const dribbleY = floorY + (hipY - floorY) * bounceT;
         const dribbleZ =
           state.camera.position.z + _right.z * 0.5 * side + _forward.z * 0.6;
+
+        // Floor-contact sound: detect when sin(dribbleTime) changes sign — one zero-crossing
+        // per floor contact, guaranteed regardless of frame rate (threshold approach was unreliable
+        // because the ^0.4 exponent makes the sub-threshold window only ~0.01 rad wide).
+        const sinT = Math.sin(dribbleTime.current);
+        if (prevDribbleSin.current * sinT < 0 && dribbleBlend.current > 0.25) {
+          const impactSpeed = 3.2 + dribbleBlend.current * 1.2;
+          const pos: [number, number, number] = [dribbleX, floorY, dribbleZ];
+          audioManager.playBounceSound(pos, "floor", impactSpeed);
+          broadcastSoundEvent({ id: Date.now() * 1000 + Math.random() * 1000 | 0, pos, surface: "floor", speed: impactSpeed });
+        }
+        prevDribbleSin.current = sinT;
 
         const b = dribbleBlend.current;
         ball.setNextKinematicTranslation({

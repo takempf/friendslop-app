@@ -5,6 +5,7 @@ import type {
   PlayerState,
   ChatMessage,
   RemoteBallState,
+  SoundEvent,
 } from "./IGameSync";
 import { COLOR_POOL, EMOJI_POOL } from "../utils/colors";
 
@@ -59,6 +60,15 @@ export class YjsWebRtcAdapter implements IGameSync {
   ) => void = () => {};
 
   public onResetScores: () => void = () => {};
+
+  public onSoundEvent: (event: SoundEvent) => void = () => {};
+  // Last seen sound event ID per remote peer, to deduplicate repeated awareness updates
+  private knownSoundEventIds = new Map<number, number>();
+
+  public broadcastSoundEvent(event: SoundEvent): void {
+    if (!this.provider) return;
+    this.provider.awareness.setLocalStateField("soundEvent", event);
+  }
 
   public broadcastReset(): void {
     this.doc.getArray<number>("resets").push([Date.now()]);
@@ -278,6 +288,15 @@ export class YjsWebRtcAdapter implements IGameSync {
 
         if (playerState.ballStates) {
           this.onBallStatesReceived(clientId, playerState.ballStates);
+        }
+
+        const soundEvent = state?.soundEvent as SoundEvent | undefined;
+        if (soundEvent) {
+          const lastId = this.knownSoundEventIds.get(clientId);
+          if (soundEvent.id !== lastId) {
+            this.knownSoundEventIds.set(clientId, soundEvent.id);
+            this.onSoundEvent(soundEvent);
+          }
         }
       });
 
