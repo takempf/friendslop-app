@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
-import { useGameSync } from "../../sync/GameSyncProvider";
-import { audioManager } from "../../audio/AudioManager";
-import { Tabs, TabPanel } from "../../ui/Tabs";
-import { AudioTab } from "./AudioTab";
-import { PlayersTab } from "./PlayersTab";
-import { ChatTab } from "./ChatTab";
-import { DebugTab } from "./DebugTab";
+import { useGameSync } from "@/sync/GameSyncProvider";
+import { audioManager } from "@/audio/AudioManager";
+import { Tabs, TabPanel } from "@/components/ui/Tabs/Tabs";
+import { AudioTab } from "./components/AudioTab/AudioTab";
+import { PlayersTab } from "./components/PlayersTab/PlayersTab";
+import { ChatTab } from "./components/ChatTab/ChatTab";
+import { DebugTab } from "./components/DebugTab/DebugTab";
 import styles from "./Sidebar.module.css";
 
 const isLocalhost =

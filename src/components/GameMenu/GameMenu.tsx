@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { useGameSync } from "../../sync/GameSyncProvider";
-import { audioManager } from "../../audio/AudioManager";
-import { Tabs, TabPanel } from "../../ui/Tabs";
-import { AudioTab } from "../Sidebar/AudioTab";
-import { PlayersTab } from "../Sidebar/PlayersTab";
-import { ChatTab } from "../Sidebar/ChatTab";
-import { DebugTab } from "../Sidebar/DebugTab";
+import { useGameSync } from "@/sync/GameSyncProvider";
+import { audioManager } from "@/audio/AudioManager";
+import { Tabs, TabPanel } from "@/components/ui/Tabs/Tabs";
+import { AudioTab } from "@/components/Sidebar/components/AudioTab/AudioTab";
+import { PlayersTab } from "@/components/Sidebar/components/PlayersTab/PlayersTab";
+import { ChatTab } from "@/components/Sidebar/components/ChatTab/ChatTab";
+import { DebugTab } from "@/components/Sidebar/components/DebugTab/DebugTab";
 import styles from "./GameMenu.module.css";
 
 const isLocalhost =

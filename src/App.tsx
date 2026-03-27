@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Game } from "./components/Game";
+import { Game } from "@/components/Game/Game";
 import { GameSyncProvider } from "./sync/GameSyncProvider";
 import { audioManager } from "./audio/AudioManager";
 
