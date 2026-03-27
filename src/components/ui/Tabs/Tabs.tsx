@@ -1,12 +1,12 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import styles from "./Tabs.module.css";
 
-export interface TabItem {
+interface TabItem {
   value: string;
   label: string;
 }
 
-export interface TabsProps {
+interface TabsProps {
   tabs: TabItem[];
   value: string;
   onValueChange: (value: string) => void;

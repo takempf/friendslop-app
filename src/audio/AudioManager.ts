@@ -24,7 +24,7 @@ function perceptualGain(sliderValue: number): number {
   return Math.pow(sliderValue / 100, 2);
 }
 
-export class AudioManager {
+class AudioManager {
   private ctx: AudioContext | null = null;
 
   // Reverb nodes

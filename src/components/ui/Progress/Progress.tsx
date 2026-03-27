@@ -5,7 +5,7 @@ export interface ProgressHandle {
   setValue: (value: number) => void;
 }
 
-export interface ProgressProps {
+interface ProgressProps {
   value?: number;
   max?: number;
   variant?: "green" | "blue" | "accent";

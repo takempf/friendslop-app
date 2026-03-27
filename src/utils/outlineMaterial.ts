@@ -3,7 +3,7 @@ import * as THREE from "three";
 // Vertex shader: expands back-faces by a fixed number of screen-space pixels.
 // Multiplying the NDC offset by clipPos.w undoes the perspective divide so the
 // expansion is constant in pixels regardless of camera distance.
-export const outlineVert = /* glsl */ `
+const outlineVert = /* glsl */ `
   uniform vec2 resolution;
   uniform float outlineWidth;
   void main() {
@@ -18,7 +18,7 @@ export const outlineVert = /* glsl */ `
   }
 `;
 
-export const outlineFrag = /* glsl */ `
+const outlineFrag = /* glsl */ `
   uniform vec3 color;
   uniform float opacity;
   void main() {

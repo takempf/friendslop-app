@@ -1,7 +1,7 @@
 import { Slider as BaseSlider } from "@base-ui/react/slider";
 import styles from "./Slider.module.css";
 
-export interface SliderProps {
+interface SliderProps {
   value: number;
   onChange: (value: number) => void;
   min?: number;

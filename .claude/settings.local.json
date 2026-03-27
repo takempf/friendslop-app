@@ -23,7 +23,10 @@
       "Bash(ls -la /z/repos/friendslop-app/src/components/*.tsx)",
       "Bash(npm search:*)",
       "Bash(wc -l /z/repos/friendslop-app/src/**/*.css)",
-      "Bash(ls -lh /z/repos/friendslop-app/src/ui/*.module.css /z/repos/friendslop-app/src/components/**/*.module.css)"
+      "Bash(ls -lh /z/repos/friendslop-app/src/ui/*.module.css /z/repos/friendslop-app/src/components/**/*.module.css)",
+      "Bash(npx knip:*)",
+      "Bash(ls *.json *.ts *.js)",
+      "Bash(npm uninstall:*)"
     ]
   },
   "hooks": {
