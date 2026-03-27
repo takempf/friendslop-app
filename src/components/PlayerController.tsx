@@ -14,7 +14,7 @@ import { useKeyboard } from "../hooks/useKeyboard";
 import { useGameSync } from "../sync/GameSyncProvider";
 import { audioManager } from "../audio/AudioManager";
 import { useBasketball } from "../contexts/BasketballContext";
-import { BALL_RADIUS } from "../constants/basketball";
+import { BALL_RADIUS, INTERACTION_RANGE } from "../constants/basketball";
 import { debugConfig } from "../debug/config";
 
 // Group layout: 0 = environment, 1 = player, 2 = balls
@@ -25,7 +25,6 @@ const SPEED = 5;
 const SPRINT_SPEED = 7.5;
 const CROUCH_SPEED = 2.5;
 const CROUCH_CAM_HEIGHT = 0.3; // eye level above body center when crouched (vs 0.83 standing)
-const PICKUP_RANGE = 2.0;
 // Throw params are now driven by debugConfig (see src/debug/config.ts)
 const MAX_CHARGE_TIME = 2.5; // seconds to reach full charge
 
@@ -227,7 +226,7 @@ export function PlayerController() {
       state.camera.getWorldDirection(_forward);
       const eyeY = pos.y + 0.8;
       let candidateIdx = -1;
-      let candidateDist = PICKUP_RANGE;
+      let candidateDist = INTERACTION_RANGE;
       const now = performance.now();
       ballRefs.current.forEach((ballRef, i) => {
         if (!ballRef) return;

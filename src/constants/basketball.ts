@@ -12,6 +12,9 @@ export const RIM_RADIUS = 0.2286;
 // Standard basketball radius: ~4.7 inches = 0.12m
 export const BALL_RADIUS = 0.12;
 
+// Shared range for grab and interact actions
+export const INTERACTION_RANGE = 2.66;
+
 // Rim center: back edge of torus flush with backboard front face
 export const HOOP_RIM_POS = new THREE.Vector3(
   0,

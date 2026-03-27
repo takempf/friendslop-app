@@ -3,11 +3,11 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useBasketball } from "../contexts/BasketballContext";
 import { sharedOutlineMat, sharedStrokeMat } from "../utils/outlineMaterial";
+import { INTERACTION_RANGE } from "../constants/basketball";
 
 const BUTTON_W = 0.8;
 const BUTTON_H = 0.4;
 const BUTTON_D = 0.1;
-const INTERACT_RANGE = 2.5;
 
 // Centered below the scoreboard (scoreboard at [5, 4.0, 9.70], bottom edge y≈1.75)
 const BUTTON_X = 5;
@@ -49,7 +49,7 @@ export function ResetButton() {
     camera.getWorldDirection(_forward);
     const dot = _forward.dot(_toButton.clone().normalize());
 
-    const isCandidate = dist < INTERACT_RANGE && dot > 0.3;
+    const isCandidate = dist < INTERACTION_RANGE && dot > 0.3;
     buttonCandidateRef.current = isCandidate;
 
     if (outlineRef.current) outlineRef.current.visible = isCandidate;
