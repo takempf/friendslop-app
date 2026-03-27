@@ -1,10 +1,13 @@
+import { useMemo } from "react";
 import { RigidBody } from "@react-three/rapier";
+import * as THREE from "three";
 import { SUN_POSITION } from "@/constants/sunPosition";
 import { BasketballHoop } from "@/components/3d/BasketballHoop/BasketballHoop";
 import { Basketballs } from "@/components/3d/Basketballs/Basketballs";
 import { CourtMarkings } from "@/components/3d/CourtMarkings/CourtMarkings";
 import { Scoreboard } from "@/components/3d/Scoreboard/Scoreboard";
 import { ResetButton } from "@/components/3d/ResetButton/ResetButton";
+import { createDebugTexture } from "@/components/3d/textures/DebugTexture/DebugTexture";
 
 // Helper component for Walls/Floors
 const Block = ({
@@ -12,28 +15,53 @@ const Block = ({
   args,
   color,
   restitution = 0,
+  wallTexture,
+  textureRepeat,
 }: {
   position: [number, number, number];
   args: [number, number, number];
   color: string;
   restitution?: number;
-}) => (
-  <RigidBody
-    type="fixed"
-    position={position}
-    colliders="cuboid"
-    restitution={restitution}
-  >
-    <mesh castShadow receiveShadow>
-      <boxGeometry args={args} />
-      <meshLambertMaterial color={color} />
-    </mesh>
-  </RigidBody>
-);
+  wallTexture?: THREE.CanvasTexture;
+  textureRepeat?: [number, number];
+}) => {
+  const clonedTexture = useMemo(() => {
+    if (!wallTexture || !textureRepeat) return null;
+    const t = wallTexture.clone();
+    t.repeat.set(textureRepeat[0], textureRepeat[1]);
+    t.needsUpdate = true;
+    return t;
+  }, [wallTexture, textureRepeat]);
+
+  return (
+    <RigidBody
+      type="fixed"
+      position={position}
+      colliders="cuboid"
+      restitution={restitution}
+    >
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={args} />
+        {clonedTexture ? (
+          <meshLambertMaterial map={clonedTexture} />
+        ) : (
+          <meshLambertMaterial color={color} />
+        )}
+      </mesh>
+    </RigidBody>
+  );
+};
 
 export function SchoolEnvironment() {
   const wallHeight = 8;
   const wallThickness = 0.5;
+  const debugTex = useMemo(() => createDebugTexture("#b0b0b0", "#979797"), []);
+  const floorTex = useMemo(() => createDebugTexture("#c87030", "#a85820"), []);
+
+  // Convenience: wall repeat for X-thin walls (visible face = depth × height)
+  const wr = (depth: number): [number, number] => [depth, wallHeight];
+  // Convenience: wall repeat for Z-thin walls (visible face = width × height)
+  const wc = (width: number): [number, number] => [width, wallHeight];
 
   return (
     <group>
@@ -62,6 +90,8 @@ export function SchoolEnvironment() {
         args={[20, 0.5, 20]}
         color="#8b5a2b"
         restitution={0.84}
+        wallTexture={floorTex}
+        textureRepeat={[20, 20]}
       />
 
       {/* Walls for Gym */}
@@ -70,29 +100,39 @@ export function SchoolEnvironment() {
         position={[-10, wallHeight / 2, 0]}
         args={[wallThickness, wallHeight, 20]}
         color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={wr(20)}
       />
       {/* East Wall */}
       <Block
         position={[10, wallHeight / 2, 0]}
         args={[wallThickness, wallHeight, 20]}
         color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={wr(20)}
       />
       {/* South Wall */}
       <Block
         position={[0, wallHeight / 2, 10]}
         args={[20, wallHeight, wallThickness]}
         color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={wc(20)}
       />
       {/* North Wall - with a gap for the hallway */}
       <Block
         position={[-6, wallHeight / 2, -10]}
         args={[8, wallHeight, wallThickness]}
         color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={wc(8)}
       />
       <Block
         position={[6, wallHeight / 2, -10]}
         args={[8, wallHeight, wallThickness]}
         color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={wc(8)}
       />
       {/* The Hallway gap is from X=-2 to X=2 at Z=-10 */}
 
@@ -103,6 +143,8 @@ export function SchoolEnvironment() {
         args={[4, 0.5, 20]}
         color="#708090"
         restitution={0.84}
+        wallTexture={floorTex}
+        textureRepeat={[4, 20]}
       />
 
       {/* Hallway Walls */}
@@ -110,17 +152,23 @@ export function SchoolEnvironment() {
         position={[-2, wallHeight / 2, -20]}
         args={[wallThickness, wallHeight, 20]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wr(20)}
       />
       <Block
         position={[2, wallHeight / 2, -20]}
         args={[wallThickness, wallHeight, 20]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wr(20)}
       />
       {/* End of Hallway */}
       <Block
         position={[0, wallHeight / 2, -30]}
         args={[4, wallHeight, wallThickness]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wc(4)}
       />
 
       {/* --- Classroom A (West of Hallway at Z=-25) --- */}
@@ -129,11 +177,15 @@ export function SchoolEnvironment() {
         position={[-2, wallHeight / 2, -15]}
         args={[wallThickness, wallHeight, 10]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wr(10)}
       />
       <Block
         position={[-2, wallHeight / 2, -28]}
         args={[wallThickness, wallHeight, 6]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wr(6)}
       />
 
       {/* Floor 10x10 */}
@@ -142,22 +194,30 @@ export function SchoolEnvironment() {
         args={[10, 0.5, 10]}
         color="#5f9ea0"
         restitution={0.84}
+        wallTexture={floorTex}
+        textureRepeat={[10, 10]}
       />
       {/* Classroom A Walls */}
       <Block
         position={[-12.5, wallHeight / 2, -25]}
         args={[wallThickness, wallHeight, 10]}
         color="#fdf5e6"
+        wallTexture={debugTex}
+        textureRepeat={wr(10)}
       />
       <Block
         position={[-7.5, wallHeight / 2, -20]}
         args={[10, wallHeight, wallThickness]}
         color="#fdf5e6"
+        wallTexture={debugTex}
+        textureRepeat={wc(10)}
       />
       <Block
         position={[-7.5, wallHeight / 2, -30]}
         args={[10, wallHeight, wallThickness]}
         color="#fdf5e6"
+        wallTexture={debugTex}
+        textureRepeat={wc(10)}
       />
 
       {/* Basketball */}
@@ -173,11 +233,15 @@ export function SchoolEnvironment() {
         position={[2, wallHeight / 2, -15]}
         args={[wallThickness, wallHeight, 10]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wr(10)}
       />
       <Block
         position={[2, wallHeight / 2, -28]}
         args={[wallThickness, wallHeight, 6]}
         color="#f5f5dc"
+        wallTexture={debugTex}
+        textureRepeat={wr(6)}
       />
 
       {/* Floor 10x10 */}
@@ -186,22 +250,30 @@ export function SchoolEnvironment() {
         args={[10, 0.5, 10]}
         color="#5f9ea0"
         restitution={0.84}
+        wallTexture={floorTex}
+        textureRepeat={[10, 10]}
       />
       {/* Classroom B Walls */}
       <Block
         position={[12.5, wallHeight / 2, -25]}
         args={[wallThickness, wallHeight, 10]}
         color="#fdf5e6"
+        wallTexture={debugTex}
+        textureRepeat={wr(10)}
       />
       <Block
         position={[7.5, wallHeight / 2, -20]}
         args={[10, wallHeight, wallThickness]}
         color="#fdf5e6"
+        wallTexture={debugTex}
+        textureRepeat={wc(10)}
       />
       <Block
         position={[7.5, wallHeight / 2, -30]}
         args={[10, wallHeight, wallThickness]}
         color="#fdf5e6"
+        wallTexture={debugTex}
+        textureRepeat={wc(10)}
       />
     </group>
   );
