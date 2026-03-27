@@ -40,6 +40,8 @@ interface SyncContextType {
   broadcastReset: () => void;
   subscribeToReset: (cb: () => void) => () => void;
   broadcastSoundEvent: (event: SoundEvent) => void;
+  scores: Map<number, number>;
+  broadcastScore: (colorIndex: number) => void;
 }
 
 const SyncContext = createContext<SyncContextType>({
@@ -58,6 +60,8 @@ const SyncContext = createContext<SyncContextType>({
   broadcastReset: () => {},
   subscribeToReset: () => () => {},
   broadcastSoundEvent: () => {},
+  scores: new Map(),
+  broadcastScore: () => {},
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -85,6 +89,7 @@ export function GameSyncProvider({
   );
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [connectedPeers, setConnectedPeers] = useState<ConnectedPeer[]>([]);
+  const [scores, setScores] = useState<Map<number, number>>(new Map());
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [myColorIndex, setMyColorIndex] = useState(0);
   const [myEmojiIndex, setMyEmojiIndex] = useState(0);
@@ -157,6 +162,10 @@ export function GameSyncProvider({
 
     adapter.onResetScores = () => {
       resetListeners.current.forEach((cb) => cb());
+    };
+
+    adapter.onScoreUpdated = (newScores) => {
+      setScores(new Map(newScores));
     };
 
     adapter.onSoundEvent = ({ pos, surface, speed }) => {
@@ -234,6 +243,10 @@ export function GameSyncProvider({
   }, []);
 
   const broadcastReset = React.useCallback(() => sync.broadcastReset(), [sync]);
+  const broadcastScore = React.useCallback(
+    (colorIndex: number) => sync.broadcastScore(colorIndex),
+    [sync],
+  );
   const broadcastSoundEvent = React.useCallback(
     (event: SoundEvent) => sync.broadcastSoundEvent(event),
     [sync],
@@ -257,6 +270,8 @@ export function GameSyncProvider({
         broadcastReset,
         subscribeToReset,
         broadcastSoundEvent,
+        scores,
+        broadcastScore,
       }}
     >
       {children}

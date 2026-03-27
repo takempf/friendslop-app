@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useContext, useRef } from "react";
 import type { RapierRigidBody } from "@react-three/rapier";
 
 interface BasketballContextType {
@@ -13,9 +7,6 @@ interface BasketballContextType {
   ownedBallIds: React.MutableRefObject<Set<number>>;
   ballOwnerVersions: React.MutableRefObject<Map<number, number>>;
   grabCandidateRef: React.MutableRefObject<number>;
-  scores: Map<number, number>;
-  addScore: (colorIndex: number) => void;
-  resetScores: () => void;
   buttonCandidateRef: React.MutableRefObject<boolean>;
 }
 
@@ -32,19 +23,6 @@ export function BasketballProvider({
   const ballOwnerVersions = useRef<Map<number, number>>(new Map());
   const grabCandidateRef = useRef(-1);
   const buttonCandidateRef = useRef(false);
-  const [scores, setScores] = useState<Map<number, number>>(new Map());
-
-  const addScore = useCallback((colorIndex: number) => {
-    setScores((prev) => {
-      const next = new Map(prev);
-      next.set(colorIndex, (next.get(colorIndex) ?? 0) + 1);
-      return next;
-    });
-  }, []);
-
-  const resetScores = useCallback(() => {
-    setScores(new Map());
-  }, []);
 
   return (
     <BasketballContext.Provider
@@ -55,9 +33,6 @@ export function BasketballProvider({
         ballOwnerVersions,
         grabCandidateRef,
         buttonCandidateRef,
-        scores,
-        addScore,
-        resetScores,
       }}
     >
       {children}

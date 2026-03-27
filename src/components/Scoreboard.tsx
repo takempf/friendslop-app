@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { useBasketball } from "../contexts/BasketballContext";
 import { useGameSync } from "../sync/GameSyncProvider";
 import { getPlayerColor, getPlayerEmoji } from "../utils/colors";
 
@@ -120,8 +119,7 @@ function drawScoreboard(
 }
 
 export function Scoreboard() {
-  const { scores } = useBasketball();
-  const { myId, myName, myColorIndex, myEmojiIndex, connectedPeers } =
+  const { scores, myId, myName, myColorIndex, myEmojiIndex, connectedPeers } =
     useGameSync();
 
   // useState lazy init runs once — texture is a stable value safe to read in JSX

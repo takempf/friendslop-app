@@ -13,6 +13,7 @@ export class YjsWebRtcAdapter implements IGameSync {
   private doc: Y.Doc;
   private provider: WebrtcProvider | null = null;
   private chatArray: Y.Array<ChatMessage>;
+  private scoresMap: Y.Map<number>;
 
   public onPlayerJoin: (clientId: number, state: PlayerState) => void =
     () => {};
@@ -43,6 +44,7 @@ export class YjsWebRtcAdapter implements IGameSync {
   constructor() {
     this.doc = new Y.Doc();
     this.chatArray = this.doc.getArray<ChatMessage>("chat");
+    this.scoresMap = this.doc.getMap<number>("scores");
 
     this.chatArray.observe(() => {
       const messages = this.chatArray.toArray();
@@ -52,6 +54,14 @@ export class YjsWebRtcAdapter implements IGameSync {
     this.doc.getArray<number>("resets").observe(() => {
       this.onResetScores();
     });
+
+    this.scoresMap.observe(() => {
+      const scores = new Map<number, number>();
+      this.scoresMap.forEach((value: number, key: string) => {
+        scores.set(Number(key), value);
+      });
+      this.onScoreUpdated(scores);
+    });
   }
 
   public onBallStatesReceived: (
@@ -60,6 +70,13 @@ export class YjsWebRtcAdapter implements IGameSync {
   ) => void = () => {};
 
   public onResetScores: () => void = () => {};
+
+  public onScoreUpdated: (scores: Map<number, number>) => void = () => {};
+
+  public broadcastScore(colorIndex: number): void {
+    const key = String(colorIndex);
+    this.scoresMap.set(key, (this.scoresMap.get(key) ?? 0) + 1);
+  }
 
   public onSoundEvent: (event: SoundEvent) => void = () => {};
   // Last seen sound event ID per remote peer, to deduplicate repeated awareness updates
@@ -71,7 +88,10 @@ export class YjsWebRtcAdapter implements IGameSync {
   }
 
   public broadcastReset(): void {
-    this.doc.getArray<number>("resets").push([Date.now()]);
+    this.doc.transact(() => {
+      this.doc.getArray<number>("resets").push([Date.now()]);
+      this.scoresMap.clear();
+    });
   }
 
   public onPlayerStream: (clientId: number, stream: MediaStream) => void =
