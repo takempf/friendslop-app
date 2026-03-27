@@ -1,0 +1,113 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--r-md);
+  color: var(--clr-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--ease),
+    background var(--ease);
+  outline: none;
+}
+
+.trigger:hover {
+  border-color: var(--clr-accent);
+}
+
+.trigger:focus-visible {
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 2px var(--clr-accent-dim);
+}
+
+.trigger[data-open] {
+  border-color: var(--clr-accent);
+}
+
+.value {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon {
+  font-size: 10px;
+  color: var(--clr-text-3);
+  flex-shrink: 0;
+}
+
+.positioner {
+  z-index: 1000;
+}
+
+.popup {
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-1);
+  min-width: 160px;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  outline: none;
+
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--ease),
+    transform var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-md);
+  color: var(--clr-text-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background var(--ease),
+    color var(--ease);
+}
+
+.item:hover,
+.item[data-highlighted] {
+  background: var(--clr-surface-3);
+  color: var(--clr-text);
+}
+
+.item[data-selected] {
+  color: var(--clr-accent);
+}
+
+.itemText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemIndicator {
+  font-size: 10px;
+  color: var(--clr-accent);
+  flex-shrink: 0;
+}

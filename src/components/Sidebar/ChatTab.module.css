@@ -1,0 +1,62 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* override the panel padding so chat fills edge-to-edge */
+  margin: calc(-1 * var(--sp-3));
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.empty {
+  color: var(--clr-text-3);
+  font-style: italic;
+  text-align: center;
+  margin-top: var(--sp-5);
+  font-size: var(--text-sm);
+}
+
+.message {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.sender {
+  font-weight: 700;
+}
+
+.text {
+  color: var(--clr-text);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--clr-border-subtle);
+  padding: var(--sp-2) var(--sp-3);
+  gap: var(--sp-2);
+  background: var(--clr-surface-0);
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--clr-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  caret-color: var(--clr-accent);
+}
+
+.input::placeholder {
+  color: var(--clr-text-3);
+}

@@ -1,0 +1,69 @@
+:root {
+  /* ── Surfaces ───────────────────────────────────────────── */
+  --clr-bg: #08080f;
+  --clr-surface-0: #0d0d18;
+  --clr-surface-1: #131320;
+  --clr-surface-2: #1a1a2a;
+  --clr-surface-3: #222236;
+
+  /* ── Borders ────────────────────────────────────────────── */
+  --clr-border: #28283c;
+  --clr-border-subtle: #1c1c2c;
+
+  /* ── Text ───────────────────────────────────────────────── */
+  --clr-text: #e6e6f0;
+  --clr-text-2: #9090a8;
+  --clr-text-3: #505068;
+
+  /* ── Accent (purple) ────────────────────────────────────── */
+  --clr-accent: #a855f7;
+  --clr-accent-hover: #9333ea;
+  --clr-accent-dim: rgba(168, 85, 247, 0.15);
+  --clr-accent-dim-hover: rgba(168, 85, 247, 0.25);
+
+  /* ── Blue (peers) ───────────────────────────────────────── */
+  --clr-blue: #60a5fa;
+  --clr-blue-dim: rgba(96, 165, 250, 0.12);
+
+  /* ── Green (meters) ─────────────────────────────────────── */
+  --clr-green: #4ade80;
+
+  /* ── Red (danger/muted) ─────────────────────────────────── */
+  --clr-red: #f87171;
+  --clr-red-hover: #ef4444;
+  --clr-red-dim: rgba(248, 113, 113, 0.18);
+  --clr-red-dim-hover: rgba(248, 113, 113, 0.28);
+
+  /* ── Yellow (debug) ─────────────────────────────────────── */
+  --clr-yellow: #facc15;
+  --clr-yellow-dim: rgba(250, 204, 21, 0.12);
+
+  /* ── Spacing ────────────────────────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  /* ── Border radius ──────────────────────────────────────── */
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 8px;
+  --r-full: 9999px;
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-ui: system-ui, -apple-system, sans-serif;
+  --font-mono: "Consolas", "Courier New", monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+
+  /* ── Motion ─────────────────────────────────────────────── */
+  --ease: 130ms ease;
+  --ease-slow: 200ms ease;
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  --sidebar-width: 300px;
+}

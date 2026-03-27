@@ -1,0 +1,16 @@
+.root {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--clr-surface-0);
+  border-left: 1px solid var(--clr-border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 20;
+}
+
+.chatPanel {
+  /* Chat tab needs its content to fill the full panel height */
+  padding: 0 !important;
+  overflow: hidden !important;
+}

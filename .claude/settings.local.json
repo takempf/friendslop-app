@@ -20,7 +20,8 @@
       "Skill(update-config:*)",
       "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''/z/repos/friendslop-app/.claude/settings.local.json'',''utf8''\\)\\); console.log\\(''valid''\\)\")",
       "Bash(npx prettier:*)",
-      "Bash(ls -la /z/repos/friendslop-app/src/components/*.tsx)"
+      "Bash(ls -la /z/repos/friendslop-app/src/components/*.tsx)",
+      "Bash(npm search:*)"
     ]
   },
   "hooks": {

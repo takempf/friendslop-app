@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Game } from "./components/Game";
 import { GameSyncProvider } from "./sync/GameSyncProvider";
-import { UIOverlay } from "./components/UIOverlay";
+import { GameMenu } from "./components/GameMenu/GameMenu";
 import { audioManager } from "./audio/AudioManager";
+import styles from "./App.module.css";
 
 function App() {
   const [started, setStarted] = useState(false);
@@ -24,16 +25,25 @@ function App() {
     setStarted(true);
   };
 
+  // Hotkey: B = test sound
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "b" && document.activeElement?.tagName !== "INPUT") {
+        audioManager.playTestSound();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
-    <div className="w-full h-full relative text-white" onClick={handleStart}>
+    <div className={styles.root} onClick={!started ? handleStart : undefined}>
       {!started && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-900 cursor-pointer select-none">
-          <div className="text-center">
-            <h1 className="text-5xl font-extrabold mb-4 text-purple-400">
-              Friendslop 3D
-            </h1>
-            <p className="text-xl animate-pulse">
-              Click anywhere to connect & enable audio
+        <div className={styles.startScreen}>
+          <div className={styles.startContent}>
+            <h1 className={styles.startTitle}>Friendslop 3D</h1>
+            <p className={styles.startHint}>
+              Click anywhere to connect &amp; enable audio
             </p>
           </div>
         </div>
@@ -41,13 +51,9 @@ function App() {
 
       {started && (
         <GameSyncProvider roomName="friendslop-lobby-1">
-          <div className="flex flex-row w-full h-full">
-            <div className="flex-1 relative min-w-0 min-h-0">
-              <Game />
-            </div>
-            <div className="w-[300px] shrink-0 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden shadow-xl z-20">
-              <UIOverlay />
-            </div>
+          <div className={styles.layout}>
+            <Game />
+            <GameMenu />
           </div>
         </GameSyncProvider>
       )}

@@ -11,6 +11,8 @@ import { SyncTicker } from "./SyncTicker";
 import { CRTRenderer } from "./CRTRenderer";
 import { PartlyCloudySky } from "./PartlyCloudySky";
 
+import css from "./Game.module.css";
+
 export function Game() {
   const [locked, setLocked] = useState(false);
 
@@ -21,7 +23,7 @@ export function Game() {
   }, []);
 
   return (
-    <div className="w-full h-full relative bg-black" id="game-container">
+    <div className={css.gameContainer}>
       <Canvas shadows camera={{ position: [0, 2, 0], fov: 75 }}>
         <PartlyCloudySky />
         <BasketballProvider>
@@ -34,12 +36,12 @@ export function Game() {
           </Physics>
         </BasketballProvider>
         <CRTRenderer />
-        <Stats className="!absolute !bottom-0 !left-0 !top-auto !right-auto" />
+        <Stats className={css.stats} />
       </Canvas>
 
       {/* Reticle */}
       <svg
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        className={css.reticle}
         width="16"
         height="16"
         viewBox="0 0 16 16"
@@ -66,13 +68,9 @@ export function Game() {
         <circle cx="8" cy="8" r="1.5" fill="white" />
       </svg>
 
-      {!locked && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white bg-black/50 px-4 py-2 rounded pointer-events-none">
-          Click to Play
-        </div>
-      )}
+      {!locked && <div className={css.clickToPlay}>Click to Play</div>}
 
-      <div className="absolute bottom-4 right-4 text-white/60 text-xs pointer-events-none text-right leading-relaxed">
+      <div className={css.controls}>
         WASD · Move
         <br />
         Shift · Sprint
@@ -85,16 +83,10 @@ export function Game() {
       {/* Throw charge meter — visibility and fill driven imperatively by PlayerController */}
       <div
         id="throw-meter"
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-none flex-col items-center gap-1"
+        className={css.throwMeter}
         style={{ display: "none" }}
       >
-        <div
-          id="throw-meter-label"
-          className="text-white text-xs font-bold tracking-widest text-center mb-1"
-        >
-          Hold Q to Charge
-        </div>
-        <div className="relative w-56 h-4 bg-black/60 rounded-full border border-white/25 overflow-hidden">
+        <div className={css.throwMeterFillContainer}>
           <div
             id="throw-meter-fill"
             style={{
@@ -107,10 +99,6 @@ export function Game() {
               background: "hsl(120, 90%, 45%)",
             }}
           />
-        </div>
-        <div className="flex justify-between w-56 mt-0.5">
-          <span className="text-white/50 text-[10px]">MIN</span>
-          <span className="text-white/50 text-[10px]">MAX</span>
         </div>
       </div>
     </div>

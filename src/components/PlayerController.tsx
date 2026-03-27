@@ -110,7 +110,6 @@ export function PlayerController() {
   // DOM refs for throw meter — updated imperatively in useFrame (no re-renders)
   const meterEl = useRef<HTMLDivElement | null>(null);
   const meterFillEl = useRef<HTMLDivElement | null>(null);
-  const meterLabelEl = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     camera.rotation.set(0, 0, 0);
@@ -120,9 +119,6 @@ export function PlayerController() {
     meterEl.current = document.getElementById("throw-meter") as HTMLDivElement;
     meterFillEl.current = document.getElementById(
       "throw-meter-fill",
-    ) as HTMLDivElement;
-    meterLabelEl.current = document.getElementById(
-      "throw-meter-label",
     ) as HTMLDivElement;
   }, []);
 
@@ -427,18 +423,13 @@ export function PlayerController() {
 
     // --- Throw meter UI (imperative DOM, no re-renders) ---
     if (meterEl.current && meterFillEl.current) {
-      const isHolding = heldBallRef.current !== -1;
-      meterEl.current.style.display = isHolding ? "flex" : "none";
-      if (isHolding) {
+      meterEl.current.style.display = throwCharge.current > 0 ? "flex" : "none";
+      if (throwCharge.current > 0) {
         const pct = throwCharge.current * 100;
         meterFillEl.current.style.width = `${pct}%`;
         // hue: 120 (green) → 60 (yellow) → 0 (red) as charge grows
         const hue = Math.round((1 - throwCharge.current) * 120);
         meterFillEl.current.style.background = `hsl(${hue}, 90%, 45%)`;
-        if (meterLabelEl.current) {
-          meterLabelEl.current.textContent =
-            throwCharge.current > 0 ? "Release Q to Throw" : "Hold Q to Charge";
-        }
       }
     }
 

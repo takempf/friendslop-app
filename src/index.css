@@ -1,4 +1,10 @@
-@import "tailwindcss";
+@import "./ui/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 html,
 body,
@@ -9,4 +15,6 @@ body,
   padding: 0;
   overflow: hidden;
   background-color: #000;
+  font-family: var(--font-ui);
+  color: var(--clr-text);
 }
