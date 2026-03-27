@@ -11,4 +11,5 @@ export const debugConfig = {
   rimRestitution: 0.225,
   funnelStrength: 0.018, // per-frame inward impulse inside net cylinder
   renderScale: 0.5, // resolution scale from 0.25 to 1
+  showPerf: false,
 };

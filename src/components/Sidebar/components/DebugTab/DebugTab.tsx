@@ -106,6 +106,26 @@ export function DebugTab() {
 
       <div className={styles.divider} />
 
+      {/* Performance */}
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>Performance</span>
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>Perf Monitor</span>
+          <Button
+            variant={debugConfig.showPerf ? "accent" : "default"}
+            size="sm"
+            onClick={() => {
+              debugConfig.showPerf = !debugConfig.showPerf;
+              tick((n) => n + 1);
+            }}
+          >
+            {debugConfig.showPerf ? "ON" : "OFF"}
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
       {/* Physics */}
       <div className={styles.section}>
         <span className={styles.sectionLabel}>Physics</span>

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
+import { Perf } from "r3f-perf";
 import { Physics } from "@react-three/rapier";
 import { SchoolEnvironment } from "@/components/3d/SchoolEnvironment/SchoolEnvironment";
 import { PlayerController } from "@/components/3d/PlayerController/PlayerController";
@@ -12,6 +13,7 @@ import { CRTRenderer } from "@/components/3d/CRTRenderer/CRTRenderer";
 import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky";
 import { GameMenu } from "@/components/GameMenu/GameMenu";
 import { usePointerLock } from "@/hooks/usePointerLock";
+import { debugConfig } from "@/debug/config";
 
 import css from "./Game.module.css";
 
@@ -39,6 +41,7 @@ export function Game() {
         </BasketballProvider>
         <CRTRenderer />
         <Stats className={css.stats} />
+        {debugConfig.showPerf && <Perf position="top-left" />}
       </Canvas>
 
       {/* Reticle */}

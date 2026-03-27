@@ -189,7 +189,7 @@ export function Basketballs() {
         >
           <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />
           <mesh castShadow>
-            <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
+            <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
             <meshStandardMaterial map={basketballTexture} roughness={0.7} />
           </mesh>
           <mesh
@@ -200,7 +200,7 @@ export function Basketballs() {
             renderOrder={1}
             material={sharedStrokeMat}
           >
-            <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
+            <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
           </mesh>
           <mesh
             ref={(ref) => {
@@ -210,7 +210,7 @@ export function Basketballs() {
             renderOrder={2}
             material={sharedOutlineMat}
           >
-            <sphereGeometry args={[BALL_RADIUS, 32, 32]} />
+            <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
           </mesh>
         </RigidBody>
       ))}
