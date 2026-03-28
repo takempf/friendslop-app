@@ -13,6 +13,7 @@ type DebugConfig = {
   funnelStrength: number;
   renderScale: number;
   showPerf: boolean;
+  showClouds: boolean;
 };
 
 export const debugConfig: DebugConfig = {
@@ -27,6 +28,7 @@ export const debugConfig: DebugConfig = {
   funnelStrength: 0.018, // per-frame inward impulse inside net cylinder
   renderScale: 0.75, // resolution scale from 0.25 to 1
   showPerf: false,
+  showClouds: true,
 };
 
 // Simple event system for reactivity

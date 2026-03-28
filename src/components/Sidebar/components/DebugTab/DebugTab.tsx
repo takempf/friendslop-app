@@ -121,6 +121,18 @@ export function DebugTab() {
             {debugConfig.showPerf ? "ON" : "OFF"}
           </Button>
         </div>
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>Clouds</span>
+          <Button
+            variant={debugConfig.showClouds ? "accent" : "default"}
+            size="sm"
+            onClick={() => {
+              updateDebugConfig("showClouds", !debugConfig.showClouds);
+            }}
+          >
+            {debugConfig.showClouds ? "ON" : "OFF"}
+          </Button>
+        </div>
         <p className={styles.perfNote}>
           Note: GPU "0.000ms" is common due to browser security restrictions on
           timer queries. To see this data, launch Chrome with
