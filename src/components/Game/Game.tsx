@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Perf } from "r3f-perf";
@@ -13,18 +13,24 @@ import { CRTRenderer } from "@/components/3d/CRTRenderer/CRTRenderer";
 import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky";
 import { GameMenu } from "@/components/GameMenu/GameMenu";
 import { usePointerLock } from "@/hooks/usePointerLock";
-import { debugConfig } from "@/debug/config";
+import { debugConfig, subscribeToDebugConfig } from "@/debug/config";
 
 import css from "./Game.module.css";
 
 export function Game() {
   const gameContainerRef = useRef<HTMLCanvasElement>(null);
   const { locked, setPointerLockOnElement } = usePointerLock();
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    return subscribeToDebugConfig(() => tick((n) => n + 1));
+  }, []);
 
   return (
     <div className={css.gameContainer}>
       <Canvas
         shadows
+        dpr={debugConfig.renderScale}
         camera={{ position: [0, 2, 0], fov: 75 }}
         id="game-container"
         ref={gameContainerRef}

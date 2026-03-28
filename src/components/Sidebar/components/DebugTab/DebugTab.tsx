@@ -1,5 +1,9 @@
-import { useState } from "react";
-import { debugConfig } from "@/debug/config";
+import { useState, useEffect } from "react";
+import {
+  debugConfig,
+  updateDebugConfig,
+  subscribeToDebugConfig,
+} from "@/debug/config";
 import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
 import styles from "./DebugTab.module.css";
@@ -65,11 +69,9 @@ const PHYSICS_PARAMS: {
 export function DebugTab() {
   const [, tick] = useState(0);
 
-  const updateParam = (key: NumericConfigKey, value: number) => {
-    // eslint-disable-next-line react-hooks/immutability
-    debugConfig[key] = value;
-    tick((n) => n + 1);
-  };
+  useEffect(() => {
+    return subscribeToDebugConfig(() => tick((n) => n + 1));
+  }, []);
 
   return (
     <>
@@ -82,8 +84,7 @@ export function DebugTab() {
             variant={debugConfig.crtEnabled ? "accent" : "default"}
             size="sm"
             onClick={() => {
-              debugConfig.crtEnabled = !debugConfig.crtEnabled;
-              tick((n) => n + 1);
+              updateDebugConfig("crtEnabled", !debugConfig.crtEnabled);
             }}
           >
             {debugConfig.crtEnabled ? "ON" : "OFF"}
@@ -95,8 +96,7 @@ export function DebugTab() {
             variant={debugConfig.crtSmoothing ? "accent" : "default"}
             size="sm"
             onClick={() => {
-              debugConfig.crtSmoothing = !debugConfig.crtSmoothing;
-              tick((n) => n + 1);
+              updateDebugConfig("crtSmoothing", !debugConfig.crtSmoothing);
             }}
           >
             {debugConfig.crtSmoothing ? "ON" : "OFF"}
@@ -115,13 +115,17 @@ export function DebugTab() {
             variant={debugConfig.showPerf ? "accent" : "default"}
             size="sm"
             onClick={() => {
-              debugConfig.showPerf = !debugConfig.showPerf;
-              tick((n) => n + 1);
+              updateDebugConfig("showPerf", !debugConfig.showPerf);
             }}
           >
             {debugConfig.showPerf ? "ON" : "OFF"}
           </Button>
         </div>
+        <p className={styles.perfNote}>
+          Note: GPU "0.000ms" is common due to browser security restrictions on
+          timer queries. To see this data, launch Chrome with
+          --enable-webgl-draft-extensions.
+        </p>
       </div>
 
       <div className={styles.divider} />
@@ -139,7 +143,7 @@ export function DebugTab() {
             </div>
             <Slider
               value={debugConfig[key]}
-              onChange={(v) => updateParam(key, v)}
+              onChange={(v) => updateDebugConfig(key, v)}
               min={min}
               max={max}
               step={step}

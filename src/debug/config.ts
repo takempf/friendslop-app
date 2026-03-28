@@ -1,6 +1,21 @@
 // Mutable singleton read by game components every frame / throw.
 // The DebugPanel writes here directly; no React state needed on the read side.
-export const debugConfig = {
+
+type DebugConfig = {
+  crtEnabled: boolean;
+  crtSmoothing: boolean;
+  minThrowSpeed: number;
+  maxThrowSpeed: number;
+  throwArcDeg: number;
+  throwSpinMult: number;
+  backboardRestitution: number;
+  rimRestitution: number;
+  funnelStrength: number;
+  renderScale: number;
+  showPerf: boolean;
+};
+
+export const debugConfig: DebugConfig = {
   crtEnabled: true,
   crtSmoothing: true,
   minThrowSpeed: 4.5, // m/s
@@ -10,6 +25,25 @@ export const debugConfig = {
   backboardRestitution: 0.25,
   rimRestitution: 0.225,
   funnelStrength: 0.018, // per-frame inward impulse inside net cylinder
-  renderScale: 0.5, // resolution scale from 0.25 to 1
+  renderScale: 0.75, // resolution scale from 0.25 to 1
   showPerf: false,
+};
+
+// Simple event system for reactivity
+type Listener = () => void;
+const listeners = new Set<Listener>();
+
+export const subscribeToDebugConfig = (listener: Listener) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+export const updateDebugConfig = <K extends keyof DebugConfig>(
+  key: K,
+  value: DebugConfig[K],
+) => {
+  debugConfig[key] = value;
+  listeners.forEach((l) => l());
 };
