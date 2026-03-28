@@ -7,6 +7,9 @@ import { Basketballs } from "@/components/3d/Basketballs/Basketballs";
 import { CourtMarkings } from "@/components/3d/CourtMarkings/CourtMarkings";
 import { Scoreboard } from "@/components/3d/Scoreboard/Scoreboard";
 import { ResetButton } from "@/components/3d/ResetButton/ResetButton";
+import { Banner } from "@/components/3d/Banner/Banner";
+import tennesseeBanner from "@/assets/tennessee-iowa-state-banner.jpg";
+import tennesseeMiamiBanner from "@/assets/tennessee-miami-ohio-victory-banner.png";
 import { createDebugTexture } from "@/components/3d/textures/DebugTexture/DebugTexture";
 
 // Helper component for Walls/Floors
@@ -224,6 +227,18 @@ export function SchoolEnvironment() {
       <BasketballHoop />
       <Scoreboard />
       <ResetButton />
+      <Banner
+        position={[-5.0, 6.0, 9.70]}
+        imageSrc={tennesseeBanner}
+        width={2.0 * (1024 / 558)}
+        height={2.0}
+      />
+      <Banner
+        position={[-5.0, 3.2, 9.70]}
+        imageSrc={tennesseeMiamiBanner}
+        width={2.0 * (2752 / 1536)}
+        height={2.0}
+      />
       <Basketballs />
       <CourtMarkings />
 
