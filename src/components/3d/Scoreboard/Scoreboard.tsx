@@ -9,6 +9,7 @@ const BOARD_W = 3.0;
 const BOARD_H = BOARD_W * (TEX_H / TEX_W); // 4.5m
 
 interface PlayerEntry {
+  clientId: number;
   name: string;
   colorIndex: number;
   emojiIndex: number;
@@ -24,7 +25,7 @@ function drawScoreboard(
 
   // Sort by score descending
   const sorted = [...players].sort(
-    (a, b) => (scores.get(b.colorIndex) ?? 0) - (scores.get(a.colorIndex) ?? 0),
+    (a, b) => (scores.get(b.clientId) ?? 0) - (scores.get(a.clientId) ?? 0),
   );
 
   // Background
@@ -70,7 +71,7 @@ function drawScoreboard(
   sorted.forEach((player, i) => {
     const y = 108 + i * rowH;
     const midY = y + rowH / 2;
-    const score = scores.get(player.colorIndex) ?? 0;
+    const score = scores.get(player.clientId) ?? 0;
     const color = getPlayerColor(player.colorIndex);
     const emoji = getPlayerEmoji(player.emojiIndex);
 
@@ -144,25 +145,27 @@ export function Scoreboard() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Build deduped player list: local player first, then remotes
+    // Build player list: local player first, then remotes — unique by clientId
     const seen = new Set<number>();
     const players: PlayerEntry[] = [];
 
     players.push({
+      clientId: myId,
       name: myName,
       colorIndex: myColorIndex,
       emojiIndex: myEmojiIndex,
     });
-    seen.add(myColorIndex);
+    seen.add(myId);
 
     for (const peer of connectedPeers) {
-      if (peer.id !== myId && !seen.has(peer.colorIndex)) {
+      if (!seen.has(peer.id)) {
         players.push({
+          clientId: peer.id,
           name: peer.name,
           colorIndex: peer.colorIndex,
           emojiIndex: peer.emojiIndex,
         });
-        seen.add(peer.colorIndex);
+        seen.add(peer.id);
       }
     }
 

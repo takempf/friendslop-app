@@ -73,8 +73,8 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   public onScoreUpdated: (scores: Map<number, number>) => void = () => {};
 
-  public broadcastScore(colorIndex: number): void {
-    const key = String(colorIndex);
+  public broadcastScore(clientId: number): void {
+    const key = String(clientId);
     this.scoresMap.set(key, (this.scoresMap.get(key) ?? 0) + 1);
   }
 
@@ -224,18 +224,6 @@ export class YjsWebRtcAdapter implements IGameSync {
     // Set initial presence after a short delay for awareness to sync
     setTimeout(() => {
       assignAppearance();
-
-      // Re-check once more after additional peers may have synced
-      setTimeout(() => {
-        const { usedColors, usedEmojis } = getUsedIndices();
-        // If our indices conflict with another peer, re-assign
-        if (
-          usedColors.has(this._colorIndex) ||
-          usedEmojis.has(this._emojiIndex)
-        ) {
-          assignAppearance();
-        }
-      }, 300);
     }, 150);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -319,6 +307,27 @@ export class YjsWebRtcAdapter implements IGameSync {
           }
         }
       });
+
+      // Conflict resolution: if a peer with a lower clientId has our color or emoji,
+      // we defer to them and re-assign. Lower clientId always wins.
+      if (this._colorAssigned) {
+        let hasConflict = false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        states.forEach((state: any, clientId: number) => {
+          if (clientId === this.doc.clientID) return;
+          if (clientId > this.doc.clientID) return; // They defer to us
+          const ps = state?.playerState as PlayerState | undefined;
+          if (
+            ps?.colorIndex === this._colorIndex ||
+            ps?.emojiIndex === this._emojiIndex
+          ) {
+            hasConflict = true;
+          }
+        });
+        if (hasConflict) {
+          assignAppearance();
+        }
+      }
 
       // Handle leaves
       changes.removed.forEach((clientId: number) => {

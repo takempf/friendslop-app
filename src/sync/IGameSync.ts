@@ -67,7 +67,7 @@ export interface IGameSync {
   broadcastReset(): void;
   onResetScores: () => void;
 
-  broadcastScore(colorIndex: number): void;
+  broadcastScore(clientId: number): void;
   onScoreUpdated: (scores: Map<number, number>) => void;
 
   broadcastSoundEvent(event: SoundEvent): void;

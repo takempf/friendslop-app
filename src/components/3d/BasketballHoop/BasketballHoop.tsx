@@ -19,7 +19,7 @@ import {
 
 export function BasketballHoop() {
   const { ballRefs, ownedBallIds } = useBasketball();
-  const { myColorIndex, remoteBallStates, getPlayers, broadcastScore } =
+  const { myId, myColorIndex, remoteBallStates, getPlayers, broadcastScore } =
     useGameSync();
   const [scored, setScored] = useState(false);
   const scoredTimer = useRef(0);
@@ -100,25 +100,27 @@ export function BasketballHoop() {
         const dz = pos.z - HOOP_RIM_POS.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < RIM_RADIUS - BALL_RADIUS + 0.08) {
-          // Determine scorer's color and whether this client owns the ball
-          let colorIdx = myColorIndex; // default to local player
+          // Determine scorer's clientId and display color
+          let scorerClientId = myId;
+          let scorerColorIdx = myColorIndex; // used only for the flash color
           const isLocalBall = ownedBallIds.current.has(i);
           if (!isLocalBall) {
             // Ball is owned by a remote player
             const remote = remoteBallStates.current.get(i);
             if (remote) {
+              scorerClientId = remote.ownerId;
               const owner = getPlayers().get(remote.ownerId);
               if (owner?.colorIndex !== undefined) {
-                colorIdx = owner.colorIndex;
+                scorerColorIdx = owner.colorIndex;
               }
             }
           }
-          setScoredColor(getPlayerLightColor(colorIdx));
+          setScoredColor(getPlayerLightColor(scorerColorIdx));
           setScored(true);
           scoredTimer.current = 0;
           // Only the ball owner broadcasts the score to avoid double-counting
           if (isLocalBall) {
-            broadcastScore(colorIdx);
+            broadcastScore(scorerClientId);
           }
         }
       }
