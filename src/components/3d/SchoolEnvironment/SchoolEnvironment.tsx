@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { SUN_POSITION } from "@/constants/sunPosition";
+
+// Required once for RectAreaLight to work with MeshStandardMaterial.
+RectAreaLightUniformsLib.init();
 import { BasketballHoop } from "@/components/3d/BasketballHoop/BasketballHoop";
 import { Basketballs } from "@/components/3d/Basketballs/Basketballs";
 import { CourtMarkings } from "@/components/3d/CourtMarkings/CourtMarkings";
@@ -54,6 +58,57 @@ const Block = ({
     </RigidBody>
   );
 };
+
+// A rectangular light bar mounted above a banner, aimed at its face.
+// Position is the top-center of the banner (same as Banner's position prop).
+function BannerLight({ position, width }: { position: [number, number, number]; width: number }) {
+  const [x, y, z] = position;
+
+  const HOUSING_H = 0.08;
+  const HOUSING_D = 0.12;
+  const DIFFUSER_H = 0.01;
+  // Light sits just above the banner top, flush against the wall.
+  const lightY = y + HOUSING_H / 2;
+  const lightZ = z - HOUSING_D / 2;
+
+  const rotation = useMemo((): THREE.Euler => {
+    const dummy = new THREE.RectAreaLight();
+    dummy.position.set(x, lightY, lightZ);
+    dummy.lookAt(x, lightY - 1.0, lightZ - 0.3);
+    return dummy.rotation.clone();
+  }, [x, lightY, lightZ]);
+
+  return (
+    <group>
+      {/* Housing body — dark metal box */}
+      <mesh position={[x, lightY, lightZ]}>
+        <boxGeometry args={[width, HOUSING_H, HOUSING_D]} />
+        <meshStandardMaterial color="#1c1c1c" roughness={0.5} metalness={0.8} />
+      </mesh>
+
+      {/* Diffuser strip on the bottom face — warm emissive panel */}
+      <mesh position={[x, lightY - HOUSING_H / 2 - DIFFUSER_H / 2, lightZ]}>
+        <boxGeometry args={[width - 0.02, DIFFUSER_H, HOUSING_D - 0.02]} />
+        <meshStandardMaterial
+          color="#fff8f0"
+          emissive="#fff8f0"
+          emissiveIntensity={2.5}
+          roughness={0.9}
+        />
+      </mesh>
+
+      {/* The actual RectAreaLight */}
+      <rectAreaLight
+        position={[x, lightY - HOUSING_H / 2, lightZ]}
+        rotation={rotation}
+        width={width}
+        height={HOUSING_D}
+        intensity={12}
+        color="#fff8f0"
+      />
+    </group>
+  );
+}
 
 export function SchoolEnvironment() {
   const wallHeight = 8;
@@ -233,12 +288,14 @@ export function SchoolEnvironment() {
         width={2.0 * (1024 / 558)}
         height={2.0}
       />
+      <BannerLight position={[-5.0, 6.0, 9.70]} width={2.0 * (1024 / 558)} />
       <Banner
         position={[-5.0, 3.2, 9.70]}
         imageSrc={tennesseeMiamiBanner}
         width={2.0 * (2752 / 1536)}
         height={2.0}
       />
+      <BannerLight position={[-5.0, 3.2, 9.70]} width={2.0 * (2752 / 1536)} />
       <Basketballs />
       <CourtMarkings />
 
