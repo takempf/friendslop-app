@@ -7,7 +7,7 @@ import { AudioTab } from "@/components/Sidebar/components/AudioTab/AudioTab";
 import { PlayersTab } from "@/components/Sidebar/components/PlayersTab/PlayersTab";
 import { ChatTab } from "@/components/Sidebar/components/ChatTab/ChatTab";
 import { DebugTab } from "@/components/Sidebar/components/DebugTab/DebugTab";
-import styles from "./GameMenu.module.css";
+import css from "./GameMenu.module.css";
 
 const isLocalhost =
   typeof window !== "undefined" &&
@@ -125,11 +125,11 @@ export function GameMenu({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Backdrop className={styles.backdrop} />
-        <Dialog.Popup className={styles.popup}>
-          <div className={styles.header}>
-            <Dialog.Title className={styles.title}>Friend Slop 3D</Dialog.Title>
-            <Dialog.Close className={styles.closeBtn} aria-label="Close">
+        <Dialog.Backdrop className={css.backdrop} />
+        <Dialog.Popup className={css.popup}>
+          <div className={css.header}>
+            <Dialog.Title className={css.title}>Friend Slop 3D</Dialog.Title>
+            <Dialog.Close className={css.closeBtn} aria-label="Close">
               ✕
             </Dialog.Close>
           </div>
@@ -138,7 +138,7 @@ export function GameMenu({
             tabs={TABS}
             value={activeTab}
             onValueChange={setActiveTab}
-            className={styles.tabsRoot}
+            className={css.tabsRoot}
           >
             <TabPanel value="audio">
               <AudioTab
@@ -165,7 +165,7 @@ export function GameMenu({
               />
             </TabPanel>
 
-            <TabPanel value="chat" className={styles.chatPanel}>
+            <TabPanel value="chat" className={css.chatPanel}>
               <ChatTab messages={chatMessages} onSend={handleSend} />
             </TabPanel>
 
