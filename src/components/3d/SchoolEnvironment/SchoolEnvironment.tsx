@@ -160,22 +160,99 @@ export function SchoolEnvironment() {
       />
 
       {/* Walls for Gym */}
-      {/* West Wall */}
+      {/* West Wall — split into 4 segments around a 16m × 5m window */}
+      {/* Bottom strip: full width, 1.5m tall */}
       <Block
-        position={[-10, wallHeight / 2, 0]}
-        args={[wallThickness, wallHeight, 20]}
+        position={[-10, 0.75, 0]}
+        args={[wallThickness, 1.5, 20]}
         color="#dcdcdc"
         wallTexture={debugTex}
-        textureRepeat={wr(20)}
+        textureRepeat={[20, 1.5]}
       />
-      {/* East Wall */}
+      {/* Top strip: full width, 1.5m tall */}
       <Block
-        position={[10, wallHeight / 2, 0]}
-        args={[wallThickness, wallHeight, 20]}
+        position={[-10, 7.25, 0]}
+        args={[wallThickness, 1.5, 20]}
         color="#dcdcdc"
         wallTexture={debugTex}
-        textureRepeat={wr(20)}
+        textureRepeat={[20, 1.5]}
       />
+      {/* Left end cap (near Z=-10): 2m wide, 5m tall */}
+      <Block
+        position={[-10, 4, -9]}
+        args={[wallThickness, 5, 2]}
+        color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={[2, 5]}
+      />
+      {/* Right end cap (near Z=+10): 2m wide, 5m tall */}
+      <Block
+        position={[-10, 4, 9]}
+        args={[wallThickness, 5, 2]}
+        color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={[2, 5]}
+      />
+      {/* West window glass pane */}
+      <RigidBody type="fixed" colliders="cuboid" restitution={0.6}>
+        <mesh position={[-9.75, 4, 0]}>
+          <boxGeometry args={[0.05, 5, 16]} />
+          <meshStandardMaterial
+            color="#a8d8ea"
+            transparent
+            opacity={0.25}
+            roughness={0}
+            metalness={0.1}
+          />
+        </mesh>
+      </RigidBody>
+
+      {/* East Wall — split into 4 segments around a 16m × 5m window */}
+      {/* Bottom strip: full width, 1.5m tall */}
+      <Block
+        position={[10, 0.75, 0]}
+        args={[wallThickness, 1.5, 20]}
+        color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={[20, 1.5]}
+      />
+      {/* Top strip: full width, 1.5m tall */}
+      <Block
+        position={[10, 7.25, 0]}
+        args={[wallThickness, 1.5, 20]}
+        color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={[20, 1.5]}
+      />
+      {/* Left end cap (near Z=-10): 2m wide, 5m tall */}
+      <Block
+        position={[10, 4, -9]}
+        args={[wallThickness, 5, 2]}
+        color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={[2, 5]}
+      />
+      {/* Right end cap (near Z=+10): 2m wide, 5m tall */}
+      <Block
+        position={[10, 4, 9]}
+        args={[wallThickness, 5, 2]}
+        color="#dcdcdc"
+        wallTexture={debugTex}
+        textureRepeat={[2, 5]}
+      />
+      {/* East window glass pane */}
+      <RigidBody type="fixed" colliders="cuboid" restitution={0.6}>
+        <mesh position={[9.75, 4, 0]}>
+          <boxGeometry args={[0.05, 5, 16]} />
+          <meshStandardMaterial
+            color="#a8d8ea"
+            transparent
+            opacity={0.25}
+            roughness={0}
+            metalness={0.1}
+          />
+        </mesh>
+      </RigidBody>
       {/* South Wall */}
       <Block
         position={[0, wallHeight / 2, 10]}
