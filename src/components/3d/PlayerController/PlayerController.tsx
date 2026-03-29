@@ -101,7 +101,7 @@ export function PlayerController() {
 
   // Sprint FOV — base derived from aspect ratio (targets ~90° horizontal FOV)
   const SPRINT_FOV_MULT = 1.15;
-  const fovRef = useRef(60);
+  const fovRef = useRef(90);
 
   // Dribble state
   const dribbleTime = useRef(0);
@@ -191,18 +191,14 @@ export function PlayerController() {
 
     // --- Sprint FOV (wider when sprinting, aspect-ratio-aware base) ---
     const perspCam = state.camera as THREE.PerspectiveCamera;
-    const baseFov = Math.min(
-      2 *
-        (180 / Math.PI) *
-        Math.atan(Math.tan((90 * Math.PI) / 180 / 2) / perspCam.aspect),
-      75,
-    );
+    const baseFov = 70;
     const targetFov =
       keys.current.ShiftLeft && !keys.current.KeyC
         ? baseFov * SPRINT_FOV_MULT
         : baseFov;
     fovRef.current += (targetFov - fovRef.current) * Math.min(delta * 5, 1);
     perspCam.fov = fovRef.current;
+    console.log("current fov", fovRef.current);
     perspCam.updateProjectionMatrix();
 
     // --- Jump ---
