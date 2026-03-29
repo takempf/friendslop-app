@@ -38,6 +38,7 @@ const GROUND_RAY_LEN = 1.07;
 const direction = new THREE.Vector3();
 const frontVector = new THREE.Vector3();
 const sideVector = new THREE.Vector3();
+const _yawEuler = new THREE.Euler(0, 0, 0, "YXZ");
 const _forward = new THREE.Vector3();
 const _right = new THREE.Vector3();
 const _holdPos = new THREE.Vector3();
@@ -152,7 +153,13 @@ export function PlayerController() {
       .subVectors(frontVector, sideVector)
       .normalize()
       .multiplyScalar(speed)
-      .applyEuler(state.camera.rotation);
+      .applyEuler(
+        (_forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion),
+        (_forward.y = 0),
+        _forward.normalize(),
+        (_yawEuler.y = Math.atan2(-_forward.x, -_forward.z)),
+        _yawEuler),
+      );
 
     const currentVelocity = ref.current.linvel();
     ref.current.setLinvel(
