@@ -8,6 +8,8 @@ interface BasketballContextType {
   ballOwnerVersions: React.MutableRefObject<Map<number, number>>;
   grabCandidateRef: React.MutableRefObject<number>;
   buttonCandidateRef: React.MutableRefObject<boolean>;
+  /** Maps ball index → shot point value (2 or 3) set at throw time */
+  ballShotPoints: React.MutableRefObject<Map<number, number>>;
 }
 
 const BasketballContext = createContext<BasketballContextType | null>(null);
@@ -23,6 +25,7 @@ export function BasketballProvider({
   const ballOwnerVersions = useRef<Map<number, number>>(new Map());
   const grabCandidateRef = useRef(-1);
   const buttonCandidateRef = useRef(false);
+  const ballShotPoints = useRef<Map<number, number>>(new Map());
 
   return (
     <BasketballContext.Provider
@@ -33,6 +36,7 @@ export function BasketballProvider({
         ballOwnerVersions,
         grabCandidateRef,
         buttonCandidateRef,
+        ballShotPoints,
       }}
     >
       {children}

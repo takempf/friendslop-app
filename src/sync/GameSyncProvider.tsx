@@ -41,7 +41,7 @@ interface SyncContextType {
   subscribeToReset: (cb: () => void) => () => void;
   broadcastSoundEvent: (event: SoundEvent) => void;
   scores: Map<number, number>;
-  broadcastScore: (colorIndex: number) => void;
+  broadcastScore: (clientId: number, points: number) => void;
 }
 
 const SyncContext = createContext<SyncContextType>({
@@ -244,7 +244,7 @@ export function GameSyncProvider({
 
   const broadcastReset = React.useCallback(() => sync.broadcastReset(), [sync]);
   const broadcastScore = React.useCallback(
-    (colorIndex: number) => sync.broadcastScore(colorIndex),
+    (clientId: number, points: number) => sync.broadcastScore(clientId, points),
     [sync],
   );
   const broadcastSoundEvent = React.useCallback(

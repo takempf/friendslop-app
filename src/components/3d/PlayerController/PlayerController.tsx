@@ -14,7 +14,13 @@ import { useKeyboard } from "@/hooks/useKeyboard";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import { audioManager } from "@/audio/AudioManager";
 import { useBasketball } from "@/contexts/BasketballContext";
-import { BALL_RADIUS, INTERACTION_RANGE } from "@/constants/basketball";
+import {
+  BALL_RADIUS,
+  INTERACTION_RANGE,
+  THREE_POINT_ARC_RADIUS,
+  THREE_POINT_CORNER_X,
+  HOOP_RIM_POS,
+} from "@/constants/basketball";
 import { debugConfig } from "@/debug/config";
 
 // Group layout: 0 = environment, 1 = player, 2 = balls
@@ -78,6 +84,7 @@ export function PlayerController() {
     ballOwnerVersions,
     grabCandidateRef,
     buttonCandidateRef,
+    ballShotPoints,
   } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
@@ -107,6 +114,9 @@ export function PlayerController() {
 
   // Jump state
   const prevSpace = useRef(false);
+
+  // Last XZ position where the player was grounded — used to determine shot value (2 vs 3 pts)
+  const lastGroundPos = useRef<[number, number]>([0, 0]);
 
   // DOM refs for throw meter — updated imperatively in useFrame (no re-renders)
   const meterEl = useRef<HTMLDivElement | null>(null);
@@ -208,6 +218,12 @@ export function PlayerController() {
       PLAYER_GROUPS,
     );
     const isGrounded = !!hit && hit.timeOfImpact <= GROUND_RAY_LEN;
+
+    // Track the last XZ position where the player's feet touched the ground
+    if (isGrounded) {
+      lastGroundPos.current[0] = pos.x;
+      lastGroundPos.current[1] = pos.z;
+    }
 
     if (spacePressed && !prevSpace.current && isGrounded) {
       ref.current.setLinvel(
@@ -346,6 +362,16 @@ export function PlayerController() {
             },
             true,
           );
+
+          // Determine shot value based on where feet last touched the ground
+          const [gx, gz] = lastGroundPos.current;
+          const dx = gx - HOOP_RIM_POS.x;
+          const dz = gz - HOOP_RIM_POS.z;
+          const dist2D = Math.sqrt(dx * dx + dz * dz);
+          const isThree =
+            dist2D >= THREE_POINT_ARC_RADIUS ||
+            Math.abs(dx) >= THREE_POINT_CORNER_X;
+          ballShotPoints.current.set(heldBallRef.current, isThree ? 3 : 2);
         }
         lastThrowRef.current = {
           idx: heldBallRef.current,

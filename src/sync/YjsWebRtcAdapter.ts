@@ -73,9 +73,9 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   public onScoreUpdated: (scores: Map<number, number>) => void = () => {};
 
-  public broadcastScore(clientId: number): void {
+  public broadcastScore(clientId: number, points: number): void {
     const key = String(clientId);
-    this.scoresMap.set(key, (this.scoresMap.get(key) ?? 0) + 1);
+    this.scoresMap.set(key, (this.scoresMap.get(key) ?? 0) + points);
   }
 
   public onSoundEvent: (event: SoundEvent) => void = () => {};

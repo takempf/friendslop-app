@@ -18,7 +18,7 @@ import {
 } from "@/constants/basketball";
 
 export function BasketballHoop() {
-  const { ballRefs, ownedBallIds } = useBasketball();
+  const { ballRefs, ownedBallIds, ballShotPoints } = useBasketball();
   const { myId, myColorIndex, remoteBallStates, getPlayers, broadcastScore } =
     useGameSync();
   const [scored, setScored] = useState(false);
@@ -120,7 +120,8 @@ export function BasketballHoop() {
           scoredTimer.current = 0;
           // Only the ball owner broadcasts the score to avoid double-counting
           if (isLocalBall) {
-            broadcastScore(scorerClientId);
+            const points = ballShotPoints.current.get(i) ?? 2;
+            broadcastScore(scorerClientId, points);
           }
         }
       }

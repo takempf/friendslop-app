@@ -15,6 +15,12 @@ export const BALL_RADIUS = 0.12;
 // Shared range for grab and interact actions
 export const INTERACTION_RANGE = 2.66;
 
+// NBA 3-point line dimensions (in meters)
+// Arc: 23.75 ft = 7.24m from basket center
+export const THREE_POINT_ARC_RADIUS = 7.24;
+// Corner straight lines: 22 ft = 6.706m horizontal distance from basket center
+export const THREE_POINT_CORNER_X = 6.706;
+
 // Rim center: back edge of torus flush with backboard front face
 export const HOOP_RIM_POS = new THREE.Vector3(
   0,
