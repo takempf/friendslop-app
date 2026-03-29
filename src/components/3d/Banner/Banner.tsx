@@ -144,7 +144,9 @@ export function Banner({ position, imageSrc, width, height }: BannerProps) {
     return t;
   }, [imageSrc]);
 
-  const [sim] = useState<SimState>(() => initSim(centerX, topY, wallZ, width, height));
+  const [sim] = useState<SimState>(() =>
+    initSim(centerX, topY, wallZ, width, height),
+  );
   const simRef = useRef<SimState>(sim);
 
   useFrame((_, delta) => {
@@ -188,8 +190,16 @@ export function Banner({ position, imageSrc, width, height }: BannerProps) {
         const cy = dy * factor;
         const cz = dz * factor;
 
-        if (!pa.pinned) { pa.x += cx; pa.y += cy; pa.z += cz; }
-        if (!pb.pinned) { pb.x -= cx; pb.y -= cy; pb.z -= cz; }
+        if (!pa.pinned) {
+          pa.x += cx;
+          pa.y += cy;
+          pa.z += cz;
+        }
+        if (!pb.pinned) {
+          pb.x -= cx;
+          pb.y -= cy;
+          pb.z -= cz;
+        }
       }
     }
 

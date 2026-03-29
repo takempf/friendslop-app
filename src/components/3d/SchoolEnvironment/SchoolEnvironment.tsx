@@ -61,7 +61,13 @@ const Block = ({
 
 // A rectangular light bar mounted above a banner, aimed at its face.
 // Position is the top-center of the banner (same as Banner's position prop).
-function BannerLight({ position, width }: { position: [number, number, number]; width: number }) {
+function BannerLight({
+  position,
+  width,
+}: {
+  position: [number, number, number];
+  width: number;
+}) {
   const [x, y, z] = position;
 
   const HOUSING_H = 0.08;
@@ -283,19 +289,19 @@ export function SchoolEnvironment() {
       <Scoreboard />
       <ResetButton />
       <Banner
-        position={[-5.0, 6.0, 9.70]}
+        position={[-5.0, 6.0, 9.7]}
         imageSrc={tennesseeBanner}
         width={2.0 * (1024 / 558)}
         height={2.0}
       />
-      <BannerLight position={[-5.0, 6.0, 9.70]} width={2.0 * (1024 / 558)} />
+      <BannerLight position={[-5.0, 6.0, 9.7]} width={2.0 * (1024 / 558)} />
       <Banner
-        position={[-5.0, 3.2, 9.70]}
+        position={[-5.0, 3.2, 9.7]}
         imageSrc={tennesseeMiamiBanner}
         width={2.0 * (2752 / 1536)}
         height={2.0}
       />
-      <BannerLight position={[-5.0, 3.2, 9.70]} width={2.0 * (2752 / 1536)} />
+      <BannerLight position={[-5.0, 3.2, 9.7]} width={2.0 * (2752 / 1536)} />
       <Basketballs />
       <CourtMarkings />
 

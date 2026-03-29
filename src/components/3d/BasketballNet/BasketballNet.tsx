@@ -9,12 +9,12 @@ interface NetProps {
 }
 
 const NUM_RINGS = 8;
-const NET_HEIGHT = 0.45;
+const NET_HEIGHT = 0.375;
 const TUBE_SEGMENTS = NUM_RINGS - 1;
 const RADIAL_SEGMENTS = 16;
 const RING_SPACING = NET_HEIGHT / TUBE_SEGMENTS;
 const TOP_RADIUS = RIM_RADIUS;
-const BOTTOM_RADIUS = 0.08; // Slightly wider than 0.05 so it's more realistic but still stretches
+const BOTTOM_RADIUS = 0.1; // Slightly wider than 0.05 so it's more realistic but still stretches
 
 interface RingState {
   center: THREE.Vector3;
@@ -60,7 +60,7 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
 
     // 1. Apply spring forces between rings
     const springK = 300;
-    const damping = 15;
+    const damping = 28;
 
     for (let i = 1; i < NUM_RINGS; i++) {
       const ring = rings[i];
@@ -82,7 +82,7 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
         naturalPos
           .clone()
           .sub(ring.center)
-          .multiplyScalar(springK * 0.2),
+          .multiplyScalar(springK * 0.5),
       );
 
       // Apply damping
@@ -153,13 +153,13 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
               }
 
               // Swish friction: pull ring center towards ball XZ, and drag it in ball velocity direction
-              const dragForce = 150;
+              const dragForce = 60;
               const pullDir = new THREE.Vector3(dx, 0, dz).normalize();
               ring.velocity.add(pullDir.multiplyScalar(dragForce * dt));
 
               // Add some of ball's velocity to the ring (mostly downwards/directional)
               ring.velocity.add(
-                new THREE.Vector3(vel.x, vel.y, vel.z).multiplyScalar(8 * dt),
+                new THREE.Vector3(vel.x, vel.y, vel.z).multiplyScalar(3 * dt),
               );
             } else {
               // Ball is completely outside the natural ring
@@ -168,10 +168,12 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
                 const overlap = ring.currentRadius - (distXZ - halfChord);
                 // Push the net's center AWAY from the ball
                 const pushDir = new THREE.Vector3(-dx, 0, -dz).normalize();
-                ring.velocity.add(pushDir.multiplyScalar(overlap * 300 * dt));
+                ring.velocity.add(pushDir.multiplyScalar(overlap * 120 * dt));
                 // Add a little friction from grazing
                 ring.velocity.add(
-                  new THREE.Vector3(vel.x, vel.y, vel.z).multiplyScalar(3 * dt),
+                  new THREE.Vector3(vel.x, vel.y, vel.z).multiplyScalar(
+                    1.5 * dt,
+                  ),
                 );
               } else {
                 interacting = false; // Ball was near but didn't touch
