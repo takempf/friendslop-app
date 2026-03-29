@@ -1,43 +1,29 @@
 import * as THREE from "three";
 
-export const BALL_COUNT = 16;
+export const BALL_COUNT = 8;
 
 // Ball rack centers — two rear corners of the main court
 const LEFT_RACK_X = -8;
 const RIGHT_RACK_X = 8;
 const RACK_Z = -8;
-// Ball row heights inside the rack (ball centers)
-const BOTTOM_ROW_Y = 0.25;
-const TOP_ROW_Y = 0.56;
+// Ball height when sitting on top of the 1.05m tall rack (1.05m + 0.12m radius)
+const RACK_Y = 1.17;
 // Ball center x-offsets from rack center (4 balls, 0.29m spacing)
 const SLOT_OFFSETS = [-0.435, -0.145, 0.145, 0.435] as const;
 
-/** World-space center position for each of the 16 ball rack slots.
- *  Balls 0-7 → left rack, 8-15 → right rack.
- *  Within each rack: slots 0-3 bottom row, 4-7 top row. */
+/** World-space center position for each of the 8 ball rack slots.
+ *  Balls 0-3 → left rack, 4-7 → right rack. */
 export const RACK_SLOT_POSITIONS: [number, number, number][] = [
-  // Left rack — bottom row (0-3)
+  // Left rack — (0-3)
   ...SLOT_OFFSETS.map((dx): [number, number, number] => [
     LEFT_RACK_X + dx,
-    BOTTOM_ROW_Y,
+    RACK_Y,
     RACK_Z,
   ]),
-  // Left rack — top row (4-7)
-  ...SLOT_OFFSETS.map((dx): [number, number, number] => [
-    LEFT_RACK_X + dx,
-    TOP_ROW_Y,
-    RACK_Z,
-  ]),
-  // Right rack — bottom row (8-11)
+  // Right rack — (4-7)
   ...SLOT_OFFSETS.map((dx): [number, number, number] => [
     RIGHT_RACK_X + dx,
-    BOTTOM_ROW_Y,
-    RACK_Z,
-  ]),
-  // Right rack — top row (12-15)
-  ...SLOT_OFFSETS.map((dx): [number, number, number] => [
-    RIGHT_RACK_X + dx,
-    TOP_ROW_Y,
+    RACK_Y,
     RACK_Z,
   ]),
 ];
