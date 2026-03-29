@@ -256,7 +256,7 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
         scanlineIntensity: { value: 0.45 },
         scanlineCount: { value: scanlines * 1.0 },
         time: { value: 0.0 },
-        brightness: { value: 1.25 },
+        brightness: { value: 1.5 },
         contrast: { value: 1.0 },
         saturation: { value: 1.1 },
         rgbShift: { value: 0.1 },
