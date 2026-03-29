@@ -3,6 +3,7 @@ import {
   RigidBody,
   BallCollider,
   interactionGroups,
+  useRapier,
 } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import { useRef } from "react";
@@ -15,6 +16,8 @@ import {
   RIM_RADIUS,
   HOOP_RIM_POS,
   BOARD_FRONT_FACE_Z,
+  BALL_COUNT,
+  RACK_SLOT_POSITIONS,
 } from "@/constants/basketball";
 import {
   sharedOutlineMat,
@@ -60,6 +63,15 @@ function detectSurface(pos: {
     return "window";
 
   return "wall";
+}
+
+/** Returns true when a ball has left the playable gym area. */
+function isOutOfBounds(pos: { x: number; y: number; z: number }): boolean {
+  // Fell below the floor (physics glitch or rolled off an edge)
+  if (pos.y < -0.8) return true;
+  // Went through the north-wall hallway gap (x ∈ [-2, 2], z < -10)
+  if (pos.z < -10.5) return true;
+  return false;
 }
 
 // Group layout:  0 = environment, 1 = player, 2 = balls
@@ -114,25 +126,30 @@ function createBasketballTexture(): THREE.CanvasTexture {
 // Created once at module load — shared by all ball instances
 const basketballTexture = createBasketballTexture();
 
-const INITIAL_POSITIONS: [number, number, number][] = [
-  [2, 0.6, 2],
-  [-2, 0.6, 3],
-  [1, 0.6, 5],
-  [-3, 0.6, 1],
-];
-
 export function Basketballs() {
-  const { ballRefs, grabCandidateRef } = useBasketball();
+  const { rapier } = useRapier();
+  const {
+    ballRefs,
+    grabCandidateRef,
+    heldBallRef,
+    ballInRack,
+    releaseBallFromRack,
+    returnBallToRack,
+  } = useBasketball();
   const { broadcastSoundEvent } = useGameSync();
-  const outlineRefs = useRef<(THREE.Mesh | null)[]>([null, null, null, null]);
-  const strokeRefs = useRef<(THREE.Mesh | null)[]>([null, null, null, null]);
+  const outlineRefs = useRef<(THREE.Mesh | null)[]>(
+    Array(BALL_COUNT).fill(null),
+  );
+  const strokeRefs = useRef<(THREE.Mesh | null)[]>(
+    Array(BALL_COUNT).fill(null),
+  );
 
   // Velocity sampled at end of each frame — used as pre-collision speed estimate
   const prevVelocities = useRef(
-    INITIAL_POSITIONS.map(() => ({ x: 0, y: 0, z: 0 })),
+    RACK_SLOT_POSITIONS.map(() => ({ x: 0, y: 0, z: 0 })),
   );
   // Per-ball cooldown timestamp (ms) to suppress rapid-fire sounds from sustained contact
-  const lastBounceMs = useRef(INITIAL_POSITIONS.map(() => 0));
+  const lastBounceMs = useRef(RACK_SLOT_POSITIONS.map(() => 0));
 
   useFrame(({ gl }) => {
     // Keep resolution in sync with the game render target (640p-based) so the
@@ -147,9 +164,54 @@ export function Basketballs() {
       if (mesh) mesh.visible = i === candidate;
     });
 
-    // Snapshot velocity after physics step — available as pre-collision speed next frame
     ballRefs.current.forEach((ballRef, i) => {
-      if (ballRef) {
+      if (!ballRef) return;
+
+      if (ballInRack.current[i]) {
+        // --- Rack ball: keep kinematic at slot position ---
+        const sp = RACK_SLOT_POSITIONS[i];
+        const p = ballRef.translation();
+        const dx = p.x - sp[0];
+        const dy = p.y - sp[1];
+        const dz = p.z - sp[2];
+        if (dx * dx + dy * dy + dz * dz > 0.09) {
+          // Ball has moved more than 0.3m from its slot — someone grabbed it
+          releaseBallFromRack(i);
+        } else {
+          if (
+            ballRef.bodyType() !== rapier.RigidBodyType.KinematicPositionBased
+          ) {
+            ballRef.setBodyType(
+              rapier.RigidBodyType.KinematicPositionBased,
+              true,
+            );
+          }
+          ballRef.setNextKinematicTranslation({
+            x: sp[0],
+            y: sp[1],
+            z: sp[2],
+          });
+        }
+      } else {
+        // --- In-play ball: check for out-of-bounds and respawn ---
+        const p = ballRef.translation();
+        if (isOutOfBounds(p) && heldBallRef.current !== i) {
+          const sp = RACK_SLOT_POSITIONS[i];
+          returnBallToRack(i);
+          ballRef.setBodyType(
+            rapier.RigidBodyType.KinematicPositionBased,
+            true,
+          );
+          ballRef.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          ballRef.setAngvel({ x: 0, y: 0, z: 0 }, true);
+          ballRef.setNextKinematicTranslation({
+            x: sp[0],
+            y: sp[1],
+            z: sp[2],
+          });
+        }
+
+        // Snapshot velocity after physics step — available as pre-collision speed next frame
         const v = ballRef.linvel();
         prevVelocities.current[i] = { x: v.x, y: v.y, z: v.z };
       }
@@ -158,12 +220,13 @@ export function Basketballs() {
 
   return (
     <>
-      {INITIAL_POSITIONS.map((pos, i) => (
+      {RACK_SLOT_POSITIONS.map((pos, i) => (
         <RigidBody
           key={i}
           ref={(ref: RapierRigidBody | null) => {
             ballRefs.current[i] = ref;
           }}
+          type="kinematicPosition"
           position={pos}
           colliders={false}
           mass={0.62} // NBA spec: 567–623g
@@ -186,11 +249,11 @@ export function Basketballs() {
             const p = ballRef.translation();
 
             const surface = detectSurface(p);
-            const pos: [number, number, number] = [p.x, p.y, p.z];
-            audioManager.playBounceSound(pos, surface, impactSpeed);
+            const bpos: [number, number, number] = [p.x, p.y, p.z];
+            audioManager.playBounceSound(bpos, surface, impactSpeed);
             broadcastSoundEvent({
               id: (Date.now() * 1000 + Math.random() * 1000) | 0,
-              pos,
+              pos: bpos,
               surface,
               speed: impactSpeed,
             });

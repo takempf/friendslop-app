@@ -85,6 +85,7 @@ export function PlayerController() {
     grabCandidateRef,
     buttonCandidateRef,
     ballShotPoints,
+    releaseBallFromRack,
   } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
@@ -291,6 +292,7 @@ export function PlayerController() {
         const nearestIdx = grabCandidateRef.current;
 
         if (nearestIdx !== -1) {
+          releaseBallFromRack(nearestIdx);
           heldBallRef.current = nearestIdx;
           ownedBallIds.current.add(nearestIdx);
 

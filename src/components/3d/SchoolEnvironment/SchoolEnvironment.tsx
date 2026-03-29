@@ -7,6 +7,7 @@ import { SUN_POSITION } from "@/constants/sunPosition";
 // Required once for RectAreaLight to work with MeshStandardMaterial.
 RectAreaLightUniformsLib.init();
 import { BasketballHoop } from "@/components/3d/BasketballHoop/BasketballHoop";
+import { BallRack } from "@/components/3d/BallRack/BallRack";
 import { Basketballs } from "@/components/3d/Basketballs/Basketballs";
 import { CourtMarkings } from "@/components/3d/CourtMarkings/CourtMarkings";
 import { Scoreboard } from "@/components/3d/Scoreboard/Scoreboard";
@@ -381,6 +382,9 @@ export function SchoolEnvironment() {
         height={2.0}
       />
       <BannerLight position={[-5.0, 3.2, 9.7]} width={2.0 * (2752 / 1536)} />
+      {/* Ball racks in the two rear corners of the court */}
+      <BallRack position={[-8, 0, -8]} />
+      <BallRack position={[8, 0, -8]} />
       <Basketballs />
       <CourtMarkings />
 
