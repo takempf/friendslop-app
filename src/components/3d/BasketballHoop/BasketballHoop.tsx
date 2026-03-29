@@ -194,11 +194,10 @@ export function BasketballHoop() {
 
       {/* Main spotlight to highlight the goal area */}
       <spotLight
-        position={[0, HOOP_RIM_POS.y + 3, HOOP_RIM_POS.z - 1]}
+        position={[0, HOOP_RIM_POS.y + 5, HOOP_RIM_POS.z - 1]}
         angle={0.6}
         penumbra={0.5}
-        intensity={30}
-        castShadow
+        intensity={90}
         target={lightTarget}
       />
       <primitive object={lightTarget} />

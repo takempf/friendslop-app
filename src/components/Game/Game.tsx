@@ -29,7 +29,7 @@ export function Game() {
   return (
     <div className={css.gameContainer}>
       <Canvas
-        shadows
+        shadows="soft"
         dpr={debugConfig.renderScale}
         camera={{ position: [0, 2, 0], fov: 75 }}
         id="game-container"
