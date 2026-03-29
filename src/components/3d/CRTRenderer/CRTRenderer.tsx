@@ -106,17 +106,23 @@ const fragCombined = /* glsl */ `
     return pow(rgb555, vec3(2.2));
   }
 
-  // --- CRT Utility ---
-  vec4 sampleBloom(sampler2D tex, vec2 uv, float radius, vec4 centerSample) {
-    vec2 o = vec2(radius);
-    vec4 c = centerSample * 0.4;
-    vec4 cross_ = (
-      texture2D(tex, uv + vec2(o.x, 0.0)) +
-      texture2D(tex, uv - vec2(o.x, 0.0)) +
-      texture2D(tex, uv + vec2(0.0, o.y)) +
-      texture2D(tex, uv - vec2(0.0, o.y))
-    ) * 0.15;
-    return c + cross_;
+  // --- Bloom ---
+  // Gaussian blur of above-threshold pixels only. Step is in UV space;
+  // at 640p that's ~1.9px per step — dense enough that no individual
+  // sample is visible as a discrete copy.
+  vec3 bloomBlur(sampler2D tex, vec2 uv, float threshold) {
+    vec3 sum = vec3(0.0);
+    float wTotal = 0.0;
+    float step = 0.003;
+    for (int x = -2; x <= 2; x++) {
+      for (int y = -2; y <= 2; y++) {
+        float w = exp(-float(x * x + y * y) * 0.5);
+        vec3 s = texture2D(tex, uv + vec2(float(x), float(y)) * step).rgb;
+        sum += max(s - threshold, 0.0) * w;
+        wTotal += w;
+      }
+    }
+    return sum / wTotal;
   }
 
   void main() {
@@ -129,16 +135,9 @@ const fragCombined = /* glsl */ `
 
     vec4 pixel = vec4(color, 1.0);
 
-    // 3. Bloom
+    // 3. Bloom — blur bright parts of source, add back
     if (bloomIntensity > 0.001) {
-      float pixelLum = dot(pixel.rgb, LUMA);
-      if (pixelLum > bloomThreshold * 0.5) {
-        vec4 bloomSample = sampleBloom(tDiffuse, vUv, 0.005, pixel);
-        bloomSample.rgb *= brightness;
-        float bloomLum = dot(bloomSample.rgb, LUMA);
-        float bloomFactor = bloomIntensity * max(0.0, (bloomLum - bloomThreshold) * 2.25);
-        pixel.rgb += bloomSample.rgb * bloomFactor;
-      }
+      pixel.rgb += bloomBlur(tDiffuse, vUv, bloomThreshold) * bloomIntensity;
     }
 
     // 4. RGB Shift
@@ -197,15 +196,15 @@ export function CRTRenderer() {
         tDiffuse: { value: null },
         texelSize: { value: [1 / w0, 1 / TARGET_HEIGHT] },
         resolution: { value: [w0, TARGET_HEIGHT] },
-        scanlineIntensity: { value: 0.5 },
-        scanlineCount: { value: 320.0 },
+        scanlineIntensity: { value: 0.45 },
+        scanlineCount: { value: 640.0 },
         time: { value: 0.0 },
-        brightness: { value: 1.0 },
+        brightness: { value: 1.1 },
         contrast: { value: 1.0 },
         saturation: { value: 1.1 },
-        bloomIntensity: { value: 0.25 },
-        bloomThreshold: { value: 0.65 },
-        rgbShift: { value: 1.0 },
+        bloomIntensity: { value: 0.5 },
+        bloomThreshold: { value: 0.5 },
+        rgbShift: { value: 0.1 },
         flickerStrength: { value: 0.01 },
       },
       depthTest: false,
