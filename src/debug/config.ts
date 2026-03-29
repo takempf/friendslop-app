@@ -26,7 +26,7 @@ export const debugConfig: DebugConfig = {
   backboardRestitution: 0.25,
   rimRestitution: 0.225,
   funnelStrength: 0.018, // per-frame inward impulse inside net cylinder
-  renderScale: 0.75, // resolution scale from 0.25 to 1
+  renderScale: Math.min(window.devicePixelRatio || 1, 1.5), // resolution scale (DPR limit)
   showPerf: false,
   showClouds: true,
 };

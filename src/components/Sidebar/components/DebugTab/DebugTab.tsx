@@ -20,7 +20,13 @@ const PHYSICS_PARAMS: {
   max: number;
   step: number;
 }[] = [
-  { key: "renderScale", label: "Render Scale", min: 0.25, max: 1, step: 0.05 },
+  {
+    key: "renderScale",
+    label: "Render Scale (DPR)",
+    min: 0.25,
+    max: 2,
+    step: 0.05,
+  },
   {
     key: "minThrowSpeed",
     label: "Min Throw Speed (m/s)",

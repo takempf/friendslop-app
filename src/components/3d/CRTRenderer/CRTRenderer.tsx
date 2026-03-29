@@ -158,7 +158,7 @@ const fragCombined = /* glsl */ `
 
     if (scanlineIntensity > 0.001) {
       float scanlineY = vUv.y * scanlineCount;
-      float scanlinePattern = abs(sin(scanlineY * CRT_PI));
+      float scanlinePattern = abs(sin((scanlineY - 0.25) * CRT_PI));
       lightingMask *= 1.0 - scanlinePattern * scanlineIntensity;
     }
 
@@ -175,10 +175,11 @@ const fragCombined = /* glsl */ `
   }
 `;
 
-export function CRTRenderer() {
-  const { gl, scene, camera } = useThree();
+export function CRTRenderer({ scanlines }: { scanlines: number }) {
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+  const camera = useThree((state) => state.camera);
   const timeRef = useRef(0);
-
   const crtRef = useRef<{
     gameTarget: WebGLRenderTarget;
     mat: ShaderMaterial;
@@ -197,7 +198,7 @@ export function CRTRenderer() {
         texelSize: { value: [1 / w0, 1 / TARGET_HEIGHT] },
         resolution: { value: [w0, TARGET_HEIGHT] },
         scanlineIntensity: { value: 0.45 },
-        scanlineCount: { value: 640.0 },
+        scanlineCount: { value: scanlines * 1.0 },
         time: { value: 0.0 },
         brightness: { value: 1.1 },
         contrast: { value: 1.0 },
@@ -238,6 +239,9 @@ export function CRTRenderer() {
     timeRef.current += delta;
 
     const { mat, crtScene, crtCamera } = crtRef.current!;
+    if (mat.uniforms.scanlineCount.value !== scanlines) {
+      mat.uniforms.scanlineCount.value = scanlines * 1.0;
+    }
 
     // Rebuild render targets if aspect ratio or smoothing filter changes
     const aspect = gl.domElement.width / gl.domElement.height;

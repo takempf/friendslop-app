@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Perf } from "r3f-perf";
 import { Physics } from "@react-three/rapier";
@@ -16,6 +16,13 @@ import { usePointerLock } from "@/hooks/usePointerLock";
 import { debugConfig, subscribeToDebugConfig } from "@/debug/config";
 
 import css from "./Game.module.css";
+
+function CRTWrapper() {
+  const size = useThree((state) => state.size);
+  const viewport = useThree((state) => state.viewport);
+  const scanlines = Math.floor((size.height * viewport.dpr) / 6);
+  return <CRTRenderer scanlines={scanlines} />;
+}
 
 export function Game() {
   const gameContainerRef = useRef<HTMLCanvasElement>(null);
@@ -45,7 +52,7 @@ export function Game() {
             <SyncTicker />
           </Physics>
         </BasketballProvider>
-        <CRTRenderer />
+        <CRTWrapper />
         <Stats className={css.stats} />
         {debugConfig.showPerf && <Perf position="top-left" />}
       </Canvas>
