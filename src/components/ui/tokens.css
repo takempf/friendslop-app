@@ -39,26 +39,27 @@
   --clr-yellow-dim: rgba(250, 204, 21, 0.12);
 
   /* ── Spacing ────────────────────────────────────────────── */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
+  --sp-1: 0.5em;
+  --sp-2: 1em;
+  --sp-3: 1.5em;
+  --sp-4: 2em;
+  --sp-5: 2.5em;
+  --sp-6: 3em;
 
   /* ── Border radius ──────────────────────────────────────── */
-  --r-sm: 3px;
-  --r-md: 5px;
-  --r-lg: 8px;
+  --r-sm: 0.5em;
+  --r-md: 1em;
+  --r-lg: 2em;
+  --r-xl: 3em;
   --r-full: 9999px;
 
   /* ── Typography ─────────────────────────────────────────── */
   --font-ui: system-ui, -apple-system, sans-serif;
   --font-mono: "Consolas", "Courier New", monospace;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-md: 13px;
-  --text-lg: 15px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
 
   /* ── Motion ─────────────────────────────────────────────── */
   --ease: 130ms ease;

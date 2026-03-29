@@ -25,6 +25,7 @@
   color: var(--clr-text-3);
   font-family: var(--font-ui);
   font-weight: 600;
+  font-size: inherit;
   cursor: pointer;
   transition:
     color var(--ease),

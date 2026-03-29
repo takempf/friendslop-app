@@ -7,7 +7,7 @@
   border: 1px solid transparent;
   border-radius: var(--r-md);
   font-family: var(--font-ui);
-  font-size: var(--text-sm);
+  font-size: inherit;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;

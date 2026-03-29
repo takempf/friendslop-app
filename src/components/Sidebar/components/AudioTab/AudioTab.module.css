@@ -5,7 +5,7 @@
 }
 
 .label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--clr-text-3);
   text-transform: uppercase;
@@ -20,7 +20,6 @@
 }
 
 .volumeValue {
-  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   color: var(--clr-text-2);
   min-width: 32px;

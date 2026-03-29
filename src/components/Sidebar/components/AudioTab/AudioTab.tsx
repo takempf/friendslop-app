@@ -83,7 +83,7 @@ export function AudioTab({
       )}
 
       <div className={styles.section}>
-        <span className={styles.label}>Master Volume</span>
+        <label className={styles.label}>Master Volume</label>
         <div className={styles.row}>
           <Slider
             value={masterVolume}
@@ -98,18 +98,16 @@ export function AudioTab({
       <div className={styles.divider} />
 
       <div className={styles.section}>
-        <span className={styles.label}>Controls</span>
+        <label className={styles.label}>Controls</label>
         <div className={styles.buttonRow}>
           <Button
             variant={masterMuted ? "danger" : "default"}
-            size="sm"
             onClick={onMasterMuted}
           >
             {masterMuted ? "🔇 Output Muted" : "🔊 Output"}
           </Button>
           <Button
             variant={micMuted ? "danger" : "default"}
-            size="sm"
             onClick={onMicMuted}
           >
             {micMuted ? "🔇 Mic Muted" : "🎙️ Mic"}
@@ -120,7 +118,7 @@ export function AudioTab({
       <div className={styles.divider} />
 
       <div className={styles.section}>
-        <span className={styles.label}>Mic Level</span>
+        <label className={styles.label}>Mic Level</label>
         <div className={styles.meterRow}>
           <span className={styles.meterLabel}>MIC</span>
           <Progress ref={micMeterRef} variant="green" />
@@ -129,11 +127,9 @@ export function AudioTab({
 
       {/* Audio devices */}
       <div className={styles.section}>
-        <span className={styles.sectionLabel}>
-          Audio Devices (Press B to test)
-        </span>
+        <h3 className={styles.sectionLabel}>Audio Devices (Press B to test)</h3>
         <div>
-          <div className={styles.selectLabel}>Microphone</div>
+          <label className={styles.label}>Microphone</label>
           <Select
             value={selectedInput}
             onChange={(v) => {
@@ -144,7 +140,7 @@ export function AudioTab({
           />
         </div>
         <div>
-          <div className={styles.selectLabel}>Speaker</div>
+          <label className={styles.label}>Speaker</label>
           <Select
             value={selectedOutput}
             onChange={(v) => {
