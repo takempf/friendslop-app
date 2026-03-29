@@ -162,6 +162,30 @@ const fragCombined = /* glsl */ `
       lightingMask *= 1.0 - scanlinePattern * scanlineIntensity;
     }
 
+    // RGB Shadow Mask (Staggered Phosphor Triads)
+    float maskCountY = scanlineCount;
+    // Scale X to maintain square cells regardless of aspect ratio
+    float maskCountX = scanlineCount * (resolution.x / resolution.y);
+    
+    // Offset Y by +0.25 so the physical mask row boundaries perfectly align with the darkest scanline gaps
+    vec2 maskPos = vec2(vUv.x * maskCountX, (vUv.y * maskCountY) + 0.25);
+    
+    // Stagger every other row by half a triad (which is 1.5 subpixels, or 0.5 of a triad)
+    if (mod(floor(maskPos.y), 2.0) == 0.0) {
+      maskPos.x += 0.5;
+    }
+    
+    // 3 subpixels per triad (R, G, B)
+    float subpixel = mod(floor(maskPos.x * 3.0), 3.0);
+    
+    vec3 shadowMask = vec3(0.5); // "Off" phosphor darkness level
+    if (subpixel == 0.0) shadowMask.r = 1.0;
+    else if (subpixel == 1.0) shadowMask.g = 1.0;
+    else shadowMask.b = 1.0;
+    
+    // Boost by 1.5 to maintain overall average brightness (since mean of 1, 0.5, 0.5 is ~0.66)
+    pixel.rgb *= shadowMask * 1.5;
+
     if (flickerStrength > 0.001) {
       lightingMask *= 1.0 + sin(time * 110.0) * flickerStrength;
     }
@@ -200,7 +224,7 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
         scanlineIntensity: { value: 0.45 },
         scanlineCount: { value: scanlines * 1.0 },
         time: { value: 0.0 },
-        brightness: { value: 1.1 },
+        brightness: { value: 1.25 },
         contrast: { value: 1.0 },
         saturation: { value: 1.1 },
         bloomIntensity: { value: 0.5 },
