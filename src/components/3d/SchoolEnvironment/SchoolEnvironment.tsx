@@ -17,6 +17,7 @@ import { ScoreTicker } from "@/components/3d/ScoreTicker/ScoreTicker";
 import tennesseeBanner from "@/assets/tennessee-iowa-state-banner.jpg";
 import tennesseeMiamiBanner from "@/assets/tennessee-miami-ohio-victory-banner.png";
 import { createDebugTexture } from "@/components/3d/textures/DebugTexture/DebugTexture";
+import { createWoodFloorTexture } from "@/components/3d/textures/WoodFloorTexture/WoodFloorTexture";
 
 // Helper component for Walls/Floors
 const Block = ({
@@ -122,7 +123,7 @@ export function SchoolEnvironment() {
   const wallHeight = 8;
   const wallThickness = 0.5;
   const debugTex = useMemo(() => createDebugTexture("#b0b0b0", "#979797"), []);
-  const floorTex = useMemo(() => createDebugTexture("#c87030", "#a85820"), []);
+  const floorTex = useMemo(() => createWoodFloorTexture(), []);
 
   // Convenience: wall repeat for X-thin walls (visible face = depth × height)
   const wr = (depth: number): [number, number] => [depth, wallHeight];
@@ -154,10 +155,10 @@ export function SchoolEnvironment() {
       <Block
         position={[0, -0.25, 0]}
         args={[20, 0.5, 20]}
-        color="#8b5a2b"
+        color="#eeac56"
         restitution={0.84}
         wallTexture={floorTex}
-        textureRepeat={[20, 20]}
+        textureRepeat={[10, 10]}
       />
 
       {/* Walls for Gym */}
