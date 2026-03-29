@@ -31,7 +31,7 @@ export interface SoundEvent {
   /** Unique ID to distinguish consecutive events (e.g. two bounces in the same spot) */
   id: number;
   pos: [number, number, number];
-  surface: "floor" | "wall" | "backboard" | "rim";
+  surface: "floor" | "wall" | "backboard" | "rim" | "window";
   speed: number;
 }
 

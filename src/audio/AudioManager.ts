@@ -576,7 +576,7 @@ class AudioManager {
    */
   public playBounceSound(
     position: [number, number, number],
-    surface: "floor" | "wall" | "backboard" | "rim",
+    surface: "floor" | "wall" | "backboard" | "rim" | "window",
     impactSpeed: number,
   ) {
     if (!this.ctx || !this.analyserOut) return;
@@ -619,7 +619,7 @@ class AudioManager {
     if (this.convolverGym) reverbSend.connect(this.convolverGym);
 
     // Schedule cleanup after all synthesis nodes have stopped
-    const cleanupDelay = surface === "rim" ? 1800 : 800;
+    const cleanupDelay = surface === "rim" || surface === "window" ? 1800 : 800;
     setTimeout(() => {
       bounceGain.disconnect();
       panner.disconnect();
@@ -692,9 +692,9 @@ class AudioManager {
         bounceGain,
       );
     } else if (surface === "backboard") {
-      // Glass/fiberglass: hollow higher-pitched thud, slightly bright
-      const vol = intensity * 0.95;
-      const thumpFreq = (165 + intensity * 45) * pitchJitter;
+      // Glass/fiberglass: hollow thud, slightly bright
+      const vol = intensity * 1.9;
+      const thumpFreq = (110 + intensity * 30) * pitchJitter;
       this._bounceSynth_osc(
         ctx,
         now,
@@ -702,19 +702,19 @@ class AudioManager {
         thumpFreq * 2.0,
         thumpFreq,
         0.01,
-        0.17 + intensity * 0.06,
+        0.32 + intensity * 0.14,
         vol * 0.75,
         bounceGain,
       );
-      // Slightly hollow sub component
+      // Hollow sub component
       this._bounceSynth_osc(
         ctx,
         now,
         "triangle",
-        88 * pitchJitter,
-        70 * pitchJitter,
+        62 * pitchJitter,
+        48 * pitchJitter,
         0.0,
-        0.09,
+        0.22,
         vol * 0.4,
         bounceGain,
       );
@@ -724,14 +724,13 @@ class AudioManager {
         now,
         850 + intensity * 250,
         2.0,
-        0.048,
+        0.09,
         vol * 0.55,
         bounceGain,
       );
-    } else {
-      // Rim (solid steel ring): deep low-frequency ring, like striking thick steel bar
+    } else if (surface === "window") {
+      // Window (same character as the old rim sound — deep steel ring)
       const vol = intensity * 1.05;
-      // Dull rubber-on-steel thump — very low
       const impactFreq = (55 + intensity * 25) * pitchJitter;
       this._bounceSynth_osc(
         ctx,
@@ -744,7 +743,6 @@ class AudioManager {
         vol * 0.65,
         bounceGain,
       );
-      // Fundamental ring: heavy steel ring resonates around 90-130 Hz
       const ringBase = (85 + intensity * 35 + Math.random() * 15) * pitchJitter;
       this._bounceSynth_osc(
         ctx,
@@ -757,7 +755,6 @@ class AudioManager {
         vol * 0.9,
         bounceGain,
       );
-      // Inharmonic second partial (~2.7× fundamental, characteristic of a ring's bending modes)
       this._bounceSynth_osc(
         ctx,
         now,
@@ -769,7 +766,6 @@ class AudioManager {
         vol * 0.45,
         bounceGain,
       );
-      // Short low-mid attack noise — the clang of contact, not a screech
       this._bounceSynth_noise(
         ctx,
         now,
@@ -777,6 +773,85 @@ class AudioManager {
         2.5,
         0.05,
         vol * 0.4,
+        bounceGain,
+      );
+    } else {
+      // Rim: rubber ball striking coated iron — sharp metallic clang with rubbery thud
+      const vol = intensity * 1.1;
+
+      // Rubber thud: short, low — the ball's own body compressing against hard metal
+      const thudFreq = (75 + intensity * 30) * pitchJitter;
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        thudFreq * 1.6,
+        thudFreq,
+        0.008,
+        0.09 + intensity * 0.04,
+        vol * 0.7,
+        bounceGain,
+      );
+
+      // Coated iron fundamental: thick steel tube bent into a ring resonates 70–100 Hz
+      const ironBase = (72 + intensity * 22 + Math.random() * 10) * pitchJitter;
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        ironBase * 1.02,
+        ironBase,
+        0.01,
+        0.45 + intensity * 0.3,
+        vol * 0.95,
+        bounceGain,
+      );
+
+      // Inharmonic second partial (coated tube bending mode ~2.4×, fades faster than fundamental)
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        ironBase * 2.42,
+        ironBase * 2.4,
+        0.008,
+        0.22 + intensity * 0.12,
+        vol * 0.5,
+        bounceGain,
+      );
+
+      // Third partial (fades quickly — gives the initial metallic clang)
+      this._bounceSynth_osc(
+        ctx,
+        now,
+        "sine",
+        ironBase * 3.85,
+        ironBase * 3.83,
+        0.005,
+        0.07,
+        vol * 0.28,
+        bounceGain,
+      );
+
+      // Mid attack transient — clang of rubber on metal
+      this._bounceSynth_noise(
+        ctx,
+        now,
+        280 + intensity * 120,
+        3.5,
+        0.038,
+        vol * 0.5,
+        bounceGain,
+      );
+
+      // Low coating "thock" — coating deadens the impact slightly
+      this._bounceSynth_noise(
+        ctx,
+        now,
+        90 + intensity * 30,
+        4.0,
+        0.025,
+        vol * 0.3,
         bounceGain,
       );
     }

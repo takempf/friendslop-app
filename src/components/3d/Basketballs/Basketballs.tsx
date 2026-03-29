@@ -23,7 +23,7 @@ import {
 } from "@/utils/outlineMaterial";
 import { audioManager } from "@/audio/AudioManager";
 
-type BounceSurface = "floor" | "wall" | "backboard" | "rim";
+type BounceSurface = "floor" | "wall" | "backboard" | "rim" | "window";
 
 /** Infer surface type from ball world position at moment of collision. */
 function detectSurface(pos: {
@@ -49,6 +49,15 @@ function detectSurface(pos: {
     Math.abs(pos.x) < 1.2
   )
     return "backboard";
+
+  // Window glass panes: east (x ≈ 9.75) and west (x ≈ -9.75), height 1.5–6.5, |z| < 8
+  if (
+    Math.abs(Math.abs(pos.x) - 9.75) < 0.4 &&
+    pos.y > 1.5 &&
+    pos.y < 6.5 &&
+    Math.abs(pos.z) < 8
+  )
+    return "window";
 
   return "wall";
 }
