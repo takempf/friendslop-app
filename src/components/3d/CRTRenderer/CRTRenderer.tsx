@@ -22,9 +22,8 @@ const vert = /* glsl */ `
   }
 `;
 
-// Consolidated Super Shader: FXAA -> PS1 Dither -> CRT Effects.
-// All logic runs in a single pass at native resolution, sampling from a 640p target.
-const fragCombined = /* glsl */ `
+// PASS 1: FXAA, PS1 Dither, Bloom at 640p
+const fragPost = /* glsl */ `
   #ifdef GL_FRAGMENT_PRECISION_HIGH
     precision highp float;
   #else
@@ -34,20 +33,11 @@ const fragCombined = /* glsl */ `
   uniform sampler2D tDiffuse;
   uniform vec2 texelSize;       // 1/640p_resolution
   uniform vec2 resolution;      // 640p_resolution
-  uniform float time;
-  uniform float scanlineIntensity;
-  uniform float scanlineCount;
-  uniform float brightness;
-  uniform float contrast;
-  uniform float saturation;
   uniform float bloomIntensity;
   uniform float bloomThreshold;
-  uniform float rgbShift;
-  uniform float flickerStrength;
 
   varying vec2 vUv;
 
-  const float CRT_PI = 3.14159265;
   const vec3 LUMA = vec3(0.299, 0.587, 0.114);
 
   // --- FXAA ---
@@ -107,9 +97,6 @@ const fragCombined = /* glsl */ `
   }
 
   // --- Bloom ---
-  // Gaussian blur of above-threshold pixels only. Step is in UV space;
-  // at 640p that's ~1.9px per step — dense enough that no individual
-  // sample is visible as a discrete copy.
   vec3 bloomBlur(sampler2D tex, vec2 uv, float threshold) {
     vec3 sum = vec3(0.0);
     float wTotal = 0.0;
@@ -126,25 +113,54 @@ const fragCombined = /* glsl */ `
   }
 
   void main() {
-    // 1. AA (FXAA) at source resolution
     vec3 color = applyFXAA(tDiffuse, vUv, texelSize);
 
-    // 2. PS1 Dither (at fixed 640p grid resolution)
     vec2 virtualPos = floor(vUv * resolution);
     color = applyDither(color, virtualPos);
 
-    vec4 pixel = vec4(color, 1.0);
-
-    // 3. Bloom — blur bright parts of source, add back
     if (bloomIntensity > 0.001) {
-      pixel.rgb += bloomBlur(tDiffuse, vUv, bloomThreshold) * bloomIntensity;
+      color += bloomBlur(tDiffuse, vUv, bloomThreshold) * bloomIntensity;
     }
+
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+// PASS 2: Color, Distortions, Scanlines, Phosphor Masks at NATIVE res
+const fragCRT = /* glsl */ `
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+  #else
+    precision mediump float;
+  #endif
+
+  uniform sampler2D tDiffuse;
+  uniform vec2 resolution;      // 640p_resolution
+  uniform float time;
+  uniform float scanlineIntensity;
+  uniform float scanlineCount;
+  uniform float brightness;
+  uniform float contrast;
+  uniform float saturation;
+  uniform float rgbShift;
+  uniform float flickerStrength;
+
+  varying vec2 vUv;
+
+  const float CRT_PI = 3.14159265;
+  const vec3 LUMA = vec3(0.299, 0.587, 0.114);
+
+  void main() {
+    vec4 pixel = vec4(0.0, 0.0, 0.0, 1.0);
 
     // 4. RGB Shift
     if (rgbShift > 0.005) {
       float shift = rgbShift * 0.005;
-      pixel.r += texture2D(tDiffuse, vec2(vUv.x + shift, vUv.y)).r * 0.08;
-      pixel.b += texture2D(tDiffuse, vec2(vUv.x - shift, vUv.y)).b * 0.08;
+      pixel.r += texture2D(tDiffuse, vec2(vUv.x + shift, vUv.y)).r;
+      pixel.b += texture2D(tDiffuse, vec2(vUv.x - shift, vUv.y)).b;
+      pixel.g += texture2D(tDiffuse, vUv).g;
+    } else {
+      pixel.rgb = texture2D(tDiffuse, vUv).rgb;
     }
 
     // 5. Brightness, Contrast, Saturation
@@ -206,20 +222,36 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
   const timeRef = useRef(0);
   const crtRef = useRef<{
     gameTarget: WebGLRenderTarget;
-    mat: ShaderMaterial;
+    postTarget: WebGLRenderTarget;
+    matPost: ShaderMaterial;
+    matCRT: ShaderMaterial;
     crtScene: Scene;
     crtCamera: OrthographicCamera;
+    quad: Mesh;
   } | null>(null);
 
   if (crtRef.current == null) {
     const w0 = Math.round(TARGET_HEIGHT * (16 / 9));
 
-    const mat = new ShaderMaterial({
+    const matPost = new ShaderMaterial({
       vertexShader: vert,
-      fragmentShader: fragCombined,
+      fragmentShader: fragPost,
       uniforms: {
         tDiffuse: { value: null },
         texelSize: { value: [1 / w0, 1 / TARGET_HEIGHT] },
+        resolution: { value: [w0, TARGET_HEIGHT] },
+        bloomIntensity: { value: 0.5 },
+        bloomThreshold: { value: 0.5 },
+      },
+      depthTest: false,
+      depthWrite: false,
+    });
+
+    const matCRT = new ShaderMaterial({
+      vertexShader: vert,
+      fragmentShader: fragCRT,
+      uniforms: {
+        tDiffuse: { value: null },
         resolution: { value: [w0, TARGET_HEIGHT] },
         scanlineIntensity: { value: 0.45 },
         scanlineCount: { value: scanlines * 1.0 },
@@ -227,34 +259,57 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
         brightness: { value: 1.25 },
         contrast: { value: 1.0 },
         saturation: { value: 1.1 },
-        bloomIntensity: { value: 0.5 },
-        bloomThreshold: { value: 0.5 },
         rgbShift: { value: 0.1 },
         flickerStrength: { value: 0.01 },
       },
       depthTest: false,
       depthWrite: false,
     });
+
+    const gameTarget = new WebGLRenderTarget(w0, TARGET_HEIGHT, {
+      minFilter: LinearFilter,
+      magFilter: LinearFilter,
+      generateMipmaps: false,
+      depthBuffer: true,
+    });
+
+    const postTarget = new WebGLRenderTarget(w0, TARGET_HEIGHT, {
+      minFilter: LinearFilter,
+      magFilter: LinearFilter,
+      generateMipmaps: false,
+      depthBuffer: false,
+    });
+
+    matPost.uniforms.tDiffuse.value = gameTarget.texture;
+    matCRT.uniforms.tDiffuse.value = postTarget.texture;
+
     const crtScene = new Scene();
-    crtScene.add(new Mesh(new PlaneGeometry(2, 2), mat));
+    crtScene.matrixAutoUpdate = false;
+
+    const quad = new Mesh(new PlaneGeometry(2, 2), matPost);
+    quad.frustumCulled = false;
+    quad.matrixAutoUpdate = false;
+    crtScene.add(quad);
 
     crtRef.current = {
-      gameTarget: new WebGLRenderTarget(w0, TARGET_HEIGHT, {
-        minFilter: LinearFilter,
-        magFilter: LinearFilter,
-      }),
-      mat,
+      gameTarget,
+      postTarget,
+      matPost,
+      matCRT,
       crtScene,
       crtCamera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
+      quad,
     };
   }
 
   useEffect(
     () => () => {
-      const { gameTarget, mat, crtScene } = crtRef.current!;
+      const { gameTarget, postTarget, matPost, matCRT, quad } = crtRef.current!;
       gameTarget.dispose();
-      (crtScene.children[0] as Mesh).geometry.dispose();
-      mat.dispose();
+      postTarget.dispose();
+      quad.geometry.dispose();
+      matPost.dispose();
+      matCRT.dispose();
     },
     [],
   );
@@ -262,9 +317,9 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
   useFrame((_, delta) => {
     timeRef.current += delta;
 
-    const { mat, crtScene, crtCamera } = crtRef.current!;
-    if (mat.uniforms.scanlineCount.value !== scanlines) {
-      mat.uniforms.scanlineCount.value = scanlines * 1.0;
+    const { matPost, matCRT, crtScene, crtCamera, quad } = crtRef.current!;
+    if (matCRT.uniforms.scanlineCount.value !== scanlines) {
+      matCRT.uniforms.scanlineCount.value = scanlines * 1.0;
     }
 
     // Rebuild render targets if aspect ratio or smoothing filter changes
@@ -277,15 +332,33 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
       crtRef.current!.gameTarget.texture.magFilter !== filter
     ) {
       crtRef.current!.gameTarget.dispose();
-      crtRef.current!.gameTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
+      crtRef.current!.postTarget.dispose();
+
+      const newGameTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
         minFilter: filter,
         magFilter: filter,
+        generateMipmaps: false,
+        depthBuffer: true,
       });
-      mat.uniforms.texelSize.value = [1 / w, 1 / TARGET_HEIGHT];
-      mat.uniforms.resolution.value = [w, TARGET_HEIGHT];
+      const newPostTarget = new WebGLRenderTarget(w, TARGET_HEIGHT, {
+        minFilter: filter,
+        magFilter: filter,
+        generateMipmaps: false,
+        depthBuffer: false,
+      });
+
+      crtRef.current!.gameTarget = newGameTarget;
+      crtRef.current!.postTarget = newPostTarget;
+
+      matPost.uniforms.texelSize.value = [1 / w, 1 / TARGET_HEIGHT];
+      matPost.uniforms.resolution.value = [w, TARGET_HEIGHT];
+      matPost.uniforms.tDiffuse.value = newGameTarget.texture;
+
+      matCRT.uniforms.resolution.value = [w, TARGET_HEIGHT];
+      matCRT.uniforms.tDiffuse.value = newPostTarget.texture;
     }
 
-    const { gameTarget } = crtRef.current!;
+    const { gameTarget, postTarget } = crtRef.current!;
 
     if (!debugConfig.crtEnabled) {
       gl.setRenderTarget(null);
@@ -297,9 +370,15 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
     gl.setRenderTarget(gameTarget);
     gl.render(scene, camera);
 
-    // PASS 2 — Full post-processing sweep (AA -> Dither -> CRT) at native resolution
-    mat.uniforms.tDiffuse.value = gameTarget.texture;
-    mat.uniforms.time.value = timeRef.current;
+    // PASS 2 — FXAA and Bloom at 640p
+    quad.material = matPost;
+    gl.setRenderTarget(postTarget);
+    gl.render(crtScene, crtCamera);
+
+    // PASS 3 — CRT Effects at Native Resolution
+    quad.material = matCRT;
+    matCRT.uniforms.time.value = timeRef.current;
+
     gl.setRenderTarget(null);
     gl.render(crtScene, crtCamera);
   }, 1);
