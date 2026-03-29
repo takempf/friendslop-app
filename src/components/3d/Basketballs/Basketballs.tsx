@@ -199,7 +199,7 @@ export function Basketballs() {
           <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />
           <mesh castShadow>
             <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
-            <meshStandardMaterial map={basketballTexture} roughness={0.7} />
+            <meshStandardMaterial map={basketballTexture} roughness={0.5} />
           </mesh>
           <mesh
             ref={(ref) => {

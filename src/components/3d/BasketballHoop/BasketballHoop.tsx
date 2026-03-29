@@ -163,11 +163,11 @@ export function BasketballHoop() {
         restitution={debugConfig.rimRestitution}
       >
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[RIM_RADIUS, 0.025, 8, 32]} />
+          <torusGeometry args={[RIM_RADIUS, 0.02, 8, 32]} />
           <meshStandardMaterial
             color="#e63900"
-            metalness={0.8}
-            roughness={0.3}
+            metalness={0.05}
+            roughness={0.2}
           />
         </mesh>
       </RigidBody>
