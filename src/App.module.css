@@ -16,10 +16,12 @@
   background: var(--clr-bg);
   cursor: pointer;
   user-select: none;
+  perspective: 1000px;
 }
 
 .startContent {
   text-align: center;
+  transform-style: preserve-3d;
 }
 
 .startTitle {
@@ -30,7 +32,7 @@
 }
 
 .startHint {
-  font-size: 18px;
+  font-size: max(2.5svh, 30px);
   color: var(--clr-text-2);
   animation: pulse 2s ease-in-out infinite;
 }
@@ -42,6 +44,29 @@
   }
   50% {
     opacity: 0.4;
+  }
+}
+
+.logoImage {
+  max-height: 60svh;
+  max-width: 80svw;
+  animation: floatRotate 6s ease-in-out infinite;
+}
+
+@keyframes floatRotate {
+  0%,
+  100% {
+    transform: translateY(1svh) rotateY(-1deg);
+  }
+  50% {
+    transform: translateY(-1svh) rotateY(1deg);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
   }
 }
 

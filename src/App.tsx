@@ -41,7 +41,11 @@ function App() {
       {!started && (
         <div className={css.startScreen}>
           <div className={css.startContent}>
-            <h1 className={css.startTitle}>Friendslop 3D</h1>
+            <img
+              src="./friend-slop-3d.avif"
+              alt="Friend Slop 3D"
+              className={css.logoImage}
+            />
             <p className={css.startHint}>
               Click anywhere to connect &amp; enable audio
             </p>
