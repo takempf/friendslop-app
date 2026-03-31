@@ -81,7 +81,7 @@ export function GraphicsTab() {
             onChange={(v) => updateConfig("renderHeight", v)}
             min={640}
             max={2160}
-            step={60}
+            step={80}
             variant="yellow"
           />
         </div>

@@ -38,8 +38,7 @@ function lsNum(key: string, fallback: number): number {
   return v === null ? fallback : Number(v);
 }
 
-// Default: native CSS height, clamped to the minimum of 640 (CRT internal res)
-const defaultRenderHeight = Math.max(window.innerHeight, 640);
+const defaultRenderHeight = 1280;
 
 export const gameConfig: GameConfig = {
   crtEnabled: lsBool(LS.crtEnabled, true),
