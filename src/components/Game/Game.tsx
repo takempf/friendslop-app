@@ -13,15 +13,32 @@ import { CRTRenderer } from "@/components/3d/CRTRenderer/CRTRenderer";
 import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky";
 import { GameMenu } from "@/components/GameMenu/GameMenu";
 import { usePointerLock } from "@/hooks/usePointerLock";
-import { debugConfig, subscribeToDebugConfig } from "@/debug/config";
+import { gameConfig, subscribeToConfig } from "@/config";
 
 import css from "./Game.module.css";
 
 function CRTWrapper() {
-  const size = useThree((state) => state.size);
-  const viewport = useThree((state) => state.viewport);
-  const scanlines = Math.floor((size.height * viewport.dpr) / 6);
+  const scanlines = Math.floor(gameConfig.renderHeight / 6);
   return <CRTRenderer scanlines={scanlines} />;
+}
+
+function RenderResolution() {
+  const gl = useThree((state) => state.gl);
+
+  useEffect(() => {
+    const update = () => {
+      gl.setPixelRatio(gameConfig.renderHeight / window.innerHeight);
+    };
+    update();
+    const unsubConfig = subscribeToConfig(update);
+    window.addEventListener("resize", update);
+    return () => {
+      unsubConfig();
+      window.removeEventListener("resize", update);
+    };
+  }, [gl]);
+
+  return null;
 }
 
 export function Game() {
@@ -30,18 +47,18 @@ export function Game() {
   const [, tick] = useState(0);
 
   useEffect(() => {
-    return subscribeToDebugConfig(() => tick((n) => n + 1));
+    return subscribeToConfig(() => tick((n) => n + 1));
   }, []);
 
   return (
     <div className={css.gameContainer}>
       <Canvas
         shadows="soft"
-        dpr={debugConfig.renderScale}
         camera={{ position: [0, 2, 0], fov: 75 }}
         id="game-container"
         ref={gameContainerRef}
       >
+        <RenderResolution />
         <PartlyCloudySky />
         <BasketballProvider>
           <Physics gravity={[0, -9.81, 0]}>
@@ -52,9 +69,9 @@ export function Game() {
             <SyncTicker />
           </Physics>
         </BasketballProvider>
-        <CRTWrapper />
-        <Stats className={css.stats} />
-        {debugConfig.showPerf && <Perf position="top-left" />}
+        {gameConfig.crtEnabled && <CRTWrapper />}
+        {gameConfig.showFps && <Stats className={css.stats} />}
+        {gameConfig.showPerf && <Perf position="top-left" />}
       </Canvas>
 
       {/* Reticle */}

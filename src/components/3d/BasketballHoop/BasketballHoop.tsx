@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { useBasketball } from "@/contexts/BasketballContext";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import { getPlayerLightColor } from "@/utils/colors";
-import { debugConfig } from "@/debug/config";
+import { gameConfig } from "@/config";
 import { BasketballNet } from "@/components/3d/BasketballNet/BasketballNet";
 import {
   BOARD_Z,
@@ -36,8 +36,8 @@ export function BasketballHoop() {
   // Refs for live restitution updates via Rapier API
   const backboardRbRef = useRef<RapierRigidBody>(null);
   const rimRbRef = useRef<RapierRigidBody>(null);
-  const prevBackboardRest = useRef(debugConfig.backboardRestitution);
-  const prevRimRest = useRef(debugConfig.rimRestitution);
+  const prevBackboardRest = useRef(gameConfig.backboardRestitution);
+  const prevRimRest = useRef(gameConfig.rimRestitution);
 
   useFrame((_, delta) => {
     // Tick scored timer
@@ -52,23 +52,20 @@ export function BasketballHoop() {
     // Live restitution update: poll for debug config changes and push to Rapier colliders
     if (
       backboardRbRef.current &&
-      debugConfig.backboardRestitution !== prevBackboardRest.current
+      gameConfig.backboardRestitution !== prevBackboardRest.current
     ) {
-      prevBackboardRest.current = debugConfig.backboardRestitution;
+      prevBackboardRest.current = gameConfig.backboardRestitution;
       const n = backboardRbRef.current.numColliders();
       for (let i = 0; i < n; i++)
         backboardRbRef.current
           .collider(i)
-          .setRestitution(debugConfig.backboardRestitution);
+          .setRestitution(gameConfig.backboardRestitution);
     }
-    if (
-      rimRbRef.current &&
-      debugConfig.rimRestitution !== prevRimRest.current
-    ) {
-      prevRimRest.current = debugConfig.rimRestitution;
+    if (rimRbRef.current && gameConfig.rimRestitution !== prevRimRest.current) {
+      prevRimRest.current = gameConfig.rimRestitution;
       const n = rimRbRef.current.numColliders();
       for (let i = 0; i < n; i++)
-        rimRbRef.current.collider(i).setRestitution(debugConfig.rimRestitution);
+        rimRbRef.current.collider(i).setRestitution(gameConfig.rimRestitution);
     }
 
     ballRefs.current.forEach((ballRef, i) => {
@@ -84,9 +81,9 @@ export function BasketballHoop() {
         if (dist < RIM_RADIUS * 1.15 && dist > 0.01) {
           ballRef.applyImpulse(
             {
-              x: -dx * debugConfig.funnelStrength,
+              x: -dx * gameConfig.funnelStrength,
               y: 0,
-              z: -dz * debugConfig.funnelStrength,
+              z: -dz * gameConfig.funnelStrength,
             },
             true,
           );
@@ -140,7 +137,7 @@ export function BasketballHoop() {
         type="fixed"
         position={[0, boardY, BOARD_Z]}
         colliders="cuboid"
-        restitution={debugConfig.backboardRestitution}
+        restitution={gameConfig.backboardRestitution}
       >
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.83, 1.07, BOARD_THICKNESS]} />
@@ -160,7 +157,7 @@ export function BasketballHoop() {
         type="fixed"
         position={[HOOP_RIM_POS.x, HOOP_RIM_POS.y, HOOP_RIM_POS.z]}
         colliders="trimesh"
-        restitution={debugConfig.rimRestitution}
+        restitution={gameConfig.rimRestitution}
       >
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <torusGeometry args={[RIM_RADIUS, 0.02, 8, 32]} />

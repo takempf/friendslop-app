@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
-import {
-  debugConfig,
-  updateDebugConfig,
-  subscribeToDebugConfig,
-} from "@/debug/config";
-import { Button } from "@/components/ui/Button/Button";
+import { gameConfig, updateConfig, subscribeToConfig } from "@/config";
 import { Slider } from "@/components/ui/Slider/Slider";
 import styles from "./DebugTab.module.css";
 
-type ConfigKey = keyof typeof debugConfig;
+type ConfigKey = keyof typeof gameConfig;
 type NumericConfigKey = {
-  [K in ConfigKey]: (typeof debugConfig)[K] extends number ? K : never;
+  [K in ConfigKey]: (typeof gameConfig)[K] extends number ? K : never;
 }[ConfigKey];
 
 const PHYSICS_PARAMS: {
@@ -20,13 +15,6 @@ const PHYSICS_PARAMS: {
   max: number;
   step: number;
 }[] = [
-  {
-    key: "renderScale",
-    label: "Render Scale (DPR)",
-    min: 0.25,
-    max: 2,
-    step: 0.05,
-  },
   {
     key: "minThrowSpeed",
     label: "Min Throw Speed (m/s)",
@@ -76,78 +64,11 @@ export function DebugTab() {
   const [, tick] = useState(0);
 
   useEffect(() => {
-    return subscribeToDebugConfig(() => tick((n) => n + 1));
+    return subscribeToConfig(() => tick((n) => n + 1));
   }, []);
 
   return (
     <>
-      {/* CRT */}
-      <div className={styles.section}>
-        <span className={styles.sectionLabel}>CRT Filter</span>
-        <div className={styles.toggleRow}>
-          <span className={styles.toggleLabel}>Enabled</span>
-          <Button
-            variant={debugConfig.crtEnabled ? "accent" : "default"}
-            size="sm"
-            onClick={() => {
-              updateDebugConfig("crtEnabled", !debugConfig.crtEnabled);
-            }}
-          >
-            {debugConfig.crtEnabled ? "ON" : "OFF"}
-          </Button>
-        </div>
-        <div className={styles.toggleRow}>
-          <span className={styles.toggleLabel}>Smoothing</span>
-          <Button
-            variant={debugConfig.crtSmoothing ? "accent" : "default"}
-            size="sm"
-            onClick={() => {
-              updateDebugConfig("crtSmoothing", !debugConfig.crtSmoothing);
-            }}
-          >
-            {debugConfig.crtSmoothing ? "ON" : "OFF"}
-          </Button>
-        </div>
-      </div>
-
-      <div className={styles.divider} />
-
-      {/* Performance */}
-      <div className={styles.section}>
-        <span className={styles.sectionLabel}>Performance</span>
-        <div className={styles.toggleRow}>
-          <span className={styles.toggleLabel}>Perf Monitor</span>
-          <Button
-            variant={debugConfig.showPerf ? "accent" : "default"}
-            size="sm"
-            onClick={() => {
-              updateDebugConfig("showPerf", !debugConfig.showPerf);
-            }}
-          >
-            {debugConfig.showPerf ? "ON" : "OFF"}
-          </Button>
-        </div>
-        <div className={styles.toggleRow}>
-          <span className={styles.toggleLabel}>Clouds</span>
-          <Button
-            variant={debugConfig.showClouds ? "accent" : "default"}
-            size="sm"
-            onClick={() => {
-              updateDebugConfig("showClouds", !debugConfig.showClouds);
-            }}
-          >
-            {debugConfig.showClouds ? "ON" : "OFF"}
-          </Button>
-        </div>
-        <p className={styles.perfNote}>
-          Note: GPU "0.000ms" is common due to browser security restrictions on
-          timer queries. To see this data, launch Chrome with
-          --enable-webgl-draft-extensions.
-        </p>
-      </div>
-
-      <div className={styles.divider} />
-
       {/* Physics */}
       <div className={styles.section}>
         <span className={styles.sectionLabel}>Physics</span>
@@ -156,12 +77,12 @@ export function DebugTab() {
             <div className={styles.paramHeader}>
               <span className={styles.paramLabel}>{label}</span>
               <span className={styles.paramValue}>
-                {debugConfig[key].toFixed(3)}
+                {gameConfig[key].toFixed(3)}
               </span>
             </div>
             <Slider
-              value={debugConfig[key]}
-              onChange={(v) => updateDebugConfig(key, v)}
+              value={gameConfig[key]}
+              onChange={(v) => updateConfig(key, v)}
               min={min}
               max={max}
               step={step}

@@ -1,10 +1,10 @@
 import { memo } from "react";
 import { Sky, Cloud, Clouds } from "@react-three/drei";
 import { SUN_POSITION } from "@/constants/sunPosition";
-import { debugConfig } from "@/debug/config";
+import { gameConfig } from "@/config";
 
 export const PartlyCloudySky = memo(function PartlyCloudySky() {
-  if (!debugConfig.showClouds) return null;
+  if (!gameConfig.showClouds) return null;
 
   return (
     <>

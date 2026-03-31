@@ -1,5 +1,5 @@
 import { useThree, useFrame } from "@react-three/fiber";
-import { debugConfig } from "@/debug/config";
+import { gameConfig } from "@/config";
 import { useEffect, useRef } from "react";
 import {
   WebGLRenderTarget,
@@ -325,7 +325,7 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
     // Rebuild render targets if aspect ratio or smoothing filter changes
     const aspect = gl.domElement.width / gl.domElement.height;
     const w = Math.round(TARGET_HEIGHT * aspect);
-    const filter = debugConfig.crtSmoothing ? LinearFilter : NearestFilter;
+    const filter = gameConfig.crtSmoothing ? LinearFilter : NearestFilter;
 
     if (
       crtRef.current!.gameTarget.width !== w ||
@@ -359,12 +359,6 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
     }
 
     const { gameTarget, postTarget } = crtRef.current!;
-
-    if (!debugConfig.crtEnabled) {
-      gl.setRenderTarget(null);
-      gl.render(scene, camera);
-      return;
-    }
 
     // PASS 1 — render game scene at 640p
     gl.setRenderTarget(gameTarget);

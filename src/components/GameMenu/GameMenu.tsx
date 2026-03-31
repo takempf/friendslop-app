@@ -7,6 +7,7 @@ import { AudioTab } from "@/components/Sidebar/components/AudioTab/AudioTab";
 import { PlayersTab } from "@/components/Sidebar/components/PlayersTab/PlayersTab";
 import { ChatTab } from "@/components/Sidebar/components/ChatTab/ChatTab";
 import { DebugTab } from "@/components/Sidebar/components/DebugTab/DebugTab";
+import { GraphicsTab } from "@/components/Sidebar/components/GraphicsTab/GraphicsTab";
 import css from "./GameMenu.module.css";
 
 const isLocalhost =
@@ -22,6 +23,7 @@ const TABS = [
   { value: "audio", label: "Audio" },
   { value: "players", label: "Players" },
   { value: "chat", label: "Chat" },
+  { value: "graphics", label: "Graphics" },
   ...(isLocalhost ? [{ value: "debug", label: "Debug" }] : []),
 ];
 
@@ -167,6 +169,10 @@ export function GameMenu({
 
             <TabPanel value="chat" className={css.chatPanel}>
               <ChatTab messages={chatMessages} onSend={handleSend} />
+            </TabPanel>
+
+            <TabPanel value="graphics">
+              <GraphicsTab />
             </TabPanel>
 
             {isLocalhost && (

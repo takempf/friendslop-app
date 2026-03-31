@@ -21,7 +21,7 @@ import {
   THREE_POINT_CORNER_X,
   HOOP_RIM_POS,
 } from "@/constants/basketball";
-import { debugConfig } from "@/debug/config";
+import { gameConfig } from "@/config";
 
 // Group layout: 0 = environment, 1 = player, 2 = balls
 // Player never interacts with balls (group 2), only environment
@@ -31,7 +31,7 @@ const SPEED = 5;
 const SPRINT_SPEED = 7.5;
 const CROUCH_SPEED = 2.5;
 const CROUCH_CAM_HEIGHT = 0.3; // eye level above body center when crouched (vs 0.83 standing)
-// Throw params are now driven by debugConfig (see src/debug/config.ts)
+// Throw params are now driven by gameConfig (see src/config.ts)
 const MAX_CHARGE_TIME = 2.5; // seconds to reach full charge
 
 // Jump — gravity is -9.81. v²/2g gives peak height.
@@ -198,7 +198,6 @@ export function PlayerController() {
         : baseFov;
     fovRef.current += (targetFov - fovRef.current) * Math.min(delta * 5, 1);
     perspCam.fov = fovRef.current;
-    console.log("current fov", fovRef.current);
     perspCam.updateProjectionMatrix();
 
     // --- Jump ---
@@ -330,7 +329,7 @@ export function PlayerController() {
         const ball = ballRefs.current[heldBallRef.current];
         if (ball) {
           const { minThrowSpeed, maxThrowSpeed, throwArcDeg, throwSpinMult } =
-            debugConfig;
+            gameConfig;
           const speed =
             minThrowSpeed +
             (maxThrowSpeed - minThrowSpeed) * throwCharge.current;
