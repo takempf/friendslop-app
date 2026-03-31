@@ -86,6 +86,7 @@ export function PlayerController() {
     buttonCandidateRef,
     ballShotPoints,
     releaseBallFromRack,
+    heldBallVisualPos,
   } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
@@ -443,10 +444,16 @@ export function PlayerController() {
         prevDribbleSin.current = sinT;
 
         const b = dribbleBlend.current;
+        const finalX = holdX + (dribbleX - holdX) * b;
+        const finalY = holdY + (dribbleY - holdY) * b;
+        const finalZ = holdZ + (dribbleZ - holdZ) * b;
+        // Share the visual target so Basketballs can override the Three.js
+        // group position after Rapier's sync, removing the one-step render lag.
+        heldBallVisualPos.current.set(finalX, finalY, finalZ);
         ball.setNextKinematicTranslation({
-          x: holdX + (dribbleX - holdX) * b,
-          y: holdY + (dribbleY - holdY) * b,
-          z: holdZ + (dribbleZ - holdZ) * b,
+          x: finalX,
+          y: finalY,
+          z: finalZ,
         });
       }
     }

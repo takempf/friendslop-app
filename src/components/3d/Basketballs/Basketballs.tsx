@@ -135,12 +135,19 @@ export function Basketballs() {
     ballInRack,
     releaseBallFromRack,
     returnBallToRack,
+    heldBallVisualPos,
   } = useBasketball();
   const { broadcastSoundEvent } = useGameSync();
   const outlineRefs = useRef<(THREE.Mesh | null)[]>(
     Array(BALL_COUNT).fill(null),
   );
   const strokeRefs = useRef<(THREE.Mesh | null)[]>(
+    Array(BALL_COUNT).fill(null),
+  );
+  // Main ball mesh refs — used to directly override the RigidBody group's
+  // Three.js position after Rapier's sync, eliminating the one-step render lag
+  // that causes jitter while the ball is held.
+  const mainMeshRefs = useRef<(THREE.Mesh | null)[]>(
     Array(BALL_COUNT).fill(null),
   );
 
@@ -218,6 +225,19 @@ export function Basketballs() {
     });
   });
 
+  // Priority=1 runs AFTER the default priority=0 useFrame (PlayerController),
+  // so heldBallVisualPos is already set for this frame. Directly setting the
+  // RigidBody group's Three.js position overrides Rapier's own sync (which
+  // happens at negative priority) and gives the held ball a zero-lag visual.
+  useFrame(() => {
+    const heldIdx = heldBallRef.current;
+    if (heldIdx === -1) return;
+    const mesh = mainMeshRefs.current[heldIdx];
+    if (!mesh?.parent) return;
+    const vp = heldBallVisualPos.current;
+    mesh.parent.position.set(vp.x, vp.y, vp.z);
+  }, 1);
+
   return (
     <>
       {RACK_SLOT_POSITIONS.map((pos, i) => (
@@ -260,7 +280,12 @@ export function Basketballs() {
           }}
         >
           <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />
-          <mesh castShadow>
+          <mesh
+            castShadow
+            ref={(r) => {
+              mainMeshRefs.current[i] = r;
+            }}
+          >
             <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
             <meshStandardMaterial map={basketballTexture} roughness={0.5} />
           </mesh>
