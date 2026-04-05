@@ -6,7 +6,7 @@ import {
   useRapier,
 } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useBasketball } from "@/contexts/BasketballContext";
 import { useGameSync } from "@/sync/GameSyncProvider";
@@ -25,8 +25,12 @@ import {
   updateOutlineResolution,
 } from "@/utils/outlineMaterial";
 import { audioManager } from "@/audio/AudioManager";
+import { useGLTF, Clone, Center } from "@react-three/drei";
+import basketballModelUrl from "./models/basketball.glb?url";
 
 type BounceSurface = "floor" | "wall" | "backboard" | "rim" | "window";
+
+useGLTF.preload(basketballModelUrl);
 
 /** Infer surface type from ball world position at moment of collision. */
 function detectSurface(pos: {
@@ -78,54 +82,6 @@ function isOutOfBounds(pos: { x: number; y: number; z: number }): boolean {
 // Balls never interact with the player (group 1), only environment & each other
 const BALL_GROUPS = interactionGroups([2], [0, 2]);
 
-function createBasketballTexture(): THREE.CanvasTexture {
-  const W = 512,
-    H = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
-
-  // Orange base
-  ctx.fillStyle = "#e85d04";
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.strokeStyle = "#1a0800";
-  ctx.lineWidth = 4;
-  ctx.lineCap = "round";
-
-  const amp = H * 0.22; // ±22% vertical swing
-
-  // Two sinusoidal horizontal seams (the "equatorial" great-circle pair)
-  for (const phase of [0, Math.PI]) {
-    ctx.beginPath();
-    for (let x = 0; x <= W; x++) {
-      const y = H / 2 + amp * Math.sin((x / W) * Math.PI * 2 + phase);
-      if (x === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-
-  // Two sinusoidal vertical seams (the perpendicular great-circle pair)
-  // centered at u=0.25 and u=0.75, with slight horizontal curvature
-  const ampU = W * 0.03;
-  for (const uCenter of [W * 0.25, W * 0.75]) {
-    ctx.beginPath();
-    for (let y = 0; y <= H; y++) {
-      const x = uCenter + ampU * Math.sin((y / H) * Math.PI * 2);
-      if (y === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-
-  return new THREE.CanvasTexture(canvas);
-}
-
-// Created once at module load — shared by all ball instances
-const basketballTexture = createBasketballTexture();
-
 export function Basketballs() {
   const { rapier } = useRapier();
   const {
@@ -147,7 +103,7 @@ export function Basketballs() {
   // Main ball mesh refs — used to directly override the RigidBody group's
   // Three.js position after Rapier's sync, eliminating the one-step render lag
   // that causes jitter while the ball is held.
-  const mainMeshRefs = useRef<(THREE.Mesh | null)[]>(
+  const mainMeshRefs = useRef<(THREE.Object3D | null)[]>(
     Array(BALL_COUNT).fill(null),
   );
 
@@ -157,6 +113,17 @@ export function Basketballs() {
   );
   // Per-ball cooldown timestamp (ms) to suppress rapid-fire sounds from sustained contact
   const lastBounceMs = useRef(RACK_SLOT_POSITIONS.map(() => 0));
+
+  const { scene } = useGLTF(basketballModelUrl);
+
+  const modelScale = useMemo(() => {
+    // Clone scene to not mutate the cached scene's matrices when measuring
+    const cloned = scene.clone();
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    return maxDim > 0 ? (BALL_RADIUS * 2) / maxDim : 1;
+  }, [scene]);
 
   useFrame(({ gl }) => {
     // Keep resolution in sync with the game render target (640p-based) so the
@@ -280,15 +247,17 @@ export function Basketballs() {
           }}
         >
           <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />
-          <mesh
-            castShadow
+
+          <group
             ref={(r) => {
               mainMeshRefs.current[i] = r;
             }}
           >
-            <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
-            <meshStandardMaterial map={basketballTexture} roughness={0.5} />
-          </mesh>
+            <Center scale={modelScale}>
+              <Clone object={scene} castShadow receiveShadow />
+            </Center>
+          </group>
+
           <mesh
             ref={(ref) => {
               strokeRefs.current[i] = ref;
