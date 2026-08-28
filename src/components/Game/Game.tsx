@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback, type JSX } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Perf } from "r3f-perf";
@@ -12,27 +12,30 @@ import { SyncTicker } from "@/components/3d/SyncTicker/SyncTicker";
 import { CRTRenderer } from "@/components/3d/CRTRenderer/CRTRenderer";
 import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky";
 import { GameMenu } from "@/components/GameMenu/GameMenu";
+import { ChatOverlay } from "@/components/ChatOverlay/ChatOverlay";
 import { usePointerLock } from "@/hooks/usePointerLock";
 import { gameConfig, subscribeToConfig } from "@/config";
 
 import css from "./Game.module.css";
 
-function CRTWrapper() {
+type UiMode = "playing" | "chat" | "menu";
+
+function CRTWrapper(): JSX.Element {
   const scanlines = Math.floor(gameConfig.renderHeight / 6);
   return <CRTRenderer scanlines={scanlines} />;
 }
 
-function RenderResolution() {
+function RenderResolution(): null {
   const gl = useThree((state) => state.gl);
 
   useEffect(() => {
-    const update = () => {
+    const update = (): void => {
       gl.setPixelRatio(gameConfig.renderHeight / window.innerHeight);
     };
     update();
     const unsubConfig = subscribeToConfig(update);
     window.addEventListener("resize", update);
-    return () => {
+    return (): void => {
       unsubConfig();
       window.removeEventListener("resize", update);
     };
@@ -41,17 +44,106 @@ function RenderResolution() {
   return null;
 }
 
-export function Game() {
+export function Game(): JSX.Element {
   const gameContainerRef = useRef<HTMLCanvasElement>(null);
   const { locked, setPointerLockOnElement } = usePointerLock();
+  const [mode, setMode] = useState<UiMode>("menu");
+  const modeRef = useRef<UiMode>(mode);
+
   const [, tick] = useState(0);
+
+  const switchMode = useCallback((newMode: UiMode): void => {
+    modeRef.current = newMode;
+    setMode(newMode);
+  }, []);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
     return subscribeToConfig(() => tick((n) => n + 1));
   }, []);
 
+  // Lock reconciliation from external pointerlockchange DOM event
+  useEffect(() => {
+    const handlePointerLockChange = (): void => {
+      const isLocked = Boolean(document.pointerLockElement);
+      if (!isLocked) {
+        if (modeRef.current === "playing") {
+          switchMode("menu");
+        }
+      } else {
+        if (modeRef.current !== "playing") {
+          switchMode("playing");
+        }
+      }
+    };
+
+    document.addEventListener("pointerlockchange", handlePointerLockChange);
+    return (): void => {
+      document.removeEventListener(
+        "pointerlockchange",
+        handlePointerLockChange,
+      );
+    };
+  }, [switchMode]);
+
+  // Capture-phase keydown for playing mode
+  useEffect(() => {
+    if (mode !== "playing") return;
+
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        switchMode("chat");
+        document.exitPointerLock();
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        switchMode("menu");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return (): void => {
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
+  }, [mode, switchMode]);
+
+  const handleContainerClick = (): void => {
+    if (modeRef.current === "playing" && !locked && gameContainerRef.current) {
+      setPointerLockOnElement(gameContainerRef.current);
+    }
+  };
+
+  const handleChatClose = useCallback((): void => {
+    switchMode("playing");
+    if (gameContainerRef.current) {
+      setPointerLockOnElement(gameContainerRef.current);
+    }
+  }, [setPointerLockOnElement, switchMode]);
+
+  const handleMenuOpenChange = useCallback(
+    (open: boolean): void => {
+      if (!open) {
+        switchMode("playing");
+        if (gameContainerRef.current) {
+          setPointerLockOnElement(gameContainerRef.current);
+        }
+      } else {
+        switchMode("menu");
+      }
+    },
+    [setPointerLockOnElement, switchMode],
+  );
+
   return (
-    <div className={css.gameContainer}>
+    <div className={css.gameContainer} onClick={handleContainerClick}>
       <Canvas
         shadows="soft"
         camera={{ position: [0, 2, 0], fov: 75 }}
@@ -135,12 +227,13 @@ export function Game() {
         </div>
       </div>
 
-      <GameMenu
-        open={!locked}
-        onOpenChange={(open) =>
-          !open && setPointerLockOnElement(gameContainerRef.current!)
-        }
+      <ChatOverlay
+        active={mode === "chat"}
+        onClose={handleChatClose}
+        isMenuOpen={mode === "menu"}
       />
+
+      <GameMenu open={mode === "menu"} onOpenChange={handleMenuOpenChange} />
     </div>
   );
 }
