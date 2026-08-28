@@ -2,16 +2,19 @@ import { useEffect, useRef, type RefObject } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { usePointerLock } from "@/hooks/usePointerLock";
+import { isTextInputActive } from "@/input/textInputMode";
 
 interface Props {
   sensitivity?: number;
   leanRef?: RefObject<number>;
 }
 
+const MAX_DELTA_THRESHOLD = 300;
+
 export function SmoothedPointerLockControls({
   sensitivity = 0.002,
   leanRef,
-}: Props) {
+}: Props): null {
   const { camera } = useThree();
   const { locked } = usePointerLock();
 
@@ -24,12 +27,41 @@ export function SmoothedPointerLockControls({
   // Track previous lean to detect changes even when mouse is still
   const prevLean = useRef(0);
 
+  // Skip the first mouse move after acquiring lock to ignore the browser's cursor centering delta
+  const isFirstMoveAfterLock = useRef(true);
+
   useEffect(() => {
-    if (!locked) return;
+    const delta = mouseDelta.current;
+    delta.x = 0;
+    delta.y = 0;
+
+    if (!locked) {
+      return;
+    }
+
+    isFirstMoveAfterLock.current = true;
 
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-    const onMouseMove = (event: MouseEvent) => {
+    const onMouseMove = (event: MouseEvent): void => {
+      // Ignore mouse moves if pointer is not locked or text input is active
+      if (!document.pointerLockElement || isTextInputActive()) {
+        return;
+      }
+
+      if (isFirstMoveAfterLock.current) {
+        isFirstMoveAfterLock.current = false;
+        return;
+      }
+
+      // Safeguard against anomalous massive delta jumps during browser transitions
+      if (
+        Math.abs(event.movementX) > MAX_DELTA_THRESHOLD ||
+        Math.abs(event.movementY) > MAX_DELTA_THRESHOLD
+      ) {
+        return;
+      }
+
       // Safari often fails to deliver raw sensor counts even with unadjustedMovement: true,
       // instead applying macOS's pointer acceleration curves. Trackpad movements report as
       // very tiny deltas. Here we apply a heuristic multiplier to normalize the speed to Chrome's.
@@ -38,19 +70,27 @@ export function SmoothedPointerLockControls({
 
       // Simply pool the incoming inputs. This solves event drop/desync issues where
       // the browser fires multiple mouse events per frame or drops them during rendering.
-      mouseDelta.current.x += (event.movementX || 0) * multiplier;
-      mouseDelta.current.y += (event.movementY || 0) * multiplier;
+      delta.x += (event.movementX || 0) * multiplier;
+      delta.y += (event.movementY || 0) * multiplier;
     };
 
     document.addEventListener("mousemove", onMouseMove);
 
-    return () => {
+    return (): void => {
+      delta.x = 0;
+      delta.y = 0;
       document.removeEventListener("mousemove", onMouseMove);
     };
   }, [locked]);
 
   // Process mouse input EXACTLY once per rendering frame in the game loop
-  useFrame(() => {
+  useFrame((): void => {
+    if (!locked || !document.pointerLockElement) {
+      mouseDelta.current.x = 0;
+      mouseDelta.current.y = 0;
+      return;
+    }
+
     const leanAngle = leanRef?.current ?? 0;
     const hasMouse = mouseDelta.current.x !== 0 || mouseDelta.current.y !== 0;
     const leanChanged = leanAngle !== prevLean.current;
