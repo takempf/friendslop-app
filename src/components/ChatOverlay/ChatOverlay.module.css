@@ -1,0 +1,92 @@
+.container {
+  position: absolute;
+  right: 1em;
+  bottom: 1em;
+  width: min(360px, 30vw);
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.active {
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 150ms ease;
+}
+
+.peeking {
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 150ms ease;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-height: 100%;
+}
+
+.messagesActive {
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.messagesPeek {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.message {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: var(--r-sm);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  word-break: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sender {
+  font-weight: 700;
+}
+
+.text {
+  color: var(--clr-text);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--r-md);
+  padding: var(--sp-1) var(--sp-2);
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--clr-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  caret-color: var(--clr-accent);
+}
+
+.input::placeholder {
+  color: var(--clr-text-3);
+}

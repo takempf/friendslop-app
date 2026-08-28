@@ -92,9 +92,3 @@
   flex: 1;
   overflow: hidden;
 }
-
-/* chat panel override — removes padding so chat fills edge-to-edge */
-.chatPanel {
-  padding: 0 !important;
-  overflow: hidden !important;
-}
