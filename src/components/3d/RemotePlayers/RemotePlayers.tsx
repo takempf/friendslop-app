@@ -1,10 +1,13 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { useRapier } from "@react-three/rapier";
+import type { RapierRigidBody } from "@react-three/rapier";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import { audioManager } from "@/audio/AudioManager";
 import { getPlayerColor, getPlayerEmoji } from "@/utils/colors";
 import { getEmojiTexture } from "@/utils/emojiTexture";
+import { REMOTE_PLAYER_COLLISION_GROUPS } from "@/constants/physics";
 const _targetEuler = new THREE.Euler(0, 0, 0, "XYZ");
 const _targetQuat = new THREE.Quaternion();
 const _leanAxis = new THREE.Vector3();
@@ -49,12 +52,24 @@ function createNameTexture(
 export function RemotePlayers() {
   const { getPlayers } = useGameSync();
   const { camera, scene } = useThree();
+  const { rapier, world } = useRapier();
   const groupRef = useRef<THREE.Group>(null);
 
-  // Use a map to track existing player meshes
+  // Use maps to track existing player meshes and rigid bodies
   const playerMeshes = useRef(new Map<number, THREE.Mesh>());
+  const playerBodies = useRef(new Map<number, RapierRigidBody>());
   const labelMeshes = useRef(new Map<number, THREE.Mesh>());
   const raycaster = useRef(new THREE.Raycaster());
+
+  useEffect(() => {
+    const bodies = playerBodies.current;
+    return () => {
+      bodies.forEach((body) => {
+        world.removeRigidBody(body);
+      });
+      bodies.clear();
+    };
+  }, [world]);
 
   // We manually manage the children of the group based on getPlayers()
   // to avoid causing React re-renders 20 times a second.
@@ -109,6 +124,25 @@ export function RemotePlayers() {
         label.userData.colorHex = colorHex;
         labelMeshes.current.set(id, label);
         groupRef.current!.add(label);
+
+        // Create kinematic rigid body + capsule collider for physics collisions
+        if (state.position) {
+          const [tx, ty, tz] = state.position;
+          const adjustedY = ty - CAMERA_HEIGHT_OFFSET;
+          const bodyDesc =
+            rapier.RigidBodyDesc.kinematicPositionBased().setTranslation(
+              tx,
+              adjustedY,
+              tz,
+            );
+          const body = world.createRigidBody(bodyDesc);
+          const colliderDesc = rapier.ColliderDesc.capsule(
+            0.7,
+            0.3,
+          ).setCollisionGroups(REMOTE_PLAYER_COLLISION_GROUPS);
+          world.createCollider(colliderDesc, body);
+          playerBodies.current.set(id, body);
+        }
       } else {
         // Update color if the player's assigned color changed (e.g. after initial assignment)
         const colorIdx = state.colorIndex ?? 0;
@@ -168,6 +202,30 @@ export function RemotePlayers() {
 
         mesh.position.lerp(new THREE.Vector3(tx, adjustedY, tz), 0.2);
 
+        // Drive kinematic body alongside mesh position
+        let body = playerBodies.current.get(id);
+        if (!body) {
+          const bodyDesc =
+            rapier.RigidBodyDesc.kinematicPositionBased().setTranslation(
+              mesh.position.x,
+              mesh.position.y,
+              mesh.position.z,
+            );
+          body = world.createRigidBody(bodyDesc);
+          const colliderDesc = rapier.ColliderDesc.capsule(
+            0.7,
+            0.3,
+          ).setCollisionGroups(REMOTE_PLAYER_COLLISION_GROUPS);
+          world.createCollider(colliderDesc, body);
+          playerBodies.current.set(id, body);
+        } else {
+          body.setNextKinematicTranslation({
+            x: mesh.position.x,
+            y: mesh.position.y,
+            z: mesh.position.z,
+          });
+        }
+
         // Update audio positioning
         audioManager.updateRemotePlayer(id, [
           mesh.position.x,
@@ -226,11 +284,17 @@ export function RemotePlayers() {
       }
     });
 
-    // Remove stale meshes
+    // Remove stale meshes and rigid bodies
     playerMeshes.current.forEach((mesh, id) => {
       if (!players.has(id)) {
         groupRef.current!.remove(mesh);
         playerMeshes.current.delete(id);
+
+        const body = playerBodies.current.get(id);
+        if (body) {
+          world.removeRigidBody(body);
+          playerBodies.current.delete(id);
+        }
 
         const label = labelMeshes.current.get(id);
         if (label) {

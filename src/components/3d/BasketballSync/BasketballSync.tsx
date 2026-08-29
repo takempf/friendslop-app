@@ -5,6 +5,10 @@ import * as THREE from "three";
 import { useBasketball } from "@/contexts/BasketballContext";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import type { RemoteBallState } from "@/sync/IGameSync";
+import {
+  BALL_COLLISION_GROUPS,
+  HELD_BALL_COLLISION_GROUPS,
+} from "@/constants/physics";
 
 const SETTLE_MS = 2000; // stop broadcasting after 2s of stillness
 const SETTLE_SPEED_SQ = 0.05 * 0.05; // squared threshold for speed + angspeed
@@ -52,6 +56,7 @@ export function BasketballSync() {
         if (ball.bodyType() !== rapier.RigidBodyType.KinematicPositionBased) {
           ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
         }
+        ball.collider(0)?.setCollisionGroups(HELD_BALL_COLLISION_GROUPS);
         ball.setNextKinematicTranslation({
           x: state.pos[0],
           y: state.pos[1],
@@ -63,6 +68,7 @@ export function BasketballSync() {
         if (ball.bodyType() !== rapier.RigidBodyType.KinematicPositionBased) {
           ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
         }
+        ball.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
         const cur = ball.translation();
         const [tx, ty, tz] = state.pos;
         ball.setNextKinematicTranslation({
