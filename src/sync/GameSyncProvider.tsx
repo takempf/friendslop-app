@@ -94,6 +94,9 @@ export function GameSyncProvider({
   const [myColorIndex, setMyColorIndex] = useState(0);
   const [myEmojiIndex, setMyEmojiIndex] = useState(0);
 
+  // The sync adapter is an imperative object whose callback slots are wired up
+  // here; the rule reads that as mutating a value captured during render.
+  // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     const adapter = sync;
 

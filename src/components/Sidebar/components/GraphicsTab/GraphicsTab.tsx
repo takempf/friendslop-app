@@ -5,11 +5,7 @@ import { Slider } from "@/components/ui/Slider/Slider";
 import styles from "./GraphicsTab.module.css";
 
 type ToggleKey =
-  | "crtEnabled"
-  | "crtSmoothing"
-  | "showFps"
-  | "showPerf"
-  | "showClouds";
+  "crtEnabled" | "crtSmoothing" | "showFps" | "showPerf" | "showClouds";
 
 const TOGGLES: { key: ToggleKey; label: string; sublabel?: string }[] = [
   { key: "crtEnabled", label: "CRT Filter" },
