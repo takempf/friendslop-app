@@ -6,7 +6,6 @@ import {
   RapierRigidBody,
   CapsuleCollider,
   useRapier,
-  interactionGroups,
   CoefficientCombineRule,
 } from "@react-three/rapier";
 import * as THREE from "three";
@@ -21,11 +20,14 @@ import {
   THREE_POINT_CORNER_X,
   HOOP_RIM_POS,
 } from "@/constants/basketball";
+import {
+  PLAYER_COLLISION_GROUPS,
+  BALL_COLLISION_GROUPS,
+  HELD_BALL_COLLISION_GROUPS,
+  GROUND_RAY_COLLISION_GROUPS,
+  PLAYER_MASS,
+} from "@/constants/physics";
 import { gameConfig } from "@/config";
-
-// Group layout: 0 = environment, 1 = player, 2 = balls
-// Player never interacts with balls (group 2), only environment
-const PLAYER_GROUPS = interactionGroups([1], [0]);
 
 const SPEED = 5;
 const SPRINT_SPEED = 7.5;
@@ -212,7 +214,7 @@ export function PlayerController() {
       GROUND_RAY_LEN,
       true,
       undefined,
-      PLAYER_GROUPS,
+      GROUND_RAY_COLLISION_GROUPS,
     );
     const isGrounded = !!hit && hit.timeOfImpact <= GROUND_RAY_LEN;
 
@@ -276,12 +278,13 @@ export function PlayerController() {
     const ePressed = keys.current.KeyE;
     if (ePressed && !prevE.current) {
       if (heldBallRef.current !== -1) {
-        // Drop the ball — restore dynamic physics
+        // Drop the ball — restore dynamic physics and ball collision groups
         const held = ballRefs.current[heldBallRef.current];
         if (held) {
           held.setBodyType(rapier.RigidBodyType.Dynamic, true);
           held.setGravityScale(1, true);
           held.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          held.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
         }
         heldBallRef.current = -1;
       } else {
@@ -300,8 +303,9 @@ export function PlayerController() {
 
           const ball = ballRefs.current[nearestIdx];
           if (ball) {
-            // Switch to kinematic so physics doesn't fight our position updates
+            // Switch to kinematic and filter collisions against holder
             ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
+            ball.collider(0)?.setCollisionGroups(HELD_BALL_COLLISION_GROUPS);
           }
         } else if (buttonCandidateRef.current) {
           broadcastReset();
@@ -344,6 +348,7 @@ export function PlayerController() {
           const upZ = _right.x * _forward.y - _right.y * _forward.x;
           ball.setBodyType(rapier.RigidBodyType.Dynamic, true);
           ball.setGravityScale(1, true);
+          ball.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
           ball.setLinvel(
             {
               x: (_forward.x * cosA + upX * sinA) * speed,
@@ -504,13 +509,13 @@ export function PlayerController() {
         ref={ref}
         position={spawnPoint}
         colliders={false}
-        mass={1}
+        mass={PLAYER_MASS}
         type="dynamic"
         enabledRotations={[false, false, false]}
       >
         <CapsuleCollider
           args={[0.5, 0.5]}
-          collisionGroups={PLAYER_GROUPS}
+          collisionGroups={PLAYER_COLLISION_GROUPS}
           restitution={0}
           restitutionCombineRule={CoefficientCombineRule.Min}
         />

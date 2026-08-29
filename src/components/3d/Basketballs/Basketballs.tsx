@@ -1,10 +1,5 @@
 import * as THREE from "three";
-import {
-  RigidBody,
-  BallCollider,
-  interactionGroups,
-  useRapier,
-} from "@react-three/rapier";
+import { RigidBody, BallCollider, useRapier } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -19,6 +14,7 @@ import {
   BALL_COUNT,
   RACK_SLOT_POSITIONS,
 } from "@/constants/basketball";
+import { BALL_COLLISION_GROUPS } from "@/constants/physics";
 import {
   sharedOutlineMat,
   sharedStrokeMat,
@@ -73,10 +69,6 @@ function isOutOfBounds(pos: { x: number; y: number; z: number }): boolean {
   if (pos.z < -10.5) return true;
   return false;
 }
-
-// Group layout:  0 = environment, 1 = player, 2 = balls
-// Balls never interact with the player (group 1), only environment & each other
-const BALL_GROUPS = interactionGroups([2], [0, 2]);
 
 function createBasketballTexture(): THREE.CanvasTexture {
   const W = 512,
@@ -279,7 +271,10 @@ export function Basketballs() {
             });
           }}
         >
-          <BallCollider args={[BALL_RADIUS]} collisionGroups={BALL_GROUPS} />
+          <BallCollider
+            args={[BALL_RADIUS]}
+            collisionGroups={BALL_COLLISION_GROUPS}
+          />
           <mesh
             castShadow
             ref={(r) => {
