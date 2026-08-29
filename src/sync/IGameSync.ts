@@ -38,6 +38,7 @@ export interface SoundEvent {
 export interface IGameSync {
   connect(roomName: string, localStream?: MediaStream): Promise<void>;
   disconnect(): void;
+  setLocalStream?(stream: MediaStream): void;
 
   get myId(): number;
   get myName(): string;

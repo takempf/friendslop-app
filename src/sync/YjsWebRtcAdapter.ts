@@ -40,6 +40,7 @@ export class YjsWebRtcAdapter implements IGameSync {
   private _colorIndex: number = 0;
   private _emojiIndex: number = 0;
   private _colorAssigned: boolean = false;
+  private localStream: MediaStream | null = null;
 
   constructor() {
     this.doc = new Y.Doc();
@@ -123,6 +124,9 @@ export class YjsWebRtcAdapter implements IGameSync {
     localStream?: MediaStream,
   ): Promise<void> {
     if (this.provider) return;
+    if (localStream) {
+      this.localStream = localStream;
+    }
     const partykitHost = import.meta.env.VITE_PARTYKIT_HOST;
     const signalingServerUrl =
       import.meta.env.DEV || !partykitHost
@@ -131,7 +135,7 @@ export class YjsWebRtcAdapter implements IGameSync {
 
     this.provider = new WebrtcProvider(roomName, this.doc, {
       signaling: [signalingServerUrl],
-      peerOpts: localStream ? { stream: localStream } : {},
+      peerOpts: this.localStream ? { stream: this.localStream } : {},
     });
 
     // Listen for new peers to capture their audio stream
@@ -391,11 +395,35 @@ export class YjsWebRtcAdapter implements IGameSync {
     });
   }
 
+  public setLocalStream(stream: MediaStream): void {
+    this.localStream = stream;
+    if (!this.provider) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.provider as any).peerOpts = { stream };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const room = (this.provider as any).room;
+    if (room?.webrtcConns) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      room.webrtcConns.forEach((conn: any) => {
+        if (conn.peer && !conn.closed) {
+          try {
+            conn.peer.addStream(stream);
+          } catch (err) {
+            console.warn("[WebRTC] Error adding stream to existing peer:", err);
+          }
+        }
+      });
+    }
+  }
+
   public disconnect(): void {
     if (this.provider) {
       this.provider.destroy();
       this.provider = null;
     }
+    this.localStream = null;
   }
 
   public sendChatMessage(msg: string): void {

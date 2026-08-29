@@ -179,52 +179,41 @@ export function GameSyncProvider({
 
     let isCancelled = false;
 
-    // Init audio and connect
-    const startConnection = async () => {
-      try {
-        const localStream = await audioManager.getLocalStream();
+    // Connect immediately so player presence, movement, and 3D spawning happen right away
+    adapter
+      .connect(roomName)
+      .then(() => {
+        if (isCancelled) return;
+        // Poll until appearance is assigned (happens ~150ms after connect)
+        const poll = setInterval(() => {
+          if (adapter.myColorAssigned) {
+            setMyColorIndex(adapter.myColorIndex);
+            setMyEmojiIndex(adapter.myEmojiIndex);
+            clearInterval(poll);
+          }
+        }, 60);
+        setTimeout(() => clearInterval(poll), 3000);
+      })
+      .catch(console.error);
+
+    // Acquire microphone asynchronously without blocking player spawn or networking
+    audioManager
+      .getLocalStream()
+      .then((localStream) => {
         if (isCancelled) {
-          // Release constraints if cancelled
           localStream.getTracks().forEach((t) => t.stop());
           return;
         }
-        adapter
-          .connect(roomName, localStream)
-          .then(() => {
-            // Poll until appearance is assigned (happens ~150ms after connect)
-            const poll = setInterval(() => {
-              if (adapter.myColorAssigned) {
-                setMyColorIndex(adapter.myColorIndex);
-                setMyEmojiIndex(adapter.myEmojiIndex);
-                clearInterval(poll);
-              }
-            }, 60);
-            setTimeout(() => clearInterval(poll), 3000);
-          })
-          .catch(console.error);
-      } catch {
-        console.warn(
-          "Audio Context or Mic access blocked. Connecting without mic.",
-        );
+        setAudioBlocked(false);
+        adapter.setLocalStream?.(localStream);
+      })
+      .catch(() => {
         if (isCancelled) return;
+        console.warn(
+          "Audio Context or Mic access blocked. Continuing without mic.",
+        );
         setAudioBlocked(true);
-        adapter
-          .connect(roomName)
-          .then(() => {
-            const poll = setInterval(() => {
-              if (adapter.myColorAssigned) {
-                setMyColorIndex(adapter.myColorIndex);
-                setMyEmojiIndex(adapter.myEmojiIndex);
-                clearInterval(poll);
-              }
-            }, 60);
-            setTimeout(() => clearInterval(poll), 3000);
-          })
-          .catch(console.error);
-      }
-    };
-
-    startConnection();
+      });
 
     return () => {
       isCancelled = true;
