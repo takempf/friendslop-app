@@ -7,7 +7,7 @@ import mkcert from "vite-plugin-mkcert";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), mkcert()],
-  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
   server: {
     proxy: {
       "/party": {
