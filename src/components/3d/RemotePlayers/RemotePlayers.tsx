@@ -63,11 +63,25 @@ export function RemotePlayers() {
 
   useEffect(() => {
     const bodies = playerBodies.current;
+    const meshes = playerMeshes.current;
+    const labels = labelMeshes.current;
+    const group = groupRef.current;
     return () => {
       bodies.forEach((body) => {
-        world.removeRigidBody(body);
+        if (world.getRigidBody(body.handle)) {
+          world.removeRigidBody(body);
+        }
       });
       bodies.clear();
+      meshes.forEach((mesh) => {
+        group?.remove(mesh);
+      });
+      meshes.clear();
+      labels.forEach((label) => {
+        group?.remove(label);
+        (label.material as THREE.MeshBasicMaterial).map?.dispose();
+      });
+      labels.clear();
     };
   }, [world]);
 
@@ -292,7 +306,9 @@ export function RemotePlayers() {
 
         const body = playerBodies.current.get(id);
         if (body) {
-          world.removeRigidBody(body);
+          if (world.getRigidBody(body.handle)) {
+            world.removeRigidBody(body);
+          }
           playerBodies.current.delete(id);
         }
 
