@@ -6,16 +6,17 @@ import * as THREE from "three";
 const TICKER_W = 20;
 const TICKER_H = 0.5;
 
-// Canvas resolution — 40:1 physical aspect ratio (20m / 0.5m).
-// 64px height with 2560px visible width is oversampled for 640p render target.
-const CANVAS_H = 64;
-const VISIBLE_W = Math.round(CANVAS_H * (TICKER_W / TICKER_H)); // 2560 px
+// Physical aspect ratio is 40:1 (20m / 0.5m).
+// Each text row is 64px tall, giving 2560px visible width in texture space.
+const ROW_H = 64;
+const ATLAS_W = 2048;
+const ATLAS_H = 2048;
+const TOTAL_ROWS = ATLAS_H / ROW_H; // 32 rows = 65,536 px capacity
+const VISIBLE_W = Math.round(ROW_H * (TICKER_W / TICKER_H)); // 2560 px
 const FONT_SIZE = 36;
 const FONT_SPEC = `bold ${FONT_SIZE}px monospace`;
 
-const SCROLL_SPEED = 45; // canvas px / sec (~0.35 m/s)
-const MAX_CHUNK_W = 4096; // max texture size safe limit
-const CHUNK_ADVANCE_W = MAX_CHUNK_W - VISIBLE_W; // 1536 px
+const SCROLL_SPEED = 45; // texture px / sec (~0.35 m/s)
 const FETCH_INTERVAL_MS = 60_000;
 
 interface GameScore {
@@ -32,12 +33,6 @@ interface Segment {
   text: string;
   color: string;
   width: number;
-}
-
-interface TickerChunk {
-  texture: THREE.CanvasTexture;
-  contentWidth: number;
-  canvasWidth: number;
 }
 
 interface EspnCompetitor {
@@ -169,123 +164,84 @@ function measureSegments(
   }));
 }
 
-function drawSegmentsSpan(
-  ctx: CanvasRenderingContext2D,
+function renderAtlas(
+  canvas: HTMLCanvasElement,
   segments: Segment[],
   totalWidth: number,
-  startVirtualX: number,
-  spanWidth: number,
 ): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
   ctx.fillStyle = "#060c18";
-  ctx.fillRect(0, 0, spanWidth, CANVAS_H);
+  ctx.fillRect(0, 0, ATLAS_W, ATLAS_H);
+
+  if (totalWidth <= 0 || segments.length === 0) return;
 
   ctx.font = FONT_SPEC;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
 
-  if (totalWidth <= 0 || segments.length === 0) return;
-
-  const normStartX = ((startVirtualX % totalWidth) + totalWidth) % totalWidth;
-
-  let acc = 0;
-  let startSegIdx = 0;
-  let offsetInSeg = 0;
-
-  for (let i = 0; i < segments.length; i++) {
-    const w = segments[i].width;
-    if (acc + w > normStartX) {
-      startSegIdx = i;
-      offsetInSeg = normStartX - acc;
-      break;
-    }
-    acc += w;
-  }
-
-  let drawX = -offsetInSeg;
-  let segIdx = startSegIdx;
-
-  while (drawX < spanWidth) {
-    const seg = segments[segIdx];
+  let virtualX = 0;
+  for (const seg of segments) {
+    let drawX = virtualX;
+    const segEnd = virtualX + seg.width;
     ctx.fillStyle = seg.color;
-    ctx.fillText(seg.text, drawX, CANVAS_H / 2 + 1);
-    drawX += seg.width;
-    segIdx = (segIdx + 1) % segments.length;
+
+    while (drawX < segEnd) {
+      const rowIndex = Math.floor(drawX / ATLAS_W);
+      if (rowIndex >= TOTAL_ROWS) break;
+
+      const rowStartX = rowIndex * ATLAS_W;
+      const xInRow = drawX - rowStartX;
+      const rowY = rowIndex * ROW_H;
+      const offsetInSeg = drawX - virtualX;
+
+      ctx.fillText(seg.text, xInRow - offsetInSeg, rowY + ROW_H / 2 + 1);
+
+      drawX = (rowIndex + 1) * ATLAS_W;
+    }
+
+    virtualX = segEnd;
   }
 }
 
-function createTickerChunks(segments: Segment[]): TickerChunk[] {
-  const totalWidth = segments.reduce((acc, s) => acc + s.width, 0);
-  if (totalWidth <= 0) return [];
-
-  // Case 1: Total text content fits in a single texture (<= MAX_CHUNK_W)
-  if (totalWidth <= MAX_CHUNK_W) {
-    let canvasW = totalWidth;
-    if (canvasW < VISIBLE_W) {
-      const repeats = Math.ceil(VISIBLE_W / totalWidth);
-      canvasW = totalWidth * repeats;
-      if (canvasW > MAX_CHUNK_W) {
-        canvasW =
-          Math.floor(MAX_CHUNK_W / totalWidth) * totalWidth || totalWidth;
-      }
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasW;
-    canvas.height = CANVAS_H;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      drawSegmentsSpan(ctx, segments, totalWidth, 0, canvasW);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.repeat.set(VISIBLE_W / canvasW, 1);
-    texture.offset.set(0, 0);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-
-    return [{ texture, contentWidth: canvasW, canvasWidth: canvasW }];
+const tickerVertexShader = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
+`;
 
-  // Case 2: Multi-chunk partitioning with overlap buffer
-  const numChunks = Math.ceil(totalWidth / CHUNK_ADVANCE_W);
-  const chunks: TickerChunk[] = [];
+const tickerFragmentShader = /* glsl */ `
+  uniform sampler2D uAtlas;
+  uniform float uScrollX;
+  uniform float uTotalWidth;
+  uniform float uVisibleWidth;
 
-  for (let i = 0; i < numChunks; i++) {
-    const startVirtualX = i * CHUNK_ADVANCE_W;
-    const contentW = Math.min(CHUNK_ADVANCE_W, totalWidth - startVirtualX);
-    const canvasW = contentW + VISIBLE_W;
+  varying vec2 vUv;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasW;
-    canvas.height = CANVAS_H;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      drawSegmentsSpan(ctx, segments, totalWidth, startVirtualX, canvasW);
-    }
+  const float ATLAS_W = 2048.0;
+  const float ATLAS_H = 2048.0;
+  const float ROW_H = 64.0;
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.repeat.set(VISIBLE_W / canvasW, 1);
-    texture.offset.set(0, 0);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
+  void main() {
+    float xInMarquee = vUv.x * uVisibleWidth;
+    float virtualX = mod(uScrollX + xInMarquee, uTotalWidth);
 
-    chunks.push({
-      texture,
-      contentWidth: contentW,
-      canvasWidth: canvasW,
-    });
+    float rowIndex = floor(virtualX / ATLAS_W);
+    float xInRow = virtualX - rowIndex * ATLAS_W;
+
+    vec2 uv;
+    uv.x = xInRow / ATLAS_W;
+    uv.y = 1.0 - (rowIndex * ROW_H + (1.0 - vUv.y) * ROW_H) / ATLAS_H;
+
+    gl_FragColor = texture2D(uAtlas, uv);
+
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
-
-  return chunks;
-}
+`;
 
 const INITIAL_RAW_SEGMENTS = [
   {
@@ -294,22 +250,54 @@ const INITIAL_RAW_SEGMENTS = [
   },
 ];
 
-export function ScoreTicker() {
-  const [initialChunks] = useState<TickerChunk[]>(() => {
-    const initialSegments = measureSegments(INITIAL_RAW_SEGMENTS);
-    return createTickerChunks(initialSegments);
+interface TickerResources {
+  canvas: HTMLCanvasElement;
+  texture: THREE.CanvasTexture;
+  material: THREE.ShaderMaterial;
+  totalWidth: number;
+}
+
+function createTickerResources(): TickerResources {
+  const segments = measureSegments(INITIAL_RAW_SEGMENTS);
+  const totalWidth = segments.reduce((acc, s) => acc + s.width, 0);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = ATLAS_W;
+  canvas.height = ATLAS_H;
+  renderAtlas(canvas, segments, totalWidth);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+
+  const material = new THREE.ShaderMaterial({
+    vertexShader: tickerVertexShader,
+    fragmentShader: tickerFragmentShader,
+    uniforms: {
+      uAtlas: { value: texture },
+      uScrollX: { value: 0.0 },
+      uTotalWidth: { value: totalWidth },
+      uVisibleWidth: { value: VISIBLE_W },
+    },
   });
 
-  const chunksRef = useRef<TickerChunk[]>(initialChunks);
-  const activeChunkIndexRef = useRef(0);
-  const scrollXRef = useRef(0);
-  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+  return { canvas, texture, material, totalWidth };
+}
 
-  // Cleanup textures on unmount
+export function ScoreTicker() {
+  const [resources] = useState(createTickerResources);
+  const resourcesRef = useRef(resources);
+  const scrollXRef = useRef(0);
+  const totalWidthRef = useRef(resources.totalWidth);
+
+  // Cleanup GPU resources on unmount
   useEffect(() => {
+    const { texture, material } = resourcesRef.current;
     return () => {
-      chunksRef.current.forEach((c) => c.texture.dispose());
-      chunksRef.current = [];
+      texture.dispose();
+      material.dispose();
     };
   }, []);
 
@@ -324,22 +312,21 @@ export function ScoreTicker() {
 
         const raw = buildRawSegments(scores);
         const measured = measureSegments(raw);
-        const newChunks = createTickerChunks(measured);
+        const newTotal = measured.reduce((acc, s) => acc + s.width, 0);
 
-        if (newChunks.length > 0) {
-          // Dispose previous textures
-          chunksRef.current.forEach((c) => c.texture.dispose());
-          chunksRef.current = newChunks;
-          activeChunkIndexRef.current = 0;
-          scrollXRef.current = 0;
+        if (measured.length > 0 && newTotal > 0) {
+          const res = resourcesRef.current;
+          renderAtlas(res.canvas, measured, newTotal);
 
-          if (materialRef.current) {
-            materialRef.current.map = newChunks[0].texture;
-            materialRef.current.needsUpdate = true;
-          }
+          // Upload updated texture to GPU ONCE
+          res.texture.needsUpdate = true;
+          totalWidthRef.current = newTotal;
+
+          const uniforms = res.material.uniforms;
+          uniforms.uTotalWidth.value = newTotal;
         }
       } catch {
-        // Keep last known data if ESPN rate limited or network offline
+        // Keep last known data if ESPN rate limited or offline
       }
     };
 
@@ -355,35 +342,11 @@ export function ScoreTicker() {
   }, []);
 
   useFrame((_, delta) => {
-    const chunks = chunksRef.current;
-    if (chunks.length === 0) return;
+    const total = totalWidthRef.current;
+    if (total <= 0) return;
 
-    if (chunks.length === 1) {
-      const chunk = chunks[0];
-      scrollXRef.current =
-        (scrollXRef.current + SCROLL_SPEED * delta) % chunk.contentWidth;
-      chunk.texture.offset.x = scrollXRef.current / chunk.canvasWidth;
-      return;
-    }
-
-    let activeIdx = activeChunkIndexRef.current;
-    let currentChunk = chunks[activeIdx];
-    scrollXRef.current += SCROLL_SPEED * delta;
-
-    while (scrollXRef.current >= currentChunk.contentWidth) {
-      scrollXRef.current -= currentChunk.contentWidth;
-      activeIdx = (activeIdx + 1) % chunks.length;
-      activeChunkIndexRef.current = activeIdx;
-      currentChunk = chunks[activeIdx];
-
-      if (materialRef.current) {
-        materialRef.current.map = currentChunk.texture;
-        materialRef.current.needsUpdate = true;
-      }
-    }
-
-    currentChunk.texture.offset.x =
-      scrollXRef.current / currentChunk.canvasWidth;
+    scrollXRef.current = (scrollXRef.current + SCROLL_SPEED * delta) % total;
+    resourcesRef.current.material.uniforms.uScrollX.value = scrollXRef.current;
   });
 
   return (
@@ -394,12 +357,8 @@ export function ScoreTicker() {
         <meshStandardMaterial color="#0a0a12" metalness={0.6} roughness={0.4} />
       </mesh>
       {/* LED display surface */}
-      <mesh>
+      <mesh material={resources.material}>
         <planeGeometry args={[TICKER_W, TICKER_H]} />
-        <meshBasicMaterial
-          ref={materialRef}
-          map={initialChunks[0]?.texture ?? null}
-        />
       </mesh>
     </group>
   );
