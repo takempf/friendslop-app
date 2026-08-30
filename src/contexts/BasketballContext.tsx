@@ -5,6 +5,7 @@ import { BALL_COUNT } from "@/constants/basketball";
 
 interface BasketballContextType {
   ballRefs: React.MutableRefObject<(RapierRigidBody | null)[]>;
+  mainMeshRefs: React.MutableRefObject<(THREE.Object3D | null)[]>;
   heldBallRef: React.MutableRefObject<number>;
   ownedBallIds: React.MutableRefObject<Set<number>>;
   ballOwnerVersions: React.MutableRefObject<Map<number, number>>;
@@ -18,18 +19,6 @@ interface BasketballContextType {
   releaseBallFromRack: (idx: number) => void;
   /** Mark a ball as returned to its rack slot (call when respawning) */
   returnBallToRack: (idx: number) => void;
-  /**
-   * Target world position for the held ball's visual mesh — written by
-   * PlayerController every frame so Basketballs can override the Three.js
-   * group position AFTER Rapier's own sync, eliminating the one-step lag.
-   */
-  heldBallVisualPos: React.MutableRefObject<THREE.Vector3>;
-  /**
-   * Target world rotation for the held ball's visual mesh — written by
-   * PlayerController every frame so Basketballs can override the Three.js
-   * group rotation AFTER Rapier's own sync, eliminating the one-step lag.
-   */
-  heldBallVisualRot: React.MutableRefObject<THREE.Quaternion>;
 }
 
 const BasketballContext = createContext<BasketballContextType | null>(null);
@@ -42,6 +31,9 @@ export function BasketballProvider({
   const ballRefs = useRef<(RapierRigidBody | null)[]>(
     Array(BALL_COUNT).fill(null),
   );
+  const mainMeshRefs = useRef<(THREE.Object3D | null)[]>(
+    Array(BALL_COUNT).fill(null),
+  );
   const heldBallRef = useRef(-1);
   const ownedBallIds = useRef<Set<number>>(new Set());
   const ballOwnerVersions = useRef<Map<number, number>>(new Map());
@@ -49,8 +41,6 @@ export function BasketballProvider({
   const buttonCandidateRef = useRef(false);
   const ballShotPoints = useRef<Map<number, number>>(new Map());
   const ballInRack = useRef<boolean[]>(Array(BALL_COUNT).fill(true));
-  const heldBallVisualPos = useRef(new THREE.Vector3());
-  const heldBallVisualRot = useRef(new THREE.Quaternion());
 
   const releaseBallFromRack = useCallback((idx: number) => {
     ballInRack.current[idx] = false;
@@ -64,6 +54,7 @@ export function BasketballProvider({
     <BasketballContext.Provider
       value={{
         ballRefs,
+        mainMeshRefs,
         heldBallRef,
         ownedBallIds,
         ballOwnerVersions,
@@ -73,8 +64,6 @@ export function BasketballProvider({
         ballInRack,
         releaseBallFromRack,
         returnBallToRack,
-        heldBallVisualPos,
-        heldBallVisualRot,
       }}
     >
       {children}

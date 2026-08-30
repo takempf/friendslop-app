@@ -87,6 +87,7 @@ export function PlayerController() {
   const { rapier, world } = useRapier();
   const {
     ballRefs,
+    mainMeshRefs,
     heldBallRef,
     ownedBallIds,
     ballOwnerVersions,
@@ -94,8 +95,6 @@ export function PlayerController() {
     buttonCandidateRef,
     ballShotPoints,
     releaseBallFromRack,
-    heldBallVisualPos,
-    heldBallVisualRot,
   } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
@@ -467,9 +466,6 @@ export function PlayerController() {
         const finalX = holdX + (dribbleX - holdX) * b;
         const finalY = holdY + (dribbleY - holdY) * b;
         const finalZ = holdZ + (dribbleZ - holdZ) * b;
-        // Share the visual target so Basketballs can override the Three.js
-        // group transform after Rapier's sync, removing the one-step render lag.
-        heldBallVisualPos.current.set(finalX, finalY, finalZ);
         ball.setNextKinematicTranslation({
           x: finalX,
           y: finalY,
@@ -490,8 +486,14 @@ export function PlayerController() {
           .copy(state.camera.quaternion)
           .multiply(_gatherQuat)
           .multiply(heldBallRelativeQuat.current);
-        heldBallVisualRot.current.copy(_heldBallRot);
         ball.setNextKinematicRotation(_heldBallRot);
+
+        // Directly override Three.js group transform after Rapier's sync, eliminating the one-step render lag
+        const mesh = mainMeshRefs.current[heldBallRef.current];
+        if (mesh?.parent) {
+          mesh.parent.position.set(finalX, finalY, finalZ);
+          mesh.parent.quaternion.copy(_heldBallRot);
+        }
       }
     }
 

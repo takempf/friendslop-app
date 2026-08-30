@@ -82,25 +82,18 @@ export function Basketballs() {
   const { rapier } = useRapier();
   const {
     ballRefs,
+    mainMeshRefs,
     grabCandidateRef,
     heldBallRef,
     ballInRack,
     releaseBallFromRack,
     returnBallToRack,
-    heldBallVisualPos,
-    heldBallVisualRot,
   } = useBasketball();
   const { broadcastSoundEvent } = useGameSync();
   const outlineRefs = useRef<(THREE.Mesh | null)[]>(
     Array(BALL_COUNT).fill(null),
   );
   const strokeRefs = useRef<(THREE.Mesh | null)[]>(
-    Array(BALL_COUNT).fill(null),
-  );
-  // Main ball mesh refs — used to directly override the RigidBody group's
-  // Three.js position after Rapier's sync, eliminating the one-step render lag
-  // that causes jitter while the ball is held.
-  const mainMeshRefs = useRef<(THREE.Object3D | null)[]>(
     Array(BALL_COUNT).fill(null),
   );
 
@@ -188,21 +181,6 @@ export function Basketballs() {
       }
     });
   });
-
-  // Priority=1 runs AFTER the default priority=0 useFrame (PlayerController),
-  // so heldBallVisualPos and heldBallVisualRot are already set for this frame. Directly setting the
-  // RigidBody group's Three.js transform overrides Rapier's own sync (which
-  // happens at negative priority) and gives the held ball a zero-lag visual.
-  useFrame(() => {
-    const heldIdx = heldBallRef.current;
-    if (heldIdx === -1) return;
-    const mesh = mainMeshRefs.current[heldIdx];
-    if (!mesh?.parent) return;
-    const vp = heldBallVisualPos.current;
-    mesh.parent.position.set(vp.x, vp.y, vp.z);
-    const vr = heldBallVisualRot.current;
-    mesh.parent.quaternion.set(vr.x, vr.y, vr.z, vr.w);
-  }, 1);
 
   return (
     <>
