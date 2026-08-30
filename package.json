@@ -45,12 +45,18 @@
     "three": "^0.183.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
+    "@emnapi/core": "1.11.3",
+    "@emnapi/runtime": "1.11.3",
+    "@emnapi/wasi-threads": "1.2.3",
     "vite": "^8.0.1",
     "vite-plugin-mkcert": "^1.17.10"
   },
   "overrides": {
     "r3f-perf": {
       "@react-three/drei": "$@react-three/drei"
-    }
+    },
+    "@emnapi/core": "$@emnapi/core",
+    "@emnapi/runtime": "$@emnapi/runtime",
+    "@emnapi/wasi-threads": "$@emnapi/wasi-threads"
   }
 }
