@@ -3,6 +3,7 @@ import { RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { SUN_POSITION } from "@/constants/sunPosition";
+import { SHADOW_MAP_SIZE } from "@/constants/render";
 
 // Required once for RectAreaLight to work with MeshStandardMaterial.
 RectAreaLightUniformsLib.init();
@@ -175,15 +176,16 @@ export function SchoolEnvironment() {
         position={SUN_POSITION}
         intensity={1.5}
         castShadow
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
-        shadow-camera-near={0.1}
-        shadow-camera-far={200}
+        shadow-mapSize-width={SHADOW_MAP_SIZE}
+        shadow-mapSize-height={SHADOW_MAP_SIZE}
+        shadow-camera-near={40}
+        shadow-camera-far={160}
         shadow-camera-left={-15}
         shadow-camera-right={15}
         shadow-camera-top={15}
         shadow-camera-bottom={-15}
         shadow-bias={-0.0001}
+        shadow-normalBias={0.02}
       />
 
       {/* --- Gymnasium --- */}

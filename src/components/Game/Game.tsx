@@ -145,7 +145,7 @@ export function Game(): JSX.Element {
   return (
     <div className={css.gameContainer} onClick={handleContainerClick}>
       <Canvas
-        shadows="percentage"
+        shadows="soft"
         camera={{ position: [0, 2, 0], fov: 75 }}
         id="game-container"
         ref={gameContainerRef}
