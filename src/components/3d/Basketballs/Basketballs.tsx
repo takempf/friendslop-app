@@ -28,6 +28,10 @@ type BounceSurface = "floor" | "wall" | "backboard" | "rim" | "window";
 
 useGLTF.preload(basketballModelUrl);
 
+// One shared sphere for every ball's outline + stroke pass. At most one ball is
+// ever highlighted, so allocating 2 × BALL_COUNT identical spheres was pure waste.
+const outlineSphere = new THREE.SphereGeometry(BALL_RADIUS, 12, 12);
+
 /** Infer surface type from ball world position at moment of collision. */
 function detectSurface(pos: {
   x: number;
@@ -259,20 +263,18 @@ export function Basketballs() {
             }}
             visible={false}
             renderOrder={1}
+            geometry={outlineSphere}
             material={sharedStrokeMat}
-          >
-            <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
-          </mesh>
+          />
           <mesh
             ref={(ref) => {
               outlineRefs.current[i] = ref;
             }}
             visible={false}
             renderOrder={2}
+            geometry={outlineSphere}
             material={sharedOutlineMat}
-          >
-            <sphereGeometry args={[BALL_RADIUS, 12, 12]} />
-          </mesh>
+          />
         </RigidBody>
       ))}
     </>

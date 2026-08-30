@@ -37,6 +37,9 @@ function createLabelTexture(): THREE.CanvasTexture {
 
 const labelTexture = createLabelTexture();
 
+// Body, stroke and outline are all the same box — share one geometry.
+const buttonBox = new THREE.BoxGeometry(BUTTON_W, BUTTON_H, BUTTON_D);
+
 export function ResetButton() {
   const { buttonCandidateRef } = useBasketball();
   const outlineRef = useRef<THREE.Mesh>(null);
@@ -60,8 +63,7 @@ export function ResetButton() {
   return (
     <group position={[BUTTON_X, BUTTON_Y, BUTTON_Z]} rotation={[0, Math.PI, 0]}>
       {/* Button body */}
-      <mesh castShadow>
-        <boxGeometry args={[BUTTON_W, BUTTON_H, BUTTON_D]} />
+      <mesh castShadow geometry={buttonBox}>
         <meshStandardMaterial color="#cc1111" roughness={0.4} metalness={0.1} />
       </mesh>
       {/* RESET label on front face (local +Z after rotation = world -Z toward player) */}
@@ -74,19 +76,17 @@ export function ResetButton() {
         ref={strokeRef}
         visible={false}
         renderOrder={1}
+        geometry={buttonBox}
         material={sharedStrokeMat}
-      >
-        <boxGeometry args={[BUTTON_W, BUTTON_H, BUTTON_D]} />
-      </mesh>
+      />
       {/* Outline: white inner fill */}
       <mesh
         ref={outlineRef}
         visible={false}
         renderOrder={2}
+        geometry={buttonBox}
         material={sharedOutlineMat}
-      >
-        <boxGeometry args={[BUTTON_W, BUTTON_H, BUTTON_D]} />
-      </mesh>
+      />
     </group>
   );
 }

@@ -19,6 +19,27 @@ import tennesseeMiamiBanner from "@/assets/tennessee-miami-ohio-victory-banner.p
 import { createDebugTexture } from "@/components/3d/textures/DebugTexture/DebugTexture";
 import { createWoodFloorTexture } from "@/components/3d/textures/WoodFloorTexture/WoodFloorTexture";
 
+// Texture.clone() shares the underlying Source, so all clones reuse a single GPU
+// upload — only `repeat` differs. Cache per repeat so the blocks share a handful
+// of texture objects, and so a re-render doesn't allocate a fresh clone (and
+// re-upload) for every wall in the level.
+const repeatedTextures = new Map<string, THREE.CanvasTexture>();
+
+function repeatedTexture(
+  base: THREE.CanvasTexture,
+  [rx, ry]: [number, number],
+): THREE.CanvasTexture {
+  const key = `${base.uuid}:${rx}:${ry}`;
+  let texture = repeatedTextures.get(key);
+  if (!texture) {
+    texture = base.clone();
+    texture.repeat.set(rx, ry);
+    texture.needsUpdate = true;
+    repeatedTextures.set(key, texture);
+  }
+  return texture;
+}
+
 // Helper component for Walls/Floors
 const Block = ({
   position,
@@ -27,6 +48,7 @@ const Block = ({
   restitution = 0,
   wallTexture,
   textureRepeat,
+  castShadow = true,
 }: {
   position: [number, number, number];
   args: [number, number, number];
@@ -34,14 +56,14 @@ const Block = ({
   restitution?: number;
   wallTexture?: THREE.CanvasTexture;
   textureRepeat?: [number, number];
+  /** Floors sit at the bottom of the level and have nothing below them to
+   *  shade — leaving them out of the shadow pass costs nothing visually. */
+  castShadow?: boolean;
 }) => {
-  const clonedTexture = useMemo(() => {
-    if (!wallTexture || !textureRepeat) return null;
-    const t = wallTexture.clone();
-    t.repeat.set(textureRepeat[0], textureRepeat[1]);
-    t.needsUpdate = true;
-    return t;
-  }, [wallTexture, textureRepeat]);
+  const clonedTexture =
+    wallTexture && textureRepeat
+      ? repeatedTexture(wallTexture, textureRepeat)
+      : null;
 
   return (
     <RigidBody
@@ -50,7 +72,7 @@ const Block = ({
       colliders="cuboid"
       restitution={restitution}
     >
-      <mesh castShadow receiveShadow>
+      <mesh castShadow={castShadow} receiveShadow>
         <boxGeometry args={args} />
         {clonedTexture ? (
           <meshLambertMaterial map={clonedTexture} />
@@ -159,6 +181,7 @@ export function SchoolEnvironment() {
         restitution={0.84}
         wallTexture={floorTex}
         textureRepeat={[10, 10]}
+        castShadow={false}
       />
 
       {/* Walls for Gym */}
@@ -289,6 +312,7 @@ export function SchoolEnvironment() {
         restitution={0.84}
         wallTexture={floorTex}
         textureRepeat={[4, 20]}
+        castShadow={false}
       />
 
       {/* Hallway Walls */}
@@ -340,6 +364,7 @@ export function SchoolEnvironment() {
         restitution={0.84}
         wallTexture={floorTex}
         textureRepeat={[10, 10]}
+        castShadow={false}
       />
       {/* Classroom A Walls */}
       <Block
@@ -414,6 +439,7 @@ export function SchoolEnvironment() {
         restitution={0.84}
         wallTexture={floorTex}
         textureRepeat={[10, 10]}
+        castShadow={false}
       />
       {/* Classroom B Walls */}
       <Block

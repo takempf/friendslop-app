@@ -16,6 +16,16 @@ const RING_SPACING = NET_HEIGHT / TUBE_SEGMENTS;
 const TOP_RADIUS = RIM_RADIUS;
 const BOTTOM_RADIUS = 0.1; // Slightly wider than 0.05 so it's more realistic but still stretches
 
+// A hanging net is motionless for most of a session. Once it has been still for
+// this many consecutive frames the spring solve, the vertex writes and the
+// per-frame computeVertexNormals() are all skipped until a ball comes back.
+// The window is long enough that the apex of a swing (where velocity briefly
+// passes through zero) can't be mistaken for rest.
+const REST_FRAMES = 10;
+const REST_SPEED = 1e-3; // m/s
+const REST_SPEED_SQ = REST_SPEED * REST_SPEED;
+const REST_RADIUS_DELTA = 1e-4; // metres
+
 interface RingState {
   center: THREE.Vector3;
   velocity: THREE.Vector3;
@@ -48,10 +58,31 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
     ringsRef.current = state;
   }
 
+  const restFramesRef = useRef(0);
+
   useFrame((_, delta) => {
     const rings = ringsRef.current!;
     // Clamp delta to prevent explosions on lag
     const dt = Math.min(delta, 0.033);
+
+    // A settled net can only be woken by a ball entering its vertical band, so
+    // that cheap test is all we run on a quiet frame.
+    if (restFramesRef.current >= REST_FRAMES) {
+      let ballNear = false;
+      for (const ballRef of ballRefs.current) {
+        if (!ballRef) continue;
+        const localBallY = ballRef.translation().y - posY;
+        if (
+          localBallY > -NET_HEIGHT - BALL_RADIUS &&
+          localBallY < BALL_RADIUS
+        ) {
+          ballNear = true;
+          break;
+        }
+      }
+      if (!ballNear) return;
+      restFramesRef.current = 0;
+    }
 
     // Reset top ring (anchored to rim)
     rings[0].center.set(0, 0, 0);
@@ -203,7 +234,22 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
       }
     });
 
-    // 3. Update geometry vertices
+    // 3. Track whether the net has come to rest
+    let settled = true;
+    for (let i = 1; i < NUM_RINGS; i++) {
+      const ring = rings[i];
+      if (
+        ring.velocity.lengthSq() > REST_SPEED_SQ ||
+        Math.abs(ring.radiusVelocity) > REST_SPEED ||
+        Math.abs(ring.currentRadius - ring.naturalRadius) > REST_RADIUS_DELTA
+      ) {
+        settled = false;
+        break;
+      }
+    }
+    restFramesRef.current = settled ? restFramesRef.current + 1 : 0;
+
+    // 4. Update geometry vertices
     if (geometryRef.current) {
       const positions = geometryRef.current.attributes.position;
 

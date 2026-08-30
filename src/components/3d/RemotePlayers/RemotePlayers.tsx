@@ -17,6 +17,12 @@ const _right = new THREE.Vector3();
 
 const MAX_PILL_LEAN = 0.05;
 
+// Every avatar uses the same pill / face quad / label quad — only the materials
+// differ per player, so the geometry is allocated once for the whole session.
+const pillGeometry = new THREE.CapsuleGeometry(0.3, 1.4, 4, 8);
+const faceGeometry = new THREE.PlaneGeometry(0.6, 0.6);
+const labelGeometry = new THREE.PlaneGeometry(1.0, 0.25);
+
 // Synced position is camera/eye level (rigidBody.y + 0.83 from PlayerController).
 // Offset the mesh back down so the pill sits on the ground.
 const CAMERA_HEIGHT_OFFSET = 0.83;
@@ -97,19 +103,17 @@ export function RemotePlayers() {
 
       if (!mesh) {
         // Create simple avatar representation (a capsule)
-        const geometry = new THREE.CapsuleGeometry(0.3, 1.4, 4, 8);
         const colorIdx = state.colorIndex ?? 0;
         const color = new THREE.Color(getPlayerColor(colorIdx));
 
         const material = new THREE.MeshLambertMaterial({ color });
-        mesh = new THREE.Mesh(geometry, material);
+        mesh = new THREE.Mesh(pillGeometry, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.userData.colorIndex = colorIdx;
 
         const emoji = getPlayerEmoji(state.emojiIndex ?? 0);
         const emojiTexture = getEmojiTexture(emoji);
-        const faceGeometry = new THREE.PlaneGeometry(0.6, 0.6);
         const faceMaterial = new THREE.MeshBasicMaterial({
           map: emojiTexture,
           transparent: true,
@@ -127,13 +131,12 @@ export function RemotePlayers() {
         const name = state.name ?? "Player";
         const colorHex = getPlayerColor(state.colorIndex ?? 0);
         const labelTexture = createNameTexture(name, colorHex);
-        const labelGeo = new THREE.PlaneGeometry(1.0, 0.25);
         const labelMat = new THREE.MeshBasicMaterial({
           map: labelTexture,
           transparent: true,
           depthWrite: false,
         });
-        const label = new THREE.Mesh(labelGeo, labelMat);
+        const label = new THREE.Mesh(labelGeometry, labelMat);
         label.userData.labelName = name;
         label.userData.colorHex = colorHex;
         labelMeshes.current.set(id, label);

@@ -12,6 +12,12 @@ const DAMPING = 0.985; // per-step velocity damping (higher = less drag, more na
 const CONSTRAINT_ITERS = 3; // fewer iterations = softer/more pliable cloth that can bunch
 const PIN_INSET = 0.125; // how far each top-corner pin is moved inward, creating slack
 
+// Once the drape has settled nothing ever disturbs it again, so the solve and the
+// per-frame normal recompute can stop for good. Latch after a few consecutive
+// frames whose largest particle movement is under ~0.01mm.
+const REST_MOVE_SQ = 1e-10;
+const REST_FRAMES = 3;
+
 interface Particle {
   x: number;
   y: number;
@@ -148,8 +154,11 @@ export function Banner({ position, imageSrc, width, height }: BannerProps) {
     initSim(centerX, topY, wallZ, width, height),
   );
   const simRef = useRef<SimState>(sim);
+  const restFramesRef = useRef(0);
 
   useFrame((_, delta) => {
+    if (restFramesRef.current >= REST_FRAMES) return;
+
     const { particles, springs, geometry } = simRef.current;
     const wz = wallZ;
 
@@ -204,9 +213,19 @@ export function Banner({ position, imageSrc, width, height }: BannerProps) {
     }
 
     // 3. Wall collision: never let the banner sink into the wall.
+    //    p.px/py/pz still hold the pre-integration position, so the delta below
+    //    is this frame's total movement including constraint correction.
+    let maxMoveSq = 0;
     for (const p of particles) {
       if (p.z > wz + 0.01) p.z = wz + 0.01;
+      const dx = p.x - p.px;
+      const dy = p.y - p.py;
+      const dz = p.z - p.pz;
+      const moveSq = dx * dx + dy * dy + dz * dz;
+      if (moveSq > maxMoveSq) maxMoveSq = moveSq;
     }
+    restFramesRef.current =
+      maxMoveSq < REST_MOVE_SQ ? restFramesRef.current + 1 : 0;
 
     // 4. Push geometry update to GPU.
     const posAttr = geometry.attributes.position as THREE.BufferAttribute;
