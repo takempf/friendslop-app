@@ -1,5 +1,6 @@
 import { useThree, useFrame } from "@react-three/fiber";
 import { gameConfig } from "@/config";
+import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import { useEffect, useRef } from "react";
 import {
   WebGLRenderTarget,
@@ -12,7 +13,7 @@ import {
   ShaderMaterial,
 } from "three";
 
-const TARGET_HEIGHT = 640;
+const TARGET_HEIGHT = CRT_TARGET_HEIGHT;
 
 const vert = /* glsl */ `
   varying vec2 vUv;
