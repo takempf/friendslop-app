@@ -14,6 +14,7 @@ import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky
 import { GameMenu } from "@/components/GameMenu/GameMenu";
 import { ChatOverlay } from "@/components/ChatOverlay/ChatOverlay";
 import { usePointerLock } from "@/hooks/usePointerLock";
+import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import { gameConfig, subscribeToConfig } from "@/config";
 
 import css from "./Game.module.css";
@@ -30,7 +31,10 @@ function RenderResolution(): null {
 
   useEffect(() => {
     const update = (): void => {
-      gl.setPixelRatio(gameConfig.renderHeight / window.innerHeight);
+      const targetHeight = gameConfig.crtEnabled
+        ? gameConfig.renderHeight
+        : CRT_TARGET_HEIGHT;
+      gl.setPixelRatio(targetHeight / window.innerHeight);
     };
     update();
     const unsubConfig = subscribeToConfig(update);

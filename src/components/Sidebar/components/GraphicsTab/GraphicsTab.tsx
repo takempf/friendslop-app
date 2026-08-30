@@ -37,15 +37,15 @@ export function GraphicsTab() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  const targetDisplayHeight = gameConfig.crtEnabled
+    ? gameConfig.renderHeight
+    : CRT_TARGET_HEIGHT;
   const renderWidth = Math.round(
-    (windowDims.w / windowDims.h) * gameConfig.renderHeight,
+    (windowDims.w / windowDims.h) * targetDisplayHeight,
   );
 
-  // The clouds are sized off whatever they are drawn into, which under the CRT
-  // pipeline is its fixed-height target rather than the render resolution.
   const cloudHeight = Math.round(
-    (gameConfig.crtEnabled ? CRT_TARGET_HEIGHT : gameConfig.renderHeight) *
-      gameConfig.cloudResolution,
+    CRT_TARGET_HEIGHT * gameConfig.cloudResolution,
   );
 
   return (
@@ -73,9 +73,13 @@ export function GraphicsTab() {
       <div className={styles.section}>
         <div className={styles.paramRow}>
           <div className={styles.paramHeader}>
-            <span className={styles.paramLabel}>Render Resolution</span>
+            <span className={styles.paramLabel}>
+              {gameConfig.crtEnabled
+                ? "CRT Output Resolution"
+                : "Render Resolution"}
+            </span>
             <span className={styles.paramValue}>
-              {renderWidth} × {gameConfig.renderHeight}
+              {renderWidth} × {targetDisplayHeight}
             </span>
           </div>
           <Slider
@@ -84,8 +88,14 @@ export function GraphicsTab() {
             min={640}
             max={2160}
             step={80}
+            disabled={!gameConfig.crtEnabled}
             variant="yellow"
           />
+          {!gameConfig.crtEnabled && (
+            <span className={styles.hint}>
+              Fixed at 640p when CRT filter is disabled
+            </span>
+          )}
         </div>
       </div>
 

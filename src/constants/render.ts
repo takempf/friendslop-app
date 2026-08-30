@@ -1,4 +1,4 @@
-/** Vertical resolution the CRT pipeline renders the game at, before upscaling. */
+/** Vertical resolution the game scene renders at (640p), before CRT upscaling or when CRT is off. */
 export const CRT_TARGET_HEIGHT = 640;
 
 /** Resolution (width and height) for the main directional light shadow map. */
