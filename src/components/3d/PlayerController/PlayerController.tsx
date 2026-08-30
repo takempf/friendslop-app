@@ -315,7 +315,8 @@ export function PlayerController() {
     prevE.current = ePressed;
 
     // --- Throw charge (Q key) ---
-    const qPressed = keys.current.KeyQ;
+    const isHoldingBall = heldBallRef.current !== -1;
+    const qPressed = keys.current.KeyQ && isHoldingBall;
     if (qPressed && !prevQ.current) {
       // Q just pressed — start charging
       qPressTime.current = performance.now();
