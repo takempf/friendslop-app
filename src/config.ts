@@ -16,6 +16,14 @@ type GameConfig = {
   showFps: boolean;
   showPerf: boolean;
   showClouds: boolean;
+  /** Cloud raymarch resolution, as a fraction of the render resolution. */
+  cloudResolution: number;
+  /** Samples along each view ray through the cloud layer. */
+  cloudSteps: number;
+  /** Samples along each shadow ray toward the sun. */
+  cloudLightSteps: number;
+  /** fbm octaves used to erode the cloud silhouettes. */
+  cloudDetail: number;
 };
 
 // ── Graphics localStorage keys ────────────────────────────────────────────────
@@ -26,6 +34,10 @@ const LS = {
   showPerf: "friendslop_graphics_showPerf",
   showClouds: "friendslop_graphics_showClouds",
   renderHeight: "friendslop_graphics_renderHeight",
+  cloudResolution: "friendslop_graphics_cloudResolution",
+  cloudSteps: "friendslop_graphics_cloudSteps",
+  cloudLightSteps: "friendslop_graphics_cloudLightSteps",
+  cloudDetail: "friendslop_graphics_cloudDetail",
 } as const;
 
 function lsBool(key: string, fallback: boolean): boolean {
@@ -54,6 +66,10 @@ export const gameConfig: GameConfig = {
   showFps: lsBool(LS.showFps, false),
   showPerf: lsBool(LS.showPerf, false),
   showClouds: lsBool(LS.showClouds, true),
+  cloudResolution: lsNum(LS.cloudResolution, 0.5),
+  cloudSteps: lsNum(LS.cloudSteps, 42),
+  cloudLightSteps: lsNum(LS.cloudLightSteps, 5),
+  cloudDetail: lsNum(LS.cloudDetail, 5),
 };
 
 // Simple event system for reactivity
