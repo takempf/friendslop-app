@@ -88,6 +88,7 @@ export function Basketballs() {
     releaseBallFromRack,
     returnBallToRack,
     heldBallVisualPos,
+    heldBallVisualRot,
   } = useBasketball();
   const { broadcastSoundEvent } = useGameSync();
   const outlineRefs = useRef<(THREE.Mesh | null)[]>(
@@ -189,8 +190,8 @@ export function Basketballs() {
   });
 
   // Priority=1 runs AFTER the default priority=0 useFrame (PlayerController),
-  // so heldBallVisualPos is already set for this frame. Directly setting the
-  // RigidBody group's Three.js position overrides Rapier's own sync (which
+  // so heldBallVisualPos and heldBallVisualRot are already set for this frame. Directly setting the
+  // RigidBody group's Three.js transform overrides Rapier's own sync (which
   // happens at negative priority) and gives the held ball a zero-lag visual.
   useFrame(() => {
     const heldIdx = heldBallRef.current;
@@ -199,6 +200,8 @@ export function Basketballs() {
     if (!mesh?.parent) return;
     const vp = heldBallVisualPos.current;
     mesh.parent.position.set(vp.x, vp.y, vp.z);
+    const vr = heldBallVisualRot.current;
+    mesh.parent.quaternion.set(vr.x, vr.y, vr.z, vr.w);
   }, 1);
 
   return (

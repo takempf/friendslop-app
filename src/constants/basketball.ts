@@ -40,6 +40,9 @@ export const RIM_RADIUS = 0.2286;
 // Standard basketball radius: ~4.7 inches = 0.12m
 export const BALL_RADIUS = 0.12;
 
+/** Maximum gather rotation applied while holding throw button (just over 1/2 turn = 198°). */
+export const BALL_GATHER_ROTATION = (11 * Math.PI) / 10;
+
 // Shared range for grab and interact actions
 export const INTERACTION_RANGE = 2.66;
 

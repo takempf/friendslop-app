@@ -83,7 +83,9 @@ export function SmoothedPointerLockControls({
     };
   }, [locked]);
 
-  // Process mouse input EXACTLY once per rendering frame in the game loop
+  // Process mouse input EXACTLY once per rendering frame in the game loop.
+  // Priority -1 ensures camera rotation is updated before PlayerController (priority 0)
+  // calculates movement and held item positions, eliminating 1-frame jitter.
   useFrame((): void => {
     if (!locked || !document.pointerLockElement) {
       mouseDelta.current.x = 0;
@@ -114,7 +116,7 @@ export function SmoothedPointerLockControls({
     // Reset delta for the next frame's accumulation
     mouseDelta.current.x = 0;
     mouseDelta.current.y = 0;
-  });
+  }, -1);
 
   return null;
 }

@@ -376,7 +376,7 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
 
     gl.setRenderTarget(null);
     gl.render(crtScene, crtCamera);
-  }, 1);
+  }, 2);
 
   return null;
 }

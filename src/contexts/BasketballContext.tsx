@@ -24,6 +24,12 @@ interface BasketballContextType {
    * group position AFTER Rapier's own sync, eliminating the one-step lag.
    */
   heldBallVisualPos: React.MutableRefObject<THREE.Vector3>;
+  /**
+   * Target world rotation for the held ball's visual mesh — written by
+   * PlayerController every frame so Basketballs can override the Three.js
+   * group rotation AFTER Rapier's own sync, eliminating the one-step lag.
+   */
+  heldBallVisualRot: React.MutableRefObject<THREE.Quaternion>;
 }
 
 const BasketballContext = createContext<BasketballContextType | null>(null);
@@ -44,6 +50,7 @@ export function BasketballProvider({
   const ballShotPoints = useRef<Map<number, number>>(new Map());
   const ballInRack = useRef<boolean[]>(Array(BALL_COUNT).fill(true));
   const heldBallVisualPos = useRef(new THREE.Vector3());
+  const heldBallVisualRot = useRef(new THREE.Quaternion());
 
   const releaseBallFromRack = useCallback((idx: number) => {
     ballInRack.current[idx] = false;
@@ -67,6 +74,7 @@ export function BasketballProvider({
         releaseBallFromRack,
         returnBallToRack,
         heldBallVisualPos,
+        heldBallVisualRot,
       }}
     >
       {children}

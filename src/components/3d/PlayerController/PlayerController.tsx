@@ -15,6 +15,7 @@ import { audioManager } from "@/audio/AudioManager";
 import { useBasketball } from "@/contexts/BasketballContext";
 import {
   BALL_RADIUS,
+  BALL_GATHER_ROTATION,
   INTERACTION_RANGE,
   THREE_POINT_ARC_RADIUS,
   THREE_POINT_CORNER_X,
@@ -35,6 +36,7 @@ const CROUCH_SPEED = 2.5;
 const CROUCH_CAM_HEIGHT = 0.3; // eye level above body center when crouched (vs 0.83 standing)
 // Throw params are now driven by gameConfig (see src/config.ts)
 const MAX_CHARGE_TIME = 2.5; // seconds to reach full charge
+const GATHER_DURATION = 0.1; // seconds to complete gather rotation (100ms)
 
 // Jump — gravity is -9.81. v²/2g gives peak height.
 // JUMP_VELOCITY=4.4 → ~1.0m peak (full hold). Early release cuts vy → ~0.2m short hop.
@@ -50,6 +52,10 @@ const _yawEuler = new THREE.Euler(0, 0, 0, "YXZ");
 const _forward = new THREE.Vector3();
 const _right = new THREE.Vector3();
 const _holdPos = new THREE.Vector3();
+const _LOCAL_X_AXIS = new THREE.Vector3(1, 0, 0);
+const _gatherQuat = new THREE.Quaternion();
+const _heldBallRot = new THREE.Quaternion();
+const _ballGrabQuat = new THREE.Quaternion();
 
 // 12 equidistant spawn points in a circle centered in the gym (0,0,0)
 const SPAWN_POINTS: [number, number, number][] = Array.from(
@@ -89,11 +95,13 @@ export function PlayerController() {
     ballShotPoints,
     releaseBallFromRack,
     heldBallVisualPos,
+    heldBallVisualRot,
   } = useBasketball();
   const prevE = useRef(false);
   const prevQ = useRef(false);
   const qPressTime = useRef(0);
   const throwCharge = useRef(0);
+  const heldBallRelativeQuat = useRef(new THREE.Quaternion());
   const lastThrowRef = useRef<{ idx: number; time: number }>({
     idx: -1,
     time: 0,
@@ -306,6 +314,12 @@ export function PlayerController() {
             // Switch to kinematic and filter collisions against holder
             ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
             ball.collider(0)?.setCollisionGroups(HELD_BALL_COLLISION_GROUPS);
+            const rot = ball.rotation();
+            _ballGrabQuat.set(rot.x, rot.y, rot.z, rot.w);
+            heldBallRelativeQuat.current
+              .copy(state.camera.quaternion)
+              .invert()
+              .multiply(_ballGrabQuat);
           }
         } else if (buttonCandidateRef.current) {
           broadcastReset();
@@ -339,8 +353,8 @@ export function PlayerController() {
           const speed =
             minThrowSpeed +
             (maxThrowSpeed - minThrowSpeed) * throwCharge.current;
-          _forward.set(0, 0, -1).applyEuler(state.camera.rotation);
-          _right.set(1, 0, 0).applyEuler(state.camera.rotation);
+          _forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion);
+          _right.set(1, 0, 0).applyQuaternion(state.camera.quaternion);
           const arcRad = (throwArcDeg * Math.PI) / 180;
           const cosA = Math.cos(arcRad),
             sinA = Math.sin(arcRad);
@@ -397,8 +411,8 @@ export function PlayerController() {
         dribbleBlend.current +=
           (targetBlend - dribbleBlend.current) * Math.min(delta * 8, 1);
 
-        _forward.set(0, 0, -1).applyEuler(state.camera.rotation);
-        _right.set(1, 0, 0).applyEuler(state.camera.rotation);
+        _forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion);
+        _right.set(1, 0, 0).applyQuaternion(state.camera.quaternion);
 
         // Hold position: slightly in front of camera
         _holdPos
@@ -454,13 +468,30 @@ export function PlayerController() {
         const finalY = holdY + (dribbleY - holdY) * b;
         const finalZ = holdZ + (dribbleZ - holdZ) * b;
         // Share the visual target so Basketballs can override the Three.js
-        // group position after Rapier's sync, removing the one-step render lag.
+        // group transform after Rapier's sync, removing the one-step render lag.
         heldBallVisualPos.current.set(finalX, finalY, finalZ);
         ball.setNextKinematicTranslation({
           x: finalX,
           y: finalY,
           z: finalZ,
         });
+
+        // Gather rotation: rotate backward around camera's horizontal axis (top of ball toward viewer).
+        // Completes quickly within 100ms (0.1s) and holds until thrown.
+        const gatherProgress = qPressed
+          ? Math.min(
+              (performance.now() - qPressTime.current) / 1000 / GATHER_DURATION,
+              1,
+            )
+          : 0;
+        const gatherAngle = gatherProgress * BALL_GATHER_ROTATION;
+        _gatherQuat.setFromAxisAngle(_LOCAL_X_AXIS, gatherAngle);
+        _heldBallRot
+          .copy(state.camera.quaternion)
+          .multiply(_gatherQuat)
+          .multiply(heldBallRelativeQuat.current);
+        heldBallVisualRot.current.copy(_heldBallRot);
+        ball.setNextKinematicRotation(_heldBallRot);
       }
     }
 

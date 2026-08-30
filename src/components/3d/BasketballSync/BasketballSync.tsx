@@ -62,6 +62,10 @@ export function BasketballSync() {
           y: state.pos[1],
           z: state.pos[2],
         });
+        if (state.rot) {
+          _tgtQuat.set(state.rot[0], state.rot[1], state.rot[2], state.rot[3]);
+          ball.setNextKinematicRotation(_tgtQuat);
+        }
       } else {
         // Ball in flight or at rest — kinematic with lerped position/rotation
         // so it tracks the owner smoothly instead of snapping each network tick.
