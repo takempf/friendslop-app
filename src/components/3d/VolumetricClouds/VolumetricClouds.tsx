@@ -755,15 +755,22 @@ export function VolumetricClouds({
     ): void => {
       const previousTarget = renderer.getRenderTarget();
 
-      // Size off whatever we are drawing into — under the CRT pipeline that is
-      // the 640p game target, not the native drawing buffer.
       if (previousTarget === null) {
         renderer.getDrawingBufferSize(bufferSize);
       } else {
         bufferSize.set(previousTarget.width, previousTarget.height);
       }
-      const width = Math.max(2, Math.round(bufferSize.x * resolutionScale));
-      const height = Math.max(2, Math.round(bufferSize.y * resolutionScale));
+
+      // Cap max raymarch resolution to 320p height to keep GPU time under 1.5ms at native resolutions
+      const MAX_RAYMARCH_H = 320;
+      const rawTargetH = bufferSize.y * resolutionScale;
+      const effectiveScale =
+        rawTargetH > MAX_RAYMARCH_H
+          ? MAX_RAYMARCH_H / bufferSize.y
+          : resolutionScale;
+
+      const width = Math.max(2, Math.round(bufferSize.x * effectiveScale));
+      const height = Math.max(2, Math.round(bufferSize.y * effectiveScale));
       if (target.width !== width || target.height !== height) {
         target.setSize(width, height);
         compositeMaterial.uniforms.uTexelSize.value.set(1 / width, 1 / height);
