@@ -23,7 +23,7 @@ const vert = /* glsl */ `
   }
 `;
 
-// PASS 1: FXAA, PS1 Dither, Bloom at 640p
+// PASS 1: FXAA, PS1 Dither at 640p
 const fragPost = /* glsl */ `
   #ifdef GL_FRAGMENT_PRECISION_HIGH
     precision highp float;
@@ -34,8 +34,6 @@ const fragPost = /* glsl */ `
   uniform sampler2D tDiffuse;
   uniform vec2 texelSize;       // 1/640p_resolution
   uniform vec2 resolution;      // 640p_resolution
-  uniform float bloomIntensity;
-  uniform float bloomThreshold;
 
   varying vec2 vUv;
 
@@ -97,31 +95,11 @@ const fragPost = /* glsl */ `
     return pow(rgb555, vec3(2.2));
   }
 
-  // --- Bloom ---
-  vec3 bloomBlur(sampler2D tex, vec2 uv, float threshold) {
-    vec3 sum = vec3(0.0);
-    float wTotal = 0.0;
-    float step = 0.003;
-    for (int x = -2; x <= 2; x++) {
-      for (int y = -2; y <= 2; y++) {
-        float w = exp(-float(x * x + y * y) * 0.5);
-        vec3 s = texture2D(tex, uv + vec2(float(x), float(y)) * step).rgb;
-        sum += max(s - threshold, 0.0) * w;
-        wTotal += w;
-      }
-    }
-    return sum / wTotal;
-  }
-
   void main() {
     vec3 color = applyFXAA(tDiffuse, vUv, texelSize);
 
     vec2 virtualPos = floor(vUv * resolution);
     color = applyDither(color, virtualPos);
-
-    if (bloomIntensity > 0.001) {
-      color += bloomBlur(tDiffuse, vUv, bloomThreshold) * bloomIntensity;
-    }
 
     gl_FragColor = vec4(color, 1.0);
   }
@@ -241,8 +219,6 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
         tDiffuse: { value: null },
         texelSize: { value: [1 / w0, 1 / TARGET_HEIGHT] },
         resolution: { value: [w0, TARGET_HEIGHT] },
-        bloomIntensity: { value: 0.5 },
-        bloomThreshold: { value: 0.5 },
       },
       depthTest: false,
       depthWrite: false,
@@ -365,7 +341,7 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
     gl.setRenderTarget(gameTarget);
     gl.render(scene, camera);
 
-    // PASS 2 — FXAA and Bloom at 640p
+    // PASS 2 — FXAA and PS1 Dither at 640p
     quad.material = matPost;
     gl.setRenderTarget(postTarget);
     gl.render(crtScene, crtCamera);
