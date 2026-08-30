@@ -5,8 +5,7 @@ import { Slider } from "@/components/ui/Slider/Slider";
 import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import styles from "./GraphicsTab.module.css";
 
-type ToggleKey =
-  "crtEnabled" | "crtSmoothing" | "showFps" | "showPerf" | "showClouds";
+type ToggleKey = "crtEnabled" | "crtSmoothing" | "showFps" | "showPerf";
 
 const TOGGLES: { key: ToggleKey; label: string; sublabel?: string }[] = [
   { key: "crtEnabled", label: "CRT Filter" },
@@ -18,7 +17,6 @@ const TOGGLES: { key: ToggleKey; label: string; sublabel?: string }[] = [
     sublabel:
       "GPU timers may show 0.000ms due to browser security restrictions",
   },
-  { key: "showClouds", label: "Show Clouds" },
 ];
 
 export function GraphicsTab() {
@@ -94,7 +92,19 @@ export function GraphicsTab() {
       <div className={styles.divider} />
 
       <div className={styles.section}>
-        <span className={styles.toggleLabel}>Cloud Quality</span>
+        <div className={styles.toggleRow}>
+          <div className={styles.toggleLabelGroup}>
+            <span className={styles.toggleLabel}>Volumetric Clouds</span>
+            <span className={styles.hint}>Raymarched 3D sky simulation</span>
+          </div>
+          <Button
+            variant={gameConfig.showClouds ? "accent" : "default"}
+            size="sm"
+            onClick={() => updateConfig("showClouds", !gameConfig.showClouds)}
+          >
+            {gameConfig.showClouds ? "ON" : "OFF"}
+          </Button>
+        </div>
 
         <div className={styles.paramRow}>
           <div className={styles.paramHeader}>

@@ -1,12 +1,16 @@
-import type { JSX } from "react";
+import { useState, useEffect, type JSX } from "react";
 import { Sky } from "@react-three/drei";
 import { VolumetricClouds } from "@/components/3d/VolumetricClouds/VolumetricClouds";
 import { SUN_POSITION } from "@/constants/sunPosition";
-import { gameConfig } from "@/config";
+import { gameConfig, subscribeToConfig } from "@/config";
 
-// Not memoized: Game re-renders on config changes, which is how the cloud
-// toggle reaches this subtree.
 export function PartlyCloudySky(): JSX.Element {
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    return subscribeToConfig(() => tick((n) => n + 1));
+  }, []);
+
   return (
     <>
       <Sky
