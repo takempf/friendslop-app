@@ -1,9 +1,18 @@
 import * as THREE from "three";
 import { BOARD_FRONT_FACE_Z, RIM_RADIUS } from "@/constants/basketball";
 
-const CANVAS_SIZE = 2048;
+// 1024² over 20m is 51.2 px/m. The game renders at 640p before the CRT pass, so
+// a floor patch under the player's feet resolves at roughly 250 px/m at best —
+// the markings are line art on top of that, and the extra 2048² detail cost 16MB
+// of VRAM for something the output resolution cannot show.
+const CANVAS_SIZE = 1024;
 const FLOOR_SIZE = 20; // meters
-const SCALE = CANVAS_SIZE / FLOOR_SIZE; // 102.4 px/m
+const SCALE = CANVAS_SIZE / FLOOR_SIZE; // 51.2 px/m
+
+// Stroke sizes are in metres so they survive a change of CANVAS_SIZE.
+const LINE_WIDTH_M = 0.0586; // ≈2¼ in
+const DASH_LEN_M = 0.215;
+const DASH_GAP_M = 0.176;
 
 // Canvas (0,0) = world NW corner (-10, -10 in XZ)
 // canvas_x = (world_X + 10) * SCALE
@@ -40,7 +49,7 @@ export function createCourtTexture(): THREE.CanvasTexture {
 
   // Line style
   ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 6;
+  ctx.lineWidth = LINE_WIDTH_M * SCALE;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
@@ -116,7 +125,7 @@ export function createCourtTexture(): THREE.CanvasTexture {
   ctx.stroke();
 
   // Dashed — away from basket (top half of circle in canvas)
-  ctx.setLineDash([22, 18]);
+  ctx.setLineDash([DASH_LEN_M * SCALE, DASH_GAP_M * SCALE]);
   ctx.beginPath();
   ctx.arc(ftcx, ftcy, ftRadPx, 0, Math.PI, true); // CCW → top half
   ctx.stroke();

@@ -9,7 +9,6 @@ RectAreaLightUniformsLib.init();
 import { BasketballHoop } from "@/components/3d/BasketballHoop/BasketballHoop";
 import { BallRack } from "@/components/3d/BallRack/BallRack";
 import { Basketballs } from "@/components/3d/Basketballs/Basketballs";
-import { CourtMarkings } from "@/components/3d/CourtMarkings/CourtMarkings";
 import { Scoreboard } from "@/components/3d/Scoreboard/Scoreboard";
 import { ResetButton } from "@/components/3d/ResetButton/ResetButton";
 import { Banner } from "@/components/3d/Banner/Banner";
@@ -18,6 +17,8 @@ import tennesseeBanner from "@/assets/tennessee-iowa-state-banner.jpg";
 import tennesseeMiamiBanner from "@/assets/tennessee-miami-ohio-victory-banner.png";
 import { createDebugTexture } from "@/components/3d/textures/DebugTexture/DebugTexture";
 import { createWoodFloorTexture } from "@/components/3d/textures/WoodFloorTexture/WoodFloorTexture";
+import { createCourtTexture } from "@/components/3d/textures/CourtTexture/CourtTexture";
+import { createCourtFloorMaterial } from "@/components/3d/materials/CourtFloorMaterial/CourtFloorMaterial";
 
 // Texture.clone() shares the underlying Source, so all clones reuse a single GPU
 // upload — only `repeat` differs. Cache per repeat so the blocks share a handful
@@ -49,6 +50,7 @@ const Block = ({
   wallTexture,
   textureRepeat,
   castShadow = true,
+  material,
 }: {
   position: [number, number, number];
   args: [number, number, number];
@@ -59,6 +61,9 @@ const Block = ({
   /** Floors sit at the bottom of the level and have nothing below them to
    *  shade — leaving them out of the shadow pass costs nothing visually. */
   castShadow?: boolean;
+  /** Overrides the default textured/flat material — used by the gym floor,
+   *  which carries the court markings in its own shader. */
+  material?: THREE.Material;
 }) => {
   const clonedTexture =
     wallTexture && textureRepeat
@@ -72,13 +77,14 @@ const Block = ({
       colliders="cuboid"
       restitution={restitution}
     >
-      <mesh castShadow={castShadow} receiveShadow>
+      <mesh castShadow={castShadow} receiveShadow material={material}>
         <boxGeometry args={args} />
-        {clonedTexture ? (
-          <meshLambertMaterial map={clonedTexture} />
-        ) : (
-          <meshLambertMaterial color={color} />
-        )}
+        {!material &&
+          (clonedTexture ? (
+            <meshLambertMaterial map={clonedTexture} />
+          ) : (
+            <meshLambertMaterial color={color} />
+          ))}
       </mesh>
     </RigidBody>
   );
@@ -146,6 +152,14 @@ export function SchoolEnvironment() {
   const wallThickness = 0.5;
   const debugTex = useMemo(() => createDebugTexture("#b0b0b0", "#979797"), []);
   const floorTex = useMemo(() => createWoodFloorTexture(), []);
+  const courtFloorMat = useMemo(
+    () =>
+      createCourtFloorMaterial(
+        repeatedTexture(floorTex, [10, 10]),
+        createCourtTexture(),
+      ),
+    [floorTex],
+  );
 
   // Convenience: wall repeat for X-thin walls (visible face = depth × height)
   const wr = (depth: number): [number, number] => [depth, wallHeight];
@@ -173,14 +187,13 @@ export function SchoolEnvironment() {
       />
 
       {/* --- Gymnasium --- */}
-      {/* Floor 20x20 */}
+      {/* Floor 20x20 — court markings live in this material's shader */}
       <Block
         position={[0, -0.25, 0]}
         args={[20, 0.5, 20]}
         color="#eeac56"
         restitution={0.84}
-        wallTexture={floorTex}
-        textureRepeat={[10, 10]}
+        material={courtFloorMat}
         castShadow={false}
       />
 
@@ -412,7 +425,6 @@ export function SchoolEnvironment() {
       <BallRack position={[-8, 0, -8]} />
       <BallRack position={[8, 0, -8]} />
       <Basketballs />
-      <CourtMarkings />
 
       {/* --- Classroom B (East of Hallway at Z=-25) --- */}
       {/* Opening in East Hallway wall is at Z=-25, width=2 */}
