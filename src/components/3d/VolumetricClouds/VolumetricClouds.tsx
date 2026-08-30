@@ -537,12 +537,23 @@ const compositeFrag = /* glsl */ `
   precision highp float;
 
   uniform sampler2D tClouds;
+  uniform vec2 uTexelSize;
   varying vec2 vUv;
 
   void main() {
-    vec4 clouds = texture2D(tClouds, vUv);
+    // 5-tap cross reconstruction filter to smooth raymarch step jitter (interleaved gradient noise)
+    vec4 c = texture2D(tClouds, vUv);
+    vec4 u = texture2D(tClouds, vUv + vec2(0.0, uTexelSize.y));
+    vec4 d = texture2D(tClouds, vUv - vec2(0.0, uTexelSize.y));
+    vec4 l = texture2D(tClouds, vUv - vec2(uTexelSize.x, 0.0));
+    vec4 r = texture2D(tClouds, vUv + vec2(uTexelSize.x, 0.0));
+
+    vec4 clouds = c * 0.4 + (u + d + l + r) * 0.15;
     if (clouds.a < 0.002) discard;
-    gl_FragColor = clouds;
+
+    // Un-premultiply linear color so standard tone mapping and sRGB colorspace conversion work correctly
+    vec3 straightRGB = clouds.rgb / max(clouds.a, 0.0001);
+    gl_FragColor = vec4(straightRGB, clouds.a);
 
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -609,9 +620,12 @@ function createResources(): CloudResources {
   const compositeMaterial = new ShaderMaterial({
     vertexShader: fullscreenVert,
     fragmentShader: compositeFrag,
-    uniforms: { tClouds: { value: target.texture } },
+    uniforms: {
+      tClouds: { value: target.texture },
+      uTexelSize: { value: new Vector2(1 / 2, 1 / 2) },
+    },
     transparent: true,
-    premultipliedAlpha: true,
+    premultipliedAlpha: false,
     blending: NormalBlending,
     depthWrite: false,
   });
@@ -728,6 +742,7 @@ export function VolumetricClouds({
       marchScene,
       marchCamera,
       marchMaterial,
+      compositeMaterial,
       compositeMesh,
       bufferSize,
     } = resources;
@@ -751,6 +766,7 @@ export function VolumetricClouds({
       const height = Math.max(2, Math.round(bufferSize.y * resolutionScale));
       if (target.width !== width || target.height !== height) {
         target.setSize(width, height);
+        compositeMaterial.uniforms.uTexelSize.value.set(1 / width, 1 / height);
       }
 
       marchMaterial.uniforms.uInvProjection.value.copy(

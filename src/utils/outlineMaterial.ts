@@ -57,9 +57,22 @@ export const sharedStrokeMat = new THREE.ShaderMaterial({
   depthWrite: false,
 });
 
+const bufferSize = new THREE.Vector2();
+
 export function updateOutlineResolution(gl: THREE.WebGLRenderer): void {
-  const aspect = gl.domElement.width / gl.domElement.height;
-  const gameW = Math.round(640 * aspect);
-  sharedOutlineMat.uniforms.resolution.value.set(gameW, 640);
-  sharedStrokeMat.uniforms.resolution.value.set(gameW, 640);
+  const currentTarget = gl.getRenderTarget();
+  if (currentTarget !== null) {
+    sharedOutlineMat.uniforms.resolution.value.set(
+      currentTarget.width,
+      currentTarget.height,
+    );
+    sharedStrokeMat.uniforms.resolution.value.set(
+      currentTarget.width,
+      currentTarget.height,
+    );
+  } else {
+    gl.getDrawingBufferSize(bufferSize);
+    sharedOutlineMat.uniforms.resolution.value.copy(bufferSize);
+    sharedStrokeMat.uniforms.resolution.value.copy(bufferSize);
+  }
 }
