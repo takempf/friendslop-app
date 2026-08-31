@@ -37,14 +37,6 @@
   top: auto !important;
 }
 
-.reticle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
 .throwMeter {
   position: absolute;
   bottom: 10%;

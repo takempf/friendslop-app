@@ -13,6 +13,8 @@ import { CRTRenderer } from "@/components/3d/CRTRenderer/CRTRenderer";
 import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky";
 import { GameMenu } from "@/components/GameMenu/GameMenu";
 import { ChatOverlay } from "@/components/ChatOverlay/ChatOverlay";
+import { Reticle } from "@/components/HUD/Reticle/Reticle";
+import { TargetingManager } from "@/targeting/TargetingManager";
 import { usePointerLock } from "@/hooks/usePointerLock";
 import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import { gameConfig, subscribeToConfig } from "@/config";
@@ -245,6 +247,7 @@ export function Game(): JSX.Element {
         <PartlyCloudySky />
         <BasketballProvider>
           <Physics gravity={[0, -9.81, 0]}>
+            <TargetingManager />
             <SchoolEnvironment />
             <PlayerController />
             <RemotePlayers />
@@ -257,34 +260,7 @@ export function Game(): JSX.Element {
         {gameConfig.showPerf && <Perf position="top-left" />}
       </Canvas>
 
-      {/* Reticle */}
-      <svg
-        className={css.reticle}
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        style={{ filter: "drop-shadow(0 0 1px rgba(0,0,0,0.9))" }}
-      >
-        <line x1="0" y1="8" x2="5.5" y2="8" stroke="white" strokeWidth="1.5" />
-        <line
-          x1="10.5"
-          y1="8"
-          x2="16"
-          y2="8"
-          stroke="white"
-          strokeWidth="1.5"
-        />
-        <line x1="8" y1="0" x2="8" y2="5.5" stroke="white" strokeWidth="1.5" />
-        <line
-          x1="8"
-          y1="10.5"
-          x2="8"
-          y2="16"
-          stroke="white"
-          strokeWidth="1.5"
-        />
-        <circle cx="8" cy="8" r="1.5" fill="white" />
-      </svg>
+      <Reticle />
 
       {/* Controls Hint - Device aware */}
       <div className={css.controls}>
