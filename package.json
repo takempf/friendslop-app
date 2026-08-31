@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "party": "partykit dev",
-    "validate": "tsc -b --noEmit && eslint . && prettier --check .",
+    "test": "vitest run",
+    "validate": "tsc -b --noEmit && eslint . && prettier --check . && vitest run",
     "prettify": "prettier --write .",
     "knip": "knip"
   },
@@ -28,6 +29,9 @@
     "yjs": "^13.6.30"
   },
   "devDependencies": {
+    "@emnapi/core": "1.11.3",
+    "@emnapi/runtime": "1.11.3",
+    "@emnapi/wasi-threads": "1.2.3",
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
@@ -39,17 +43,16 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "happy-dom": "^20.12.0",
     "knip": "^6.0.6",
     "prettier": "^3.8.1",
     "r3f-perf": "^7.2.3",
     "three": "^0.183.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
-    "@emnapi/core": "1.11.3",
-    "@emnapi/runtime": "1.11.3",
-    "@emnapi/wasi-threads": "1.2.3",
     "vite": "^8.0.1",
-    "vite-plugin-mkcert": "^1.17.10"
+    "vite-plugin-mkcert": "^1.17.10",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "r3f-perf": {
