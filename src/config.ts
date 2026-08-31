@@ -32,6 +32,20 @@ type GameConfig = {
   gamepadDeadzone: number;
   /** Gamepad vertical pitch inversion */
   gamepadInvertY: boolean;
+  /** Draw the active assist circle(s) on the HUD */
+  showAimAssistCircle: boolean;
+  /** Default circle diameter as a fraction of viewport height (0.02–0.40) */
+  aimAssistDiameter: number;
+  /** Override circle diameter for grabbable targets */
+  aimAssistGrabDiameter: number;
+  /** Damping lambda for the reticle circle */
+  aimAssistSmoothing: number;
+  /** Yaw (lateral) throw correction strength (0 = off, 1 = direct to target) */
+  aimAssistStrength: number;
+  /** Pitch (vertical) throw correction strength (0 = off, 1 = direct to target) */
+  aimAssistPitchStrength: number;
+  /** Label candidates with rank/score and occlusion status */
+  showTargetDebug: boolean;
 };
 
 // ── LocalStorage keys ────────────────────────────────────────────────────────
@@ -50,6 +64,13 @@ const LS = {
   gamepadLookSensitivity: "friendslop_controls_gamepadLookSensitivity",
   gamepadDeadzone: "friendslop_controls_gamepadDeadzone",
   gamepadInvertY: "friendslop_controls_gamepadInvertY",
+  showAimAssistCircle: "friendslop_aim_showAimAssistCircle",
+  aimAssistDiameter: "friendslop_aim_aimAssistDiameter",
+  aimAssistGrabDiameter: "friendslop_aim_aimAssistGrabDiameter",
+  aimAssistSmoothing: "friendslop_aim_aimAssistSmoothing",
+  aimAssistStrength: "friendslop_aim_aimAssistStrength",
+  aimAssistPitchStrength: "friendslop_aim_aimAssistPitchStrength",
+  showTargetDebug: "friendslop_aim_showTargetDebug",
 } as const;
 
 function lsBool(key: string, fallback: boolean): boolean {
@@ -88,6 +109,13 @@ export const gameConfig: GameConfig = {
   gamepadLookSensitivity: lsNum(LS.gamepadLookSensitivity, 3.0),
   gamepadDeadzone: lsNum(LS.gamepadDeadzone, 0.15),
   gamepadInvertY: lsBool(LS.gamepadInvertY, false),
+  showAimAssistCircle: lsBool(LS.showAimAssistCircle, false),
+  aimAssistDiameter: lsNum(LS.aimAssistDiameter, 0.25),
+  aimAssistGrabDiameter: lsNum(LS.aimAssistGrabDiameter, 1.0),
+  aimAssistSmoothing: lsNum(LS.aimAssistSmoothing, 12),
+  aimAssistStrength: lsNum(LS.aimAssistStrength, 0.8),
+  aimAssistPitchStrength: lsNum(LS.aimAssistPitchStrength, 0.2),
+  showTargetDebug: lsBool(LS.showTargetDebug, false),
 };
 
 // Simple event system for reactivity

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { gameConfig, updateConfig, subscribeToConfig } from "@/config";
+import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
 import styles from "./DebugTab.module.css";
 
@@ -60,6 +61,50 @@ const PHYSICS_PARAMS: {
   },
 ];
 
+const AIM_ASSIST_PARAMS: {
+  key: NumericConfigKey;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}[] = [
+  {
+    key: "aimAssistDiameter",
+    label: "Shot Assist Diameter",
+    min: 0.02,
+    max: 0.8,
+    step: 0.01,
+  },
+  {
+    key: "aimAssistGrabDiameter",
+    label: "Grab Assist Diameter",
+    min: 0.1,
+    max: 2.0,
+    step: 0.05,
+  },
+  {
+    key: "aimAssistSmoothing",
+    label: "Circle Smoothing (λ)",
+    min: 1,
+    max: 30,
+    step: 1,
+  },
+  {
+    key: "aimAssistStrength",
+    label: "Yaw Assist Strength",
+    min: 0,
+    max: 1,
+    step: 0.05,
+  },
+  {
+    key: "aimAssistPitchStrength",
+    label: "Pitch Assist Strength",
+    min: 0,
+    max: 1,
+    step: 0.05,
+  },
+];
+
 export function DebugTab() {
   const [, tick] = useState(0);
 
@@ -78,6 +123,61 @@ export function DebugTab() {
               <span className={styles.paramLabel}>{label}</span>
               <span className={styles.paramValue}>
                 {gameConfig[key].toFixed(3)}
+              </span>
+            </div>
+            <Slider
+              value={gameConfig[key]}
+              onChange={(v) => updateConfig(key, v)}
+              min={min}
+              max={max}
+              step={step}
+              variant="yellow"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.divider} />
+
+      {/* Aim Assist */}
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>Aim Assist</span>
+
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>Show Assist Circles</span>
+          <Button
+            variant={gameConfig.showAimAssistCircle ? "accent" : "default"}
+            size="sm"
+            onClick={() =>
+              updateConfig(
+                "showAimAssistCircle",
+                !gameConfig.showAimAssistCircle,
+              )
+            }
+          >
+            {gameConfig.showAimAssistCircle ? "ON" : "OFF"}
+          </Button>
+        </div>
+
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>Show Target Debug</span>
+          <Button
+            variant={gameConfig.showTargetDebug ? "accent" : "default"}
+            size="sm"
+            onClick={() =>
+              updateConfig("showTargetDebug", !gameConfig.showTargetDebug)
+            }
+          >
+            {gameConfig.showTargetDebug ? "ON" : "OFF"}
+          </Button>
+        </div>
+
+        {AIM_ASSIST_PARAMS.map(({ key, label, min, max, step }) => (
+          <div key={key} className={styles.paramRow}>
+            <div className={styles.paramHeader}>
+              <span className={styles.paramLabel}>{label}</span>
+              <span className={styles.paramValue}>
+                {gameConfig[key].toFixed(2)}
               </span>
             </div>
             <Slider
