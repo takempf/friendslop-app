@@ -11,6 +11,8 @@ interface BasketballContextType {
   ballOwnerVersions: React.MutableRefObject<Map<number, number>>;
   grabCandidateRef: React.MutableRefObject<number>;
   buttonCandidateRef: React.MutableRefObject<boolean>;
+  /** Timestamp and index of the last thrown ball to prevent immediate re-grab */
+  lastThrowRef: React.MutableRefObject<{ idx: number; time: number }>;
   /** Maps ball index → shot point value (2 or 3) set at throw time */
   ballShotPoints: React.MutableRefObject<Map<number, number>>;
   /** Whether each ball is currently sitting in a rack slot (kinematic hold) — read-only */
@@ -39,6 +41,10 @@ export function BasketballProvider({
   const ballOwnerVersions = useRef<Map<number, number>>(new Map());
   const grabCandidateRef = useRef(-1);
   const buttonCandidateRef = useRef(false);
+  const lastThrowRef = useRef<{ idx: number; time: number }>({
+    idx: -1,
+    time: 0,
+  });
   const ballShotPoints = useRef<Map<number, number>>(new Map());
   const ballInRack = useRef<boolean[]>(Array(BALL_COUNT).fill(true));
 
@@ -60,6 +66,7 @@ export function BasketballProvider({
         ballOwnerVersions,
         grabCandidateRef,
         buttonCandidateRef,
+        lastThrowRef,
         ballShotPoints,
         ballInRack,
         releaseBallFromRack,

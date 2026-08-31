@@ -58,3 +58,14 @@ export const HOOP_RIM_POS = new THREE.Vector3(
   RIM_Y,
   BOARD_FRONT_FACE_Z - RIM_RADIUS,
 );
+
+/** Aim point for assisted shots: top-center of the backboard's target square,
+ *  nudged slightly off the board face so occlusion rays don't graze the backboard collider. */
+export const HOOP_AIM_POINT = new THREE.Vector3(
+  0,
+  RIM_Y + 0.45,
+  BOARD_FRONT_FACE_Z - 0.05,
+);
+
+/** World-space center of the RESET button on the scoreboard wall. */
+export const RESET_BUTTON_POS = new THREE.Vector3(5, 1.4, 9.68);
