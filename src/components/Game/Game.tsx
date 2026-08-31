@@ -16,10 +16,13 @@ import { ChatOverlay } from "@/components/ChatOverlay/ChatOverlay";
 import { usePointerLock } from "@/hooks/usePointerLock";
 import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import { gameConfig, subscribeToConfig } from "@/config";
+import { useActiveDevice, inputManager } from "@/input/useInput";
 
 import css from "./Game.module.css";
 
 type UiMode = "playing" | "chat" | "menu";
+
+const IDLE_CURSOR_TIMEOUT_MS = 3000;
 
 function CRTWrapper(): JSX.Element {
   const scanlines = Math.floor(gameConfig.renderHeight / 6);
@@ -53,6 +56,8 @@ export function Game(): JSX.Element {
   const { locked, setPointerLockOnElement } = usePointerLock();
   const [mode, setMode] = useState<UiMode>("menu");
   const modeRef = useRef<UiMode>(mode);
+  const activeDevice = useActiveDevice();
+  const [isCursorHidden, setIsCursorHidden] = useState(false);
 
   const [, tick] = useState(0);
 
@@ -69,12 +74,49 @@ export function Game(): JSX.Element {
     return subscribeToConfig(() => tick((n) => n + 1));
   }, []);
 
+  const shouldHideCursor =
+    isCursorHidden && mode === "playing" && activeDevice === "gamepad";
+
+  // Hide mouse cursor after 3 seconds of mouse inactivity when gamepad is active in-game
+  useEffect(() => {
+    if (mode !== "playing" || activeDevice !== "gamepad") {
+      return;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const startIdleTimer = (): void => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setIsCursorHidden(true);
+      }, IDLE_CURSOR_TIMEOUT_MS);
+    };
+
+    const handleMouseMove = (): void => {
+      setIsCursorHidden(false);
+      startIdleTimer();
+    };
+
+    startIdleTimer();
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return (): void => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("mousemove", handleMouseMove);
+      setIsCursorHidden(false);
+    };
+  }, [mode, activeDevice]);
+
   // Lock reconciliation from external pointerlockchange DOM event
+  // Drops to menu only when active device is keyboard/mouse
   useEffect(() => {
     const handlePointerLockChange = (): void => {
       const isLocked = Boolean(document.pointerLockElement);
       if (!isLocked) {
-        if (modeRef.current === "playing") {
+        if (
+          modeRef.current === "playing" &&
+          inputManager.getActiveDevice() === "keyboard"
+        ) {
           switchMode("menu");
         }
       } else {
@@ -93,7 +135,7 @@ export function Game(): JSX.Element {
     };
   }, [switchMode]);
 
-  // Capture-phase keydown for playing mode
+  // Capture-phase keydown for playing mode (Enter -> chat, Escape -> menu)
   useEffect(() => {
     if (mode !== "playing") return;
 
@@ -102,7 +144,9 @@ export function Game(): JSX.Element {
         e.preventDefault();
         e.stopImmediatePropagation();
         switchMode("chat");
-        document.exitPointerLock();
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
         return;
       }
 
@@ -110,6 +154,9 @@ export function Game(): JSX.Element {
         e.preventDefault();
         e.stopImmediatePropagation();
         switchMode("menu");
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
       }
     };
 
@@ -119,15 +166,49 @@ export function Game(): JSX.Element {
     };
   }, [mode, switchMode]);
 
+  // Gamepad / Action-based menu toggle (e.g. Start button)
+  useEffect(() => {
+    let raf: number;
+    const checkMenuAction = (): void => {
+      if (inputManager.justPressed("menu")) {
+        if (modeRef.current === "playing") {
+          switchMode("menu");
+          if (document.pointerLockElement) {
+            document.exitPointerLock();
+          }
+        } else if (modeRef.current === "menu") {
+          switchMode("playing");
+          if (
+            inputManager.getActiveDevice() === "keyboard" &&
+            gameContainerRef.current
+          ) {
+            setPointerLockOnElement(gameContainerRef.current);
+          }
+        }
+      }
+      raf = requestAnimationFrame(checkMenuAction);
+    };
+    raf = requestAnimationFrame(checkMenuAction);
+    return (): void => cancelAnimationFrame(raf);
+  }, [setPointerLockOnElement, switchMode]);
+
   const handleContainerClick = (): void => {
-    if (modeRef.current === "playing" && !locked && gameContainerRef.current) {
+    if (
+      modeRef.current === "playing" &&
+      !locked &&
+      gameContainerRef.current &&
+      inputManager.getActiveDevice() === "keyboard"
+    ) {
       setPointerLockOnElement(gameContainerRef.current);
     }
   };
 
   const handleChatClose = useCallback((): void => {
     switchMode("playing");
-    if (gameContainerRef.current) {
+    if (
+      gameContainerRef.current &&
+      inputManager.getActiveDevice() === "keyboard"
+    ) {
       setPointerLockOnElement(gameContainerRef.current);
     }
   }, [setPointerLockOnElement, switchMode]);
@@ -136,7 +217,10 @@ export function Game(): JSX.Element {
     (open: boolean): void => {
       if (!open) {
         switchMode("playing");
-        if (gameContainerRef.current) {
+        if (
+          gameContainerRef.current &&
+          inputManager.getActiveDevice() === "keyboard"
+        ) {
           setPointerLockOnElement(gameContainerRef.current);
         }
       } else {
@@ -147,7 +231,10 @@ export function Game(): JSX.Element {
   );
 
   return (
-    <div className={css.gameContainer} onClick={handleContainerClick}>
+    <div
+      className={`${css.gameContainer} ${shouldHideCursor ? css.hideCursor : ""}`}
+      onClick={handleContainerClick}
+    >
       <Canvas
         shadows
         camera={{ position: [0, 2, 0], fov: 75 }}
@@ -199,17 +286,32 @@ export function Game(): JSX.Element {
         <circle cx="8" cy="8" r="1.5" fill="white" />
       </svg>
 
+      {/* Controls Hint - Device aware */}
       <div className={css.controls}>
-        WASD · Move
-        <br />
-        Shift · Sprint
-        <br />
-        E · Pick Up
-        <br />
-        Hold Q · Charge Throw
+        {activeDevice === "gamepad" ? (
+          <>
+            Left Stick · Move
+            <br />
+            L3 · Sprint
+            <br />
+            X · Pick Up
+            <br />
+            Hold RT · Charge Throw
+          </>
+        ) : (
+          <>
+            WASD · Move
+            <br />
+            Shift · Sprint
+            <br />
+            E · Pick Up
+            <br />
+            Hold Q · Charge Throw
+          </>
+        )}
       </div>
 
-      {/* Throw charge meter — visibility and fill driven imperatively by PlayerController */}
+      {/* Throw charge meter - visibility and fill driven imperatively by PlayerController */}
       <div
         id="throw-meter"
         className={css.throwMeter}
