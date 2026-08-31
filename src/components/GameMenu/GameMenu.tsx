@@ -4,6 +4,7 @@ import { useGameSync } from "@/sync/GameSyncProvider";
 import { audioManager } from "@/audio/AudioManager";
 import { Tabs, TabPanel } from "@/components/ui/Tabs/Tabs";
 import { AudioTab } from "@/components/Sidebar/components/AudioTab/AudioTab";
+import { ControlsTab } from "@/components/Sidebar/components/ControlsTab/ControlsTab";
 import { PlayersTab } from "@/components/Sidebar/components/PlayersTab/PlayersTab";
 import { DebugTab } from "@/components/Sidebar/components/DebugTab/DebugTab";
 import { GraphicsTab } from "@/components/Sidebar/components/GraphicsTab/GraphicsTab";
@@ -20,6 +21,7 @@ const LS_MIC_MUTED = "friendslop_micMuted";
 
 const TABS = [
   { value: "audio", label: "Audio" },
+  { value: "controls", label: "Controls" },
   { value: "players", label: "Players" },
   { value: "graphics", label: "Graphics" },
   ...(isLocalhost ? [{ value: "debug", label: "Debug" }] : []),
@@ -134,6 +136,10 @@ export function GameMenu({
                 onMasterMuted={handleMasterMuted}
                 onMicMuted={handleMicMuted}
               />
+            </TabPanel>
+
+            <TabPanel value="controls">
+              <ControlsTab />
             </TabPanel>
 
             <TabPanel value="players">

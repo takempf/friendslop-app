@@ -24,9 +24,17 @@ type GameConfig = {
   cloudLightSteps: number;
   /** fbm octaves used to erode the cloud silhouettes. */
   cloudDetail: number;
+  /** Gamepad support enabled */
+  gamepadEnabled: boolean;
+  /** Gamepad look sensitivity (radians per second at full deflection) */
+  gamepadLookSensitivity: number;
+  /** Gamepad analog stick deadzone (0.01 to 0.5) */
+  gamepadDeadzone: number;
+  /** Gamepad vertical pitch inversion */
+  gamepadInvertY: boolean;
 };
 
-// ── Graphics localStorage keys ────────────────────────────────────────────────
+// ── LocalStorage keys ────────────────────────────────────────────────────────
 const LS = {
   crtEnabled: "friendslop_graphics_crtEnabled",
   crtSmoothing: "friendslop_graphics_crtSmoothing",
@@ -38,14 +46,20 @@ const LS = {
   cloudSteps: "friendslop_graphics_cloudSteps",
   cloudLightSteps: "friendslop_graphics_cloudLightSteps",
   cloudDetail: "friendslop_graphics_cloudDetail",
+  gamepadEnabled: "friendslop_controls_gamepadEnabled",
+  gamepadLookSensitivity: "friendslop_controls_gamepadLookSensitivity",
+  gamepadDeadzone: "friendslop_controls_gamepadDeadzone",
+  gamepadInvertY: "friendslop_controls_gamepadInvertY",
 } as const;
 
 function lsBool(key: string, fallback: boolean): boolean {
+  if (typeof localStorage === "undefined") return fallback;
   const v = localStorage.getItem(key);
   return v === null ? fallback : v === "true";
 }
 
 function lsNum(key: string, fallback: number): number {
+  if (typeof localStorage === "undefined") return fallback;
   const v = localStorage.getItem(key);
   return v === null ? fallback : Number(v);
 }
@@ -70,6 +84,10 @@ export const gameConfig: GameConfig = {
   cloudSteps: lsNum(LS.cloudSteps, 42),
   cloudLightSteps: lsNum(LS.cloudLightSteps, 5),
   cloudDetail: lsNum(LS.cloudDetail, 5),
+  gamepadEnabled: lsBool(LS.gamepadEnabled, true),
+  gamepadLookSensitivity: lsNum(LS.gamepadLookSensitivity, 3.0),
+  gamepadDeadzone: lsNum(LS.gamepadDeadzone, 0.15),
+  gamepadInvertY: lsBool(LS.gamepadInvertY, false),
 };
 
 // Simple event system for reactivity
@@ -88,8 +106,8 @@ export const updateConfig = <K extends keyof GameConfig>(
   value: GameConfig[K],
 ) => {
   gameConfig[key] = value;
-  // Persist graphics settings
-  if (key in LS) {
+  // Persist settings
+  if (typeof localStorage !== "undefined" && key in LS) {
     localStorage.setItem(LS[key as keyof typeof LS], String(value));
   }
   listeners.forEach((l) => l());
