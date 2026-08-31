@@ -17,7 +17,6 @@ import { useBasketball } from "@/contexts/BasketballContext";
 import {
   BALL_RADIUS,
   BALL_GATHER_ROTATION,
-  INTERACTION_RANGE,
   THREE_POINT_ARC_RADIUS,
   THREE_POINT_CORNER_X,
   HOOP_RIM_POS,
@@ -30,6 +29,8 @@ import {
   PLAYER_MASS,
 } from "@/constants/physics";
 import { gameConfig } from "@/config";
+import { pickAssistedDirection } from "@/targeting/throwCorrection";
+import { aimState } from "@/targeting/aimState";
 
 const SPEED = 5;
 const SPRINT_SPEED = 7.5;
@@ -49,6 +50,7 @@ const _forward = new THREE.Vector3();
 const _right = new THREE.Vector3();
 const _holdPos = new THREE.Vector3();
 const _LOCAL_X_AXIS = new THREE.Vector3(1, 0, 0);
+const _WORLD_UP = new THREE.Vector3(0, 1, 0);
 const _gatherQuat = new THREE.Quaternion();
 const _heldBallRot = new THREE.Quaternion();
 const _ballGrabQuat = new THREE.Quaternion();
@@ -89,6 +91,7 @@ export function PlayerController() {
     ballOwnerVersions,
     grabCandidateRef,
     buttonCandidateRef,
+    lastThrowRef,
     ballShotPoints,
     releaseBallFromRack,
   } = useBasketball();
@@ -96,10 +99,6 @@ export function PlayerController() {
   const qPressTime = useRef(0);
   const throwCharge = useRef(0);
   const heldBallRelativeQuat = useRef(new THREE.Quaternion());
-  const lastThrowRef = useRef<{ idx: number; time: number }>({
-    idx: -1,
-    time: 0,
-  });
 
   // Camera lean (roll when strafing)
   const leanRef = useRef(0);
@@ -248,41 +247,6 @@ export function PlayerController() {
       }
     }
 
-    // --- Grab candidate - updated every frame so outline renders correctly ---
-    if (heldBallRef.current === -1) {
-      state.camera.getWorldDirection(_forward);
-      const eyeY = pos.y + 0.8;
-      let candidateIdx = -1;
-      let candidateDist = INTERACTION_RANGE;
-      const now = performance.now();
-      ballRefs.current.forEach((ballRef, i) => {
-        if (!ballRef) return;
-        if (
-          i === lastThrowRef.current.idx &&
-          now - lastThrowRef.current.time < 250
-        )
-          return;
-        const bpos = ballRef.translation();
-        const dx = bpos.x - pos.x;
-        const dy = bpos.y - eyeY;
-        const dz = bpos.z - pos.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < candidateDist) {
-          const dot =
-            (dx / dist) * _forward.x +
-            (dy / dist) * _forward.y +
-            (dz / dist) * _forward.z;
-          if (dot > 0) {
-            candidateDist = dist;
-            candidateIdx = i;
-          }
-        }
-      });
-      grabCandidateRef.current = candidateIdx;
-    } else {
-      grabCandidateRef.current = -1;
-    }
-
     // --- Basketball pick-up / drop / reset button (interact action) ---
     if (input.justPressed("interact")) {
       if (heldBallRef.current !== -1) {
@@ -346,12 +310,36 @@ export function PlayerController() {
       // Throw ball
       const ball = ballRefs.current[heldBallRef.current];
       if (ball) {
-        const { minThrowSpeed, maxThrowSpeed, throwArcDeg, throwSpinMult } =
-          gameConfig;
+        const {
+          minThrowSpeed,
+          maxThrowSpeed,
+          throwArcDeg,
+          throwSpinMult,
+          aimAssistStrength,
+          aimAssistPitchStrength,
+        } = gameConfig;
         const throwSpeed =
           minThrowSpeed + (maxThrowSpeed - minThrowSpeed) * throwCharge.current;
+
         _forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion);
-        _right.set(1, 0, 0).applyQuaternion(state.camera.quaternion);
+
+        // Apply aim assist direction correction when locked onto a target
+        const targetPoint =
+          aimState.targetKind === "hoop" && aimState.targetPoint
+            ? aimState.targetPoint
+            : null;
+
+        pickAssistedDirection(
+          _forward,
+          targetPoint,
+          state.camera.position,
+          aimAssistStrength,
+          aimAssistPitchStrength,
+          _forward,
+        );
+
+        _right.crossVectors(_forward, _WORLD_UP).normalize();
+
         const arcRad = (throwArcDeg * Math.PI) / 180;
         const cosA = Math.cos(arcRad),
           sinA = Math.sin(arcRad);
