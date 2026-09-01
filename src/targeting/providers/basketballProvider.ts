@@ -1,8 +1,9 @@
 import * as THREE from "three";
-import type {
-  TargetCandidate,
-  TargetProvider,
-  TargetingContext,
+import {
+  TARGET_KINDS,
+  type TargetCandidate,
+  type TargetProvider,
+  type TargetingContext,
 } from "../types";
 import { INTERACTION_RANGE, BALL_COUNT } from "@/constants/basketball";
 import { gameConfig } from "@/config";
@@ -27,7 +28,7 @@ export interface BasketballProviderOptions {
 }
 
 export class BasketballProvider implements TargetProvider {
-  public readonly kind = "basketball";
+  public readonly kind = TARGET_KINDS.basketball;
 
   private ballRefs: React.MutableRefObject<(RapierRigidBody | null)[]>;
   private lastThrowRef: React.MutableRefObject<{ idx: number; time: number }>;

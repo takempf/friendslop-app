@@ -10,7 +10,7 @@ import { reticleCircleElement } from "@/components/HUD/Reticle/reticleCircleElem
 import { useBasketball } from "@/contexts/BasketballContext";
 import { gameConfig } from "@/config";
 import { GROUND_RAY_COLLISION_GROUPS } from "@/constants/physics";
-import type { TargetingContext } from "./types";
+import { TARGET_KINDS, type TargetingContext } from "./types";
 import type { OcclusionPredicate } from "./occlusion";
 
 const _rayDir = new THREE.Vector3();
@@ -99,8 +99,8 @@ export function useTargeting(): void {
 
     // Publish the pick to the outline/interaction refs the basketball scene reads.
     grabCandidateRef.current =
-      state.targetKind === "basketball" ? state.targetIndex : -1;
-    buttonCandidateRef.current = state.targetKind === "resetButton";
+      state.targetKind === TARGET_KINDS.basketball ? state.targetIndex : -1;
+    buttonCandidateRef.current = state.targetKind === TARGET_KINDS.resetButton;
 
     // Move the HUD circle in the same tick as the 3D camera, so it never trails it.
     const circleEl = reticleCircleElement.current;

@@ -1,12 +1,13 @@
-import type {
-  TargetCandidate,
-  TargetProvider,
-  TargetingContext,
+import {
+  TARGET_KINDS,
+  type TargetCandidate,
+  type TargetProvider,
+  type TargetingContext,
 } from "../types";
 import { INTERACTION_RANGE, RESET_BUTTON_POS } from "@/constants/basketball";
 
 export class ResetButtonProvider implements TargetProvider {
-  public readonly kind = "resetButton";
+  public readonly kind = TARGET_KINDS.resetButton;
 
   public isActive(ctx: TargetingContext): boolean {
     return !ctx.isHoldingBall;

@@ -1,8 +1,9 @@
 import * as THREE from "three";
-import type {
-  TargetCandidate,
-  TargetProvider,
-  TargetingContext,
+import {
+  TARGET_KINDS,
+  type TargetCandidate,
+  type TargetProvider,
+  type TargetingContext,
 } from "../types";
 import {
   HOOP_AIM_POINT,
@@ -43,7 +44,7 @@ export function computeHoopAimPoint(
 }
 
 export class HoopProvider implements TargetProvider {
-  public readonly kind = "hoop";
+  public readonly kind = TARGET_KINDS.hoop;
   private readonly aimPoint = new THREE.Vector3().copy(HOOP_AIM_POINT);
 
   public get assistDiameter(): number {

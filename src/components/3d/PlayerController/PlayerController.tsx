@@ -32,6 +32,7 @@ import { gameConfig } from "@/config";
 import { pickAssistedDirection } from "@/targeting/throwCorrection";
 import { resolveAssistStrengths } from "@/targeting/assistPolicy";
 import { aimState } from "@/targeting/aimState";
+import { TARGET_KINDS } from "@/targeting/types";
 
 const SPEED = 5;
 const SPRINT_SPEED = 7.5;
@@ -320,7 +321,7 @@ export function PlayerController() {
 
         // Apply aim assist direction correction when locked onto a target
         const targetPoint =
-          aimState.targetKind === "hoop" && aimState.targetPoint
+          aimState.targetKind === TARGET_KINDS.hoop && aimState.targetPoint
             ? aimState.targetPoint
             : null;
 

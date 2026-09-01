@@ -1,5 +1,19 @@
 import type * as THREE from "three";
 
+/**
+ * Provider kinds, shared so consumers never compare against a bare string literal —
+ * renaming a provider's kind should be a compile-time change, not a silent behavior loss.
+ * `kind` stays typed as `string` on the interfaces below so tests can register
+ * providers of their own invented kinds.
+ */
+export const TARGET_KINDS = {
+  basketball: "basketball",
+  hoop: "hoop",
+  resetButton: "resetButton",
+} as const;
+
+export type TargetKind = (typeof TARGET_KINDS)[keyof typeof TARGET_KINDS];
+
 /** One thing the player could be aiming at, this frame. */
 export interface TargetCandidate {
   /** Stable identity across frames — required for hysteresis. e.g. "ball:3", "hoop", "button:reset". */

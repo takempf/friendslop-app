@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { ActiveDevice } from "@/input/actions";
-import type { AimState, TargetingConfig } from "./types";
+import { TARGET_KINDS, type AimState, type TargetingConfig } from "./types";
 
 export interface AssistStrengths {
   yaw: number;
@@ -18,7 +18,7 @@ export function resolveSlowdown(
   aim: Pick<AimState, "lock" | "targetKind">,
   config: Pick<TargetingConfig, "aimAssistSlowdown">,
 ): number {
-  if (aim.targetKind !== "hoop" || aim.lock <= 0) {
+  if (aim.targetKind !== TARGET_KINDS.hoop || aim.lock <= 0) {
     return 0;
   }
 
