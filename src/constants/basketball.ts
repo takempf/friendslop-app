@@ -59,11 +59,15 @@ export const HOOP_RIM_POS = new THREE.Vector3(
   BOARD_FRONT_FACE_Z - RIM_RADIUS,
 );
 
+// Backboard target square dimensions (0.59m × 0.45m standard target rectangle)
+export const BACKBOARD_SQUARE_WIDTH = 0.59;
+export const BACKBOARD_SQUARE_HEIGHT = 0.45;
+
 /** Aim point for assisted shots: top-center of the backboard's target square,
  *  nudged slightly off the board face so occlusion rays don't graze the backboard collider. */
 export const HOOP_AIM_POINT = new THREE.Vector3(
   0,
-  RIM_Y + 0.45,
+  RIM_Y + BACKBOARD_SQUARE_HEIGHT,
   BOARD_FRONT_FACE_Z - 0.05,
 );
 
