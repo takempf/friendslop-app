@@ -52,6 +52,8 @@ export interface TargetingConfig {
   aimAssistDiameter: number;
   aimAssistGrabDiameter?: number;
   aimAssistSmoothing: number;
+  aimAssistSlowdown: number;
+  aimAssistMouseScale: number;
   aimAssistStrength: number;
   aimAssistPitchStrength: number;
   showAimAssistCircle: boolean;

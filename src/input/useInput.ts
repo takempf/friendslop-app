@@ -4,9 +4,22 @@ import { KeyboardMouseSource } from "./sources/KeyboardMouseSource";
 import { GamepadSource } from "./sources/GamepadSource";
 import type { ActiveDevice } from "./actions";
 
+import { aimModulation } from "./aimModulation";
+import { aimState } from "@/targeting/aimState";
+import { resolveSlowdown } from "@/targeting/assistPolicy";
+import { gameConfig } from "@/config";
+
+// Composition root: This is the ONLY place where input and targeting meet.
+// GamepadSource queries the aim assist layer's slowdown via this injected accessor,
+// which resolves the targeting layer's policy into the input layer's value type.
 export const inputManager = new InputManager([
   new KeyboardMouseSource(),
-  new GamepadSource(),
+  new GamepadSource({
+    getAimModulation: () => {
+      aimModulation.slowdown = resolveSlowdown(aimState, gameConfig);
+      return aimModulation;
+    },
+  }),
 ]);
 
 let isConnected = false;

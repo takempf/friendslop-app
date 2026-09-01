@@ -30,6 +30,7 @@ import {
 } from "@/constants/physics";
 import { gameConfig } from "@/config";
 import { pickAssistedDirection } from "@/targeting/throwCorrection";
+import { resolveAssistStrengths } from "@/targeting/assistPolicy";
 import { aimState } from "@/targeting/aimState";
 
 const SPEED = 5;
@@ -310,14 +311,8 @@ export function PlayerController() {
       // Throw ball
       const ball = ballRefs.current[heldBallRef.current];
       if (ball) {
-        const {
-          minThrowSpeed,
-          maxThrowSpeed,
-          throwArcDeg,
-          throwSpinMult,
-          aimAssistStrength,
-          aimAssistPitchStrength,
-        } = gameConfig;
+        const { minThrowSpeed, maxThrowSpeed, throwArcDeg, throwSpinMult } =
+          gameConfig;
         const throwSpeed =
           minThrowSpeed + (maxThrowSpeed - minThrowSpeed) * throwCharge.current;
 
@@ -329,12 +324,17 @@ export function PlayerController() {
             ? aimState.targetPoint
             : null;
 
+        const { yaw: assistYaw, pitch: assistPitch } = resolveAssistStrengths(
+          input.getActiveDevice(),
+          gameConfig,
+        );
+
         pickAssistedDirection(
           _forward,
           targetPoint,
           state.camera.position,
-          aimAssistStrength,
-          aimAssistPitchStrength,
+          assistYaw,
+          assistPitch,
           _forward,
         );
 

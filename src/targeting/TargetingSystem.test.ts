@@ -33,6 +33,8 @@ describe("TargetingSystem", () => {
       aimAssistDiameter: 0.1,
       aimAssistGrabDiameter: 0.15,
       aimAssistSmoothing: 12,
+      aimAssistSlowdown: 0.45,
+      aimAssistMouseScale: 0,
       aimAssistStrength: 0,
       aimAssistPitchStrength: 0,
       showAimAssistCircle: false,
