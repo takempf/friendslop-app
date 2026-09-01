@@ -23,6 +23,13 @@ function createEmptyFrame(): InputFrame {
   };
 }
 
+/**
+ * Maximum frame delta passed to input sources (~30 fps).
+ * Clamping prevents hitches (GC pauses, tab switching, shader compilation)
+ * from producing huge deltas that whip the camera across the screen in a single frame.
+ */
+export const MAX_FRAME_DT = 1 / 30;
+
 export class InputManager {
   private sources: InputSource[] = [];
   private currentFrame: InputFrame = createEmptyFrame();
@@ -54,6 +61,8 @@ export class InputManager {
   }
 
   public update(dt: number): void {
+    const clampedDt = Math.min(Math.max(dt, 0), MAX_FRAME_DT);
+
     // 1. Snapshot previous buttons for edge detection
     for (const action of BUTTON_ACTIONS) {
       this.prevButtons[action] = this.currentFrame.buttons[action];
@@ -71,7 +80,7 @@ export class InputManager {
     // 3. Sample and merge all sources
     for (const source of this.sources) {
       const sourceFrame = createEmptyFrame();
-      source.sample(sourceFrame, dt);
+      source.sample(sourceFrame, clampedDt);
 
       let hasActivity = false;
 

@@ -145,4 +145,26 @@ describe("InputManager", () => {
 
     unsub();
   });
+
+  it("clamps frame delta dt to MAX_FRAME_DT (0.5s delta produces same sampling dt as 1/30s)", () => {
+    let sampledDt = 0;
+    const source: InputSource = {
+      id: "gamepad",
+      connect: () => () => {},
+      sample: (_frame, dt) => {
+        sampledDt = dt;
+      },
+      reset: () => {},
+    };
+
+    const manager = new InputManager([source]);
+
+    // Small dt passes through unclamped
+    manager.update(0.016);
+    expect(sampledDt).toBeCloseTo(0.016, 5);
+
+    // Huge dt (0.5s hitch) is clamped to 1 / 30
+    manager.update(0.5);
+    expect(sampledDt).toBeCloseTo(1 / 30, 5);
+  });
 });
