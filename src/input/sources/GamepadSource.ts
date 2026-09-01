@@ -1,7 +1,10 @@
 import type { InputSource } from "../InputSource";
 import type { InputFrame } from "../actions";
 import { DEFAULT_GAMEPAD_BINDINGS, type GamepadBindings } from "../bindings";
-import { applyRadialDeadzone, applyResponseCurve } from "../deadzone";
+import { shapeStick, STICK_SATURATION } from "../stick";
+import { advanceRamp, rampScale } from "../lookRamp";
+import { mapLookRates } from "../lookMapping";
+import { NO_AIM_MODULATION, type AimModulation } from "../aimModulation";
 import { isTextInputActive } from "../textInputMode";
 import { gameConfig } from "@/config";
 
@@ -9,6 +12,7 @@ export type GamepadConfig = Pick<
   typeof gameConfig,
   | "gamepadEnabled"
   | "gamepadLookSensitivity"
+  | "gamepadLookCurve"
   | "gamepadDeadzone"
   | "gamepadInvertY"
 >;
@@ -17,6 +21,7 @@ export interface GamepadSourceOptions {
   bindings?: GamepadBindings;
   getGamepads?: () => (Gamepad | null)[];
   getConfig?: () => GamepadConfig;
+  getAimModulation?: () => AimModulation;
 }
 
 export class GamepadSource implements InputSource {
@@ -25,7 +30,9 @@ export class GamepadSource implements InputSource {
   private readonly bindings: GamepadBindings;
   private readonly getGamepads: () => (Gamepad | null)[];
   private readonly getConfig: () => GamepadConfig;
+  private readonly getAimModulation: () => AimModulation;
 
+  private rampProgress = 0;
   private hasWarnedNonStandard = false;
 
   constructor(options: GamepadSourceOptions = {}) {
@@ -43,9 +50,12 @@ export class GamepadSource implements InputSource {
       ((): GamepadConfig => ({
         gamepadEnabled: gameConfig.gamepadEnabled,
         gamepadLookSensitivity: gameConfig.gamepadLookSensitivity,
+        gamepadLookCurve: gameConfig.gamepadLookCurve,
         gamepadDeadzone: gameConfig.gamepadDeadzone,
         gamepadInvertY: gameConfig.gamepadInvertY,
       }));
+    this.getAimModulation =
+      options.getAimModulation ?? ((): AimModulation => NO_AIM_MODULATION);
   }
 
   public connect(): () => void {
@@ -84,35 +94,42 @@ export class GamepadSource implements InputSource {
       return;
     }
 
-    // Left stick -> Movement
+    // Left stick -> Movement (linear curve)
     const rawMoveX = pad.axes[0] ?? 0;
     const rawMoveY = pad.axes[1] ?? 0;
-    const [moveX, moveY] = applyRadialDeadzone(
-      rawMoveX,
-      rawMoveY,
-      config.gamepadDeadzone,
-    );
+    const [moveX, moveY] = shapeStick(rawMoveX, rawMoveY, {
+      deadzone: config.gamepadDeadzone,
+      saturation: STICK_SATURATION,
+      curve: 1.0,
+    });
 
     frame.moveX += moveX;
     frame.moveY += moveY;
 
-    // Right stick -> Look (rate-based)
+    // Right stick -> Look (shaped + ramp + modulation)
     const rawLookX = pad.axes[2] ?? 0;
     const rawLookY = pad.axes[3] ?? 0;
-    const [deadzoneLookX, deadzoneLookY] = applyRadialDeadzone(
-      rawLookX,
-      rawLookY,
-      config.gamepadDeadzone,
+    const [shapedLookX, shapedLookY] = shapeStick(rawLookX, rawLookY, {
+      deadzone: config.gamepadDeadzone,
+      saturation: STICK_SATURATION,
+      curve: config.gamepadLookCurve,
+    });
+
+    const deflection = Math.hypot(shapedLookX, shapedLookY);
+    this.rampProgress = advanceRamp(this.rampProgress, deflection, dt);
+    const currentRamp = rampScale(this.rampProgress);
+
+    const modulation = this.getAimModulation();
+    const [yawRate, pitchRate] = mapLookRates(
+      shapedLookX,
+      shapedLookY,
+      currentRamp,
+      {
+        sensitivity: config.gamepadLookSensitivity,
+        invertY: config.gamepadInvertY,
+      },
+      modulation,
     );
-
-    const curvedLookX = applyResponseCurve(deadzoneLookX, 2.0);
-    const curvedLookY = applyResponseCurve(deadzoneLookY, 2.0);
-
-    const yawRate = curvedLookX * config.gamepadLookSensitivity;
-    let pitchRate = curvedLookY * config.gamepadLookSensitivity;
-    if (config.gamepadInvertY) {
-      pitchRate = -pitchRate;
-    }
 
     frame.lookYaw -= yawRate * dt;
     frame.lookPitch -= pitchRate * dt;
@@ -135,6 +152,6 @@ export class GamepadSource implements InputSource {
   }
 
   public reset(): void {
-    // Gamepad state is polled live; reset is a no-op except for ensuring clean state transitions
+    this.rampProgress = 0;
   }
 }

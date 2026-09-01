@@ -44,6 +44,7 @@ describe("GamepadSource", () => {
   const defaultConfig = {
     gamepadEnabled: true,
     gamepadLookSensitivity: 3.0,
+    gamepadLookCurve: 1.6,
     gamepadDeadzone: 0.15,
     gamepadInvertY: false,
   };
@@ -175,5 +176,54 @@ describe("GamepadSource", () => {
     frame = createEmptyFrame();
     source.sample(frame, 0.016);
     expect(frame.buttons.jump).toBe(false);
+  });
+
+  it("applies injected aim modulation slowdown to look rates", () => {
+    const pad = createMockGamepad({ axes: [0, 0, 1.0, 0] });
+    const normalSource = new GamepadSource({
+      getGamepads: () => [pad],
+      getConfig: () => defaultConfig,
+    });
+    const slowedSource = new GamepadSource({
+      getGamepads: () => [pad],
+      getConfig: () => defaultConfig,
+      getAimModulation: () => ({ slowdown: 0.5 }),
+    });
+
+    const frameNormal = createEmptyFrame();
+    normalSource.sample(frameNormal, 0.016);
+
+    const frameSlowed = createEmptyFrame();
+    slowedSource.sample(frameSlowed, 0.016);
+
+    expect(frameSlowed.lookYaw).toBeCloseTo(frameNormal.lookYaw * 0.5, 5);
+  });
+
+  it("resets acceleration ramp state on reset()", () => {
+    const pad = createMockGamepad({ axes: [0, 0, 1.0, 0] });
+    const source = new GamepadSource({
+      getGamepads: () => [pad],
+      getConfig: () => defaultConfig,
+    });
+
+    // Advance ramp over several frames
+    for (let i = 0; i < 15; i++) {
+      const f = createEmptyFrame();
+      source.sample(f, 0.016);
+    }
+
+    const frameFullRamp = createEmptyFrame();
+    source.sample(frameFullRamp, 0.016);
+
+    // Reset source
+    source.reset();
+
+    const frameAfterReset = createEmptyFrame();
+    source.sample(frameAfterReset, 0.016);
+
+    // Rate right after reset starts back at startScale (lower magnitude)
+    expect(Math.abs(frameAfterReset.lookYaw)).toBeLessThan(
+      Math.abs(frameFullRamp.lookYaw),
+    );
   });
 });

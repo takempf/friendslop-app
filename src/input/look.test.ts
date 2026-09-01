@@ -35,23 +35,35 @@ function createEmptyFrame(): InputFrame {
 }
 
 describe("look rate vs displacement scaling", () => {
-  it("scales stick look rate proportionally with dt (doubled dt yields doubled yaw)", () => {
+  const baseConfig = {
+    gamepadEnabled: true,
+    gamepadLookSensitivity: 3.0,
+    gamepadLookCurve: 1.6,
+    gamepadDeadzone: 0.15,
+    gamepadInvertY: false,
+  };
+
+  it("scales stick look rate proportionally with dt at steady state", () => {
     const pad = createMockGamepad({ axes: [0, 0, 1.0, 0] }); // full right look stick
-    const source = new GamepadSource({
+    const sourceA = new GamepadSource({
       getGamepads: () => [pad],
-      getConfig: () => ({
-        gamepadEnabled: true,
-        gamepadLookSensitivity: 3.0,
-        gamepadDeadzone: 0.15,
-        gamepadInvertY: false,
-      }),
+      getConfig: () => baseConfig,
+    });
+    const sourceB = new GamepadSource({
+      getGamepads: () => [pad],
+      getConfig: () => baseConfig,
     });
 
+    // Advance both sources past ramp time (0.2s)
+    const warmupFrame = createEmptyFrame();
+    sourceA.sample(warmupFrame, 0.3);
+    sourceB.sample(warmupFrame, 0.3);
+
     const frameA = createEmptyFrame();
-    source.sample(frameA, 0.016); // ~60fps frame
+    sourceA.sample(frameA, 0.016); // ~60fps frame
 
     const frameB = createEmptyFrame();
-    source.sample(frameB, 0.032); // ~30fps frame (doubled dt)
+    sourceB.sample(frameB, 0.032); // ~30fps frame (doubled dt)
 
     expect(frameB.lookYaw).toBeCloseTo(frameA.lookYaw * 2, 5);
   });
@@ -60,19 +72,12 @@ describe("look rate vs displacement scaling", () => {
     const pad = createMockGamepad({ axes: [0, 0, 0.5, -0.8] }); // looking right and up
     const normalSource = new GamepadSource({
       getGamepads: () => [pad],
-      getConfig: () => ({
-        gamepadEnabled: true,
-        gamepadLookSensitivity: 3.0,
-        gamepadDeadzone: 0.15,
-        gamepadInvertY: false,
-      }),
+      getConfig: () => baseConfig,
     });
     const invertedSource = new GamepadSource({
       getGamepads: () => [pad],
       getConfig: () => ({
-        gamepadEnabled: true,
-        gamepadLookSensitivity: 3.0,
-        gamepadDeadzone: 0.15,
+        ...baseConfig,
         gamepadInvertY: true,
       }),
     });
