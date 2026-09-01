@@ -28,6 +28,8 @@ type GameConfig = {
   gamepadEnabled: boolean;
   /** Gamepad look sensitivity (radians per second at full deflection) */
   gamepadLookSensitivity: number;
+  /** Gamepad look response curve exponent (1.0 = linear, 1.6 = standard, 2.2 = fine) */
+  gamepadLookCurve: number;
   /** Gamepad analog stick deadzone (0.01 to 0.5) */
   gamepadDeadzone: number;
   /** Gamepad vertical pitch inversion */
@@ -40,6 +42,10 @@ type GameConfig = {
   aimAssistGrabDiameter: number;
   /** Damping lambda for the reticle circle */
   aimAssistSmoothing: number;
+  /** Look-rate friction / slowdown on target lock (0 = none, 1 = full stop) */
+  aimAssistSlowdown: number;
+  /** Scale factor applied to throw assist for mouse/keyboard players (0 = off, 1 = full) */
+  aimAssistMouseScale: number;
   /** Yaw (lateral) throw correction strength (0 = off, 1 = direct to target) */
   aimAssistStrength: number;
   /** Pitch (vertical) throw correction strength (0 = off, 1 = direct to target) */
@@ -62,12 +68,15 @@ const LS = {
   cloudDetail: "friendslop_graphics_cloudDetail",
   gamepadEnabled: "friendslop_controls_gamepadEnabled",
   gamepadLookSensitivity: "friendslop_controls_gamepadLookSensitivity",
+  gamepadLookCurve: "friendslop_controls_gamepadLookCurve",
   gamepadDeadzone: "friendslop_controls_gamepadDeadzone",
   gamepadInvertY: "friendslop_controls_gamepadInvertY",
   showAimAssistCircle: "friendslop_aim_showAimAssistCircle",
   aimAssistDiameter: "friendslop_aim_aimAssistDiameter",
   aimAssistGrabDiameter: "friendslop_aim_aimAssistGrabDiameter",
   aimAssistSmoothing: "friendslop_aim_aimAssistSmoothing",
+  aimAssistSlowdown: "friendslop_aim_aimAssistSlowdown",
+  aimAssistMouseScale: "friendslop_aim_aimAssistMouseScale",
   aimAssistStrength: "friendslop_aim_aimAssistStrength",
   aimAssistPitchStrength: "friendslop_aim_aimAssistPitchStrength",
   showTargetDebug: "friendslop_aim_showTargetDebug",
@@ -107,12 +116,15 @@ export const gameConfig: GameConfig = {
   cloudDetail: lsNum(LS.cloudDetail, 5),
   gamepadEnabled: lsBool(LS.gamepadEnabled, true),
   gamepadLookSensitivity: lsNum(LS.gamepadLookSensitivity, 3.0),
+  gamepadLookCurve: lsNum(LS.gamepadLookCurve, 1.6),
   gamepadDeadzone: lsNum(LS.gamepadDeadzone, 0.15),
   gamepadInvertY: lsBool(LS.gamepadInvertY, false),
   showAimAssistCircle: lsBool(LS.showAimAssistCircle, false),
   aimAssistDiameter: lsNum(LS.aimAssistDiameter, 0.25),
   aimAssistGrabDiameter: lsNum(LS.aimAssistGrabDiameter, 1.0),
   aimAssistSmoothing: lsNum(LS.aimAssistSmoothing, 12),
+  aimAssistSlowdown: lsNum(LS.aimAssistSlowdown, 0.45),
+  aimAssistMouseScale: lsNum(LS.aimAssistMouseScale, 0),
   aimAssistStrength: lsNum(LS.aimAssistStrength, 0.8),
   aimAssistPitchStrength: lsNum(LS.aimAssistPitchStrength, 0.2),
   showTargetDebug: lsBool(LS.showTargetDebug, false),

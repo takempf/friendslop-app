@@ -115,6 +115,31 @@ export function ControlsTab() {
 
         <div className={styles.paramRow}>
           <div className={styles.paramHeader}>
+            <span className={styles.paramLabel}>Response Curve</span>
+            <span className={styles.paramValue}>
+              {gameConfig.gamepadLookCurve <= 1.2
+                ? `${gameConfig.gamepadLookCurve.toFixed(1)} Linear`
+                : gameConfig.gamepadLookCurve <= 1.8
+                  ? `${gameConfig.gamepadLookCurve.toFixed(1)} Standard`
+                  : `${gameConfig.gamepadLookCurve.toFixed(1)} Fine`}
+            </span>
+          </div>
+          <Slider
+            value={gameConfig.gamepadLookCurve}
+            onChange={(v) => updateConfig("gamepadLookCurve", v)}
+            min={1.0}
+            max={2.5}
+            step={0.1}
+            disabled={!gameConfig.gamepadEnabled}
+            variant="yellow"
+          />
+          <span className={styles.hint}>
+            Stick travel curve · Linear (1.0) to fine-aim (2.5)
+          </span>
+        </div>
+
+        <div className={styles.paramRow}>
+          <div className={styles.paramHeader}>
             <span className={styles.paramLabel}>Stick Deadzone</span>
             <span className={styles.paramValue}>
               {Math.round(gameConfig.gamepadDeadzone * 100)}%

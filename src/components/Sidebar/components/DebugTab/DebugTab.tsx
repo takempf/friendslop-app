@@ -90,6 +90,20 @@ const AIM_ASSIST_PARAMS: {
     step: 1,
   },
   {
+    key: "aimAssistSlowdown",
+    label: "Aim Slowdown",
+    min: 0,
+    max: 0.8,
+    step: 0.05,
+  },
+  {
+    key: "aimAssistMouseScale",
+    label: "Mouse Assist Scale",
+    min: 0,
+    max: 1.0,
+    step: 0.05,
+  },
+  {
     key: "aimAssistStrength",
     label: "Yaw Assist Strength",
     min: 0,
