@@ -115,7 +115,7 @@ export const gameConfig: GameConfig = {
   cloudLightSteps: lsNum(LS.cloudLightSteps, 5),
   cloudDetail: lsNum(LS.cloudDetail, 5),
   gamepadEnabled: lsBool(LS.gamepadEnabled, true),
-  gamepadLookSensitivity: lsNum(LS.gamepadLookSensitivity, 3.0),
+  gamepadLookSensitivity: lsNum(LS.gamepadLookSensitivity, 2.5),
   gamepadLookCurve: lsNum(LS.gamepadLookCurve, 1.6),
   gamepadDeadzone: lsNum(LS.gamepadDeadzone, 0.15),
   gamepadInvertY: lsBool(LS.gamepadInvertY, false),
@@ -125,7 +125,7 @@ export const gameConfig: GameConfig = {
   aimAssistSmoothing: lsNum(LS.aimAssistSmoothing, 12),
   aimAssistSlowdown: lsNum(LS.aimAssistSlowdown, 0.45),
   aimAssistMouseScale: lsNum(LS.aimAssistMouseScale, 0),
-  aimAssistStrength: lsNum(LS.aimAssistStrength, 0.8),
+  aimAssistStrength: lsNum(LS.aimAssistStrength, 0.5),
   aimAssistPitchStrength: lsNum(LS.aimAssistPitchStrength, 0.2),
   showTargetDebug: lsBool(LS.showTargetDebug, false),
 };
