@@ -19,6 +19,7 @@ interface LockedTarget {
 export class TargetingSystem {
   private providers: Set<TargetProvider> = new Set();
   private lockedTarget: LockedTarget | null = null;
+  private isTransitioningTarget = false;
 
   // Scratch buffers reused across frames so the steady-state loop stays allocation-free.
   private candidatesScratch: TargetCandidate[] = [];
@@ -37,6 +38,7 @@ export class TargetingSystem {
     this.providers.delete(provider);
     if (this.lockedTarget?.kind === provider.kind) {
       this.lockedTarget = null;
+      this.isTransitioningTarget = false;
     }
   }
 
@@ -86,11 +88,12 @@ export class TargetingSystem {
     this.candidatesScratch.length = 0;
 
     // 2-4. Project, filter, and rank.
+    const prevLockedId = this.lockedTarget?.id ?? null;
     const winner = pickTarget(
       this.itemsScratch,
       ctx,
       config,
-      this.lockedTarget?.id ?? null,
+      prevLockedId,
       isOccluded,
       this.scoredScratch,
     );
@@ -100,18 +103,49 @@ export class TargetingSystem {
 
     if (winner) {
       const { id, kind, index, point } = winner.candidate;
+      if (prevLockedId !== id) {
+        this.isTransitioningTarget = true;
+      }
+
       this.lockedTarget = { id, kind };
       aimState.targetId = id;
       aimState.targetKind = kind;
       aimState.targetIndex = index ?? -1;
       aimState.targetPoint = this.targetPointScratch.copy(point);
 
-      // Lock position directly onto the target so it sticks without lagging behind camera motion
-      aimState.screenX = winner.screenX;
-      aimState.screenY = winner.screenY;
+      if (this.isTransitioningTarget) {
+        // Damp toward the new screen position for a few frames during candidate switch
+        aimState.screenX = THREE.MathUtils.damp(
+          aimState.screenX,
+          winner.screenX,
+          smoothing,
+          dt,
+        );
+        aimState.screenY = THREE.MathUtils.damp(
+          aimState.screenY,
+          winner.screenY,
+          smoothing,
+          dt,
+        );
+
+        const distSq =
+          (aimState.screenX - winner.screenX) ** 2 +
+          (aimState.screenY - winner.screenY) ** 2;
+        if (distSq < 1e-4) {
+          aimState.screenX = winner.screenX;
+          aimState.screenY = winner.screenY;
+          this.isTransitioningTarget = false;
+        }
+      } else {
+        // Lock position directly onto the held target so it sticks without lagging behind camera motion
+        aimState.screenX = winner.screenX;
+        aimState.screenY = winner.screenY;
+      }
+
       aimState.lock = THREE.MathUtils.damp(aimState.lock, 1, smoothing, dt);
     } else {
       this.lockedTarget = null;
+      this.isTransitioningTarget = false;
       aimState.targetId = null;
       aimState.targetKind = null;
       aimState.targetIndex = -1;

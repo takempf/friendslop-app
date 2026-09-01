@@ -214,4 +214,47 @@ describe("TargetingSystem", () => {
     expect(scored[0].candidate.id).toBe("blocked");
     expect(scored[0].occluded).toBe(true);
   });
+
+  it("smooths reticle position when switching between candidate targets instead of teleporting instantly", () => {
+    let activeId = "target:1";
+    const provider: TargetProvider = {
+      kind: "test",
+      isActive: () => true,
+      collect: (_ctx, out) => {
+        if (activeId === "target:1") {
+          out.push({
+            id: "target:1",
+            kind: "test",
+            point: new THREE.Vector3(0.1, 0, -5),
+          });
+        } else {
+          out.push({
+            id: "target:2",
+            kind: "test",
+            point: new THREE.Vector3(-0.1, 0, -5),
+          });
+        }
+      },
+    };
+
+    system.registerProvider(provider);
+
+    // Lock onto target 1 over several frames until converged
+    for (let i = 0; i < 30; i++) {
+      system.update(ctx, config, 0.016);
+    }
+    const state1 = system.update(ctx, config, 0.016);
+    const target1X = state1.screenX;
+    expect(state1.targetId).toBe("target:1");
+    expect(target1X).toBeGreaterThan(0.01);
+
+    // Switch active target to target 2
+    activeId = "target:2";
+    const switchFrameState = system.update(ctx, config, 0.016);
+    expect(switchFrameState.targetId).toBe("target:2");
+
+    // Reticle has not teleported instantly to target 2's position (-0.02), but is moving smoothly towards it
+    expect(switchFrameState.screenX).toBeLessThan(target1X);
+    expect(switchFrameState.screenX).toBeGreaterThan(-0.02);
+  });
 });
