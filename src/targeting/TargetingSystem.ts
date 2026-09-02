@@ -16,6 +16,12 @@ interface LockedTarget {
   kind: string;
 }
 
+/**
+ * Manual aim chases the cursor faster than assist chases a target: the cursor is
+ * already the player's direct intent, so extra damping just feels like lag.
+ */
+const MANUAL_AIM_SMOOTHING_MULT = 3;
+
 export class TargetingSystem {
   private providers: Set<TargetProvider> = new Set();
   private lockedTarget: LockedTarget | null = null;
@@ -46,6 +52,16 @@ export class TargetingSystem {
     return this.providers;
   }
 
+  /** Drops the lock and every target field of `aimState`. */
+  private clearLock(): void {
+    this.lockedTarget = null;
+    this.isTransitioningTarget = false;
+    aimState.targetId = null;
+    aimState.targetKind = null;
+    aimState.targetIndex = -1;
+    aimState.targetPoint = null;
+  }
+
   public getLockedTargetId(): string | null {
     return this.lockedTarget?.id ?? null;
   }
@@ -65,6 +81,32 @@ export class TargetingSystem {
     dt: number,
     isOccluded?: OcclusionPredicate,
   ): AimState {
+    aimState.isManualAiming = Boolean(ctx.isManualAiming);
+    const smoothing = config.aimAssistSmoothing;
+
+    // Manual aim overrides every candidate, so return before gathering rather
+    // than after — the gather/rank pass would spend occlusion raycasts on a
+    // winner this branch throws away.
+    if (ctx.isManualAiming) {
+      this.clearLock();
+      this.scoredScratch.length = 0;
+
+      aimState.screenX = THREE.MathUtils.damp(
+        aimState.screenX,
+        ctx.manualAimX ?? 0,
+        smoothing * MANUAL_AIM_SMOOTHING_MULT,
+        dt,
+      );
+      aimState.screenY = THREE.MathUtils.damp(
+        aimState.screenY,
+        ctx.manualAimY ?? 0,
+        smoothing * MANUAL_AIM_SMOOTHING_MULT,
+        dt,
+      );
+      aimState.lock = THREE.MathUtils.damp(aimState.lock, 1, smoothing, dt);
+      return aimState;
+    }
+
     // 1. Gather candidates from active providers, stamping each with its provider's circle size.
     let itemCount = 0;
     for (const provider of this.providers) {
@@ -99,8 +141,6 @@ export class TargetingSystem {
     );
 
     // 5. Smooth.
-    const smoothing = config.aimAssistSmoothing;
-
     if (winner) {
       const { id, kind, index, point } = winner.candidate;
       if (prevLockedId !== id) {
@@ -144,12 +184,7 @@ export class TargetingSystem {
 
       aimState.lock = THREE.MathUtils.damp(aimState.lock, 1, smoothing, dt);
     } else {
-      this.lockedTarget = null;
-      this.isTransitioningTarget = false;
-      aimState.targetId = null;
-      aimState.targetKind = null;
-      aimState.targetIndex = -1;
-      aimState.targetPoint = null;
+      this.clearLock();
 
       // When no target is locked, smoothly ease reticle back to center
       aimState.screenX = THREE.MathUtils.damp(

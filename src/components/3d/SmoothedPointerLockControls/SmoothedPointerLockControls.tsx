@@ -2,6 +2,11 @@ import { useRef, type RefObject } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useInput } from "@/input/useInput";
+import {
+  aimCursor,
+  updateAimCursor,
+  MANUAL_AIM_LOOK_SCALE,
+} from "@/input/aimCursor";
 
 interface Props {
   leanRef?: RefObject<number>;
@@ -27,6 +32,10 @@ export function SmoothedPointerLockControls({ leanRef }: Props): null {
     input.update(delta);
     const frame = input.getFrame();
 
+    // The manual-aim cursor rides the same look delta, so it advances here —
+    // once the frame is merged, before targeting reads it at priority 0.
+    updateAimCursor(aimCursor, frame);
+
     const leanAngle = leanRef?.current ?? 0;
     const hasLook = frame.lookYaw !== 0 || frame.lookPitch !== 0;
     const leanChanged = leanAngle !== prevLean.current;
@@ -35,8 +44,10 @@ export function SmoothedPointerLockControls({ leanRef }: Props): null {
 
     euler.current.setFromQuaternion(camera.quaternion);
 
-    euler.current.y += frame.lookYaw;
-    euler.current.x += frame.lookPitch;
+    const lookScale = aimCursor.active ? MANUAL_AIM_LOOK_SCALE : 1.0;
+
+    euler.current.y += frame.lookYaw * lookScale;
+    euler.current.x += frame.lookPitch * lookScale;
 
     // Clamp pitch to prevent looking past straight up/down
     euler.current.x = Math.max(-PI_2, Math.min(PI_2, euler.current.x));

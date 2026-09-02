@@ -12,4 +12,5 @@ export const aimState: AimState = {
   targetIndex: -1,
   targetPoint: null,
   lock: 0,
+  isManualAiming: false,
 };
