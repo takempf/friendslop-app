@@ -9,6 +9,7 @@ import { HoopProvider } from "./providers/hoopProvider";
 import { reticleCircleElement } from "@/components/HUD/Reticle/reticleCircleElement";
 import { useBasketball } from "@/contexts/BasketballContext";
 import { gameConfig } from "@/config";
+import { aimCursor } from "@/input/aimCursor";
 import { GROUND_RAY_COLLISION_GROUPS } from "@/constants/physics";
 import { TARGET_KINDS, type TargetingContext } from "./types";
 import type { OcclusionPredicate } from "./occlusion";
@@ -85,6 +86,9 @@ export function useTargeting(): void {
     aspect: 1,
     isHoldingBall: false,
     cameraPosition: _cameraPos,
+    isManualAiming: false,
+    manualAimX: 0,
+    manualAimY: 0,
   });
 
   useFrame((_, delta) => {
@@ -94,6 +98,10 @@ export function useTargeting(): void {
     ctx.camera = camera;
     ctx.aspect = size.width / (size.height || 1);
     ctx.isHoldingBall = heldBallRef.current !== -1;
+    // The cursor is advanced by the input layer at priority -1, above.
+    ctx.isManualAiming = aimCursor.active;
+    ctx.manualAimX = aimCursor.x;
+    ctx.manualAimY = aimCursor.y;
 
     const state = targetingSystem.update(ctx, gameConfig, delta, isOccluded);
 
@@ -108,9 +116,11 @@ export function useTargeting(): void {
       const height = size.height || window.innerHeight;
       const px = state.screenX * height;
       const py = -state.screenY * height;
-      const scale = 1 - 0.1 * state.lock;
+      const scale = state.isManualAiming ? 1.1 : 1 - 0.1 * state.lock;
       circleEl.style.transform = `translate3d(${px}px, ${py}px, 0) scale(${scale})`;
-      circleEl.style.opacity = `${0.6 + 0.4 * state.lock}`;
+      circleEl.style.opacity = state.isManualAiming
+        ? "1"
+        : `${0.6 + 0.4 * state.lock}`;
     }
   });
 }

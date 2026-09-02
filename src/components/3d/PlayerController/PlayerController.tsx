@@ -32,6 +32,7 @@ import { gameConfig } from "@/config";
 import { pickAssistedDirection } from "@/targeting/throwCorrection";
 import { resolveAssistStrengths } from "@/targeting/assistPolicy";
 import { aimState } from "@/targeting/aimState";
+import { screenToWorldDirection } from "@/targeting/screenRay";
 import { TARGET_KINDS } from "@/targeting/types";
 
 const SPEED = 5;
@@ -319,25 +320,39 @@ export function PlayerController() {
 
         _forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion);
 
-        // Apply aim assist direction correction when locked onto a target
-        const targetPoint =
-          aimState.targetKind === TARGET_KINDS.hoop && aimState.targetPoint
-            ? aimState.targetPoint
-            : null;
+        if (
+          aimState.isManualAiming &&
+          (aimState.screenX !== 0 || aimState.screenY !== 0)
+        ) {
+          // Manual aim throws through the reticle, wherever the player put it.
+          screenToWorldDirection(
+            state.camera,
+            aimState.screenX,
+            aimState.screenY,
+            state.size.width / (state.size.height || 1),
+            _forward,
+          );
+        } else {
+          // Apply aim assist direction correction when locked onto a target
+          const targetPoint =
+            aimState.targetKind === TARGET_KINDS.hoop && aimState.targetPoint
+              ? aimState.targetPoint
+              : null;
 
-        const { yaw: assistYaw, pitch: assistPitch } = resolveAssistStrengths(
-          input.getActiveDevice(),
-          gameConfig,
-        );
+          const { yaw: assistYaw, pitch: assistPitch } = resolveAssistStrengths(
+            input.getActiveDevice(),
+            gameConfig,
+          );
 
-        pickAssistedDirection(
-          _forward,
-          targetPoint,
-          state.camera.position,
-          assistYaw,
-          assistPitch,
-          _forward,
-        );
+          pickAssistedDirection(
+            _forward,
+            targetPoint,
+            state.camera.position,
+            assistYaw,
+            assistPitch,
+            _forward,
+          );
+        }
 
         _right.crossVectors(_forward, _WORLD_UP).normalize();
 

@@ -34,6 +34,12 @@ export interface TargetingContext {
   isHoldingBall: boolean;
   /** Camera/eye world position, resolved once per frame and shared by every stage. */
   cameraPosition: THREE.Vector3;
+  /** Whether the user is holding the manual aim trigger/button (L2 / aim). */
+  isManualAiming?: boolean;
+  /** Height-relative normalized manual aim offset X (-0.5..0.5). */
+  manualAimX?: number;
+  /** Height-relative normalized manual aim offset Y (-0.5..0.5). */
+  manualAimY?: number;
 }
 
 export interface TargetProvider {
@@ -60,6 +66,8 @@ export interface AimState {
   targetPoint: THREE.Vector3 | null;
   /** 0..1 — how converged the circle is on the target. Drives HUD emphasis. */
   lock: number;
+  /** True when player is in manual aiming mode (holding L2 / aim). */
+  isManualAiming: boolean;
 }
 
 export interface TargetingConfig {

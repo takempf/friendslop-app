@@ -2,6 +2,7 @@ export const BUTTON_ACTIONS = [
   "jump",
   "interact",
   "chargeThrow",
+  "aim",
   "sprint",
   "crouch",
   "menu",
@@ -20,3 +21,15 @@ export interface InputFrame {
 }
 
 export type ActiveDevice = "keyboard" | "gamepad";
+
+/**
+ * A zeroed frame. The manager allocates one per source per tick, so this is the
+ * single place that has to learn about a new action.
+ */
+export function createEmptyFrame(): InputFrame {
+  const buttons = {} as Record<ButtonAction, boolean>;
+  for (const action of BUTTON_ACTIONS) {
+    buttons[action] = false;
+  }
+  return { moveX: 0, moveY: 0, lookYaw: 0, lookPitch: 0, buttons };
+}

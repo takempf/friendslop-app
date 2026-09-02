@@ -1,6 +1,9 @@
 // Mutable singleton read by game components every frame / throw.
 // Writes go through updateConfig; no React state needed on the read side.
 
+export const DUALSENSE_GYRO_MODES = ["aiming", "always", "disabled"] as const;
+export type DualSenseGyroMode = (typeof DUALSENSE_GYRO_MODES)[number];
+
 type GameConfig = {
   crtEnabled: boolean;
   crtSmoothing: boolean;
@@ -34,6 +37,12 @@ type GameConfig = {
   gamepadDeadzone: number;
   /** Gamepad vertical pitch inversion */
   gamepadInvertY: boolean;
+  /** DualSense gyro mode: aiming (active while L2 is held), always, or disabled */
+  dualsenseGyroMode: DualSenseGyroMode;
+  /** DualSense gyro sensitivity multiplier */
+  dualsenseGyroSensitivity: number;
+  /** DualSense gyro vertical pitch inversion */
+  dualsenseGyroInvertY: boolean;
   /** Draw the active assist circle(s) on the HUD */
   showAimAssistCircle: boolean;
   /** Default circle diameter as a fraction of viewport height (0.02–0.40) */
@@ -71,6 +80,9 @@ const LS = {
   gamepadLookCurve: "friendslop_controls_gamepadLookCurve",
   gamepadDeadzone: "friendslop_controls_gamepadDeadzone",
   gamepadInvertY: "friendslop_controls_gamepadInvertY",
+  dualsenseGyroMode: "friendslop_controls_dualsenseGyroMode",
+  dualsenseGyroSensitivity: "friendslop_controls_dualsenseGyroSensitivity",
+  dualsenseGyroInvertY: "friendslop_controls_dualsenseGyroInvertY",
   showAimAssistCircle: "friendslop_aim_showAimAssistCircle",
   aimAssistDiameter: "friendslop_aim_aimAssistDiameter",
   aimAssistGrabDiameter: "friendslop_aim_aimAssistGrabDiameter",
@@ -92,6 +104,17 @@ function lsNum(key: string, fallback: number): number {
   if (typeof localStorage === "undefined") return fallback;
   const v = localStorage.getItem(key);
   return v === null ? fallback : Number(v);
+}
+
+/** Reads a string union, falling back when the stored value is not a member. */
+function lsEnum<T extends string>(
+  key: string,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  if (typeof localStorage === "undefined") return fallback;
+  const v = localStorage.getItem(key);
+  return allowed.includes(v as T) ? (v as T) : fallback;
 }
 
 const defaultRenderHeight = 1280;
@@ -119,6 +142,13 @@ export const gameConfig: GameConfig = {
   gamepadLookCurve: lsNum(LS.gamepadLookCurve, 1.6),
   gamepadDeadzone: lsNum(LS.gamepadDeadzone, 0.15),
   gamepadInvertY: lsBool(LS.gamepadInvertY, false),
+  dualsenseGyroMode: lsEnum(
+    LS.dualsenseGyroMode,
+    DUALSENSE_GYRO_MODES,
+    "aiming",
+  ),
+  dualsenseGyroSensitivity: lsNum(LS.dualsenseGyroSensitivity, 0.9),
+  dualsenseGyroInvertY: lsBool(LS.dualsenseGyroInvertY, false),
   showAimAssistCircle: lsBool(LS.showAimAssistCircle, false),
   aimAssistDiameter: lsNum(LS.aimAssistDiameter, 0.25),
   aimAssistGrabDiameter: lsNum(LS.aimAssistGrabDiameter, 1.0),

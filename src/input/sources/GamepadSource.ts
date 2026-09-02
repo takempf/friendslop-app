@@ -140,7 +140,8 @@ export class GamepadSource implements InputSource {
       const button = pad.buttons[buttonIndex];
       if (!button) continue;
 
-      const isTrigger = buttonAction === "chargeThrow";
+      const isTrigger =
+        buttonAction === "chargeThrow" || buttonAction === "aim";
       const isPressed = isTrigger
         ? button.value > 0.5 || button.pressed
         : button.pressed;
