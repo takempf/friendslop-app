@@ -20,8 +20,12 @@ const BLUETOOTH_MIN_PAYLOAD = 77;
 interface ReportLayout {
   /** Shortest payload that still contains the gyro block. */
   readonly minLength: number;
+  /** First of four stick bytes: left X/Y then right X/Y, 0-255 with 128 centred. */
+  readonly sticks: number;
   readonly l2: number;
   readonly r2: number;
+  /** Face/d-pad byte; the next one holds the shoulder, stick, and menu buttons. */
+  readonly buttons: number;
   /** First byte of the gyro block: pitch, yaw, roll as consecutive int16 LE. */
   readonly gyro: number;
   readonly battery: number;
@@ -33,11 +37,57 @@ interface ReportLayout {
  * so every offset shifts by +1 from the USB report.
  */
 const LAYOUTS: Record<DualSenseReportType, ReportLayout> = {
-  usb: { minLength: 21, l2: 4, r2: 5, gyro: 15, battery: 52 },
-  bluetooth: { minLength: 22, l2: 5, r2: 6, gyro: 16, battery: 53 },
+  usb: { minLength: 21, sticks: 0, l2: 4, r2: 5, buttons: 7, gyro: 15, battery: 52 }, // prettier-ignore
+  bluetooth: { minLength: 22, sticks: 1, l2: 5, r2: 6, buttons: 8, gyro: 16, battery: 53 }, // prettier-ignore
 };
 
+/**
+ * Standard-mapping button indices, so a parsed report can be sampled by the
+ * same code that samples a Gamepad API pad.
+ */
+export const PAD_BUTTON = {
+  cross: 0,
+  circle: 1,
+  square: 2,
+  triangle: 3,
+  l1: 4,
+  r1: 5,
+  l2: 6,
+  r2: 7,
+  create: 8,
+  options: 9,
+  l3: 10,
+  r3: 11,
+  ps: 16,
+} as const;
+
+/** Bit positions within the two DualSense button bytes. */
+const FACE_BITS: ReadonlyArray<readonly [number, number]> = [
+  [4, PAD_BUTTON.square],
+  [5, PAD_BUTTON.cross],
+  [6, PAD_BUTTON.circle],
+  [7, PAD_BUTTON.triangle],
+];
+
+const SHOULDER_BITS: ReadonlyArray<readonly [number, number]> = [
+  [0, PAD_BUTTON.l1],
+  [1, PAD_BUTTON.r1],
+  [4, PAD_BUTTON.create],
+  [5, PAD_BUTTON.options],
+  [6, PAD_BUTTON.l3],
+  [7, PAD_BUTTON.r3],
+];
+
+/** 0-255 with 128 at rest becomes -1..1, matching the Gamepad API's axes. */
+function normalizeStick(raw: number): number {
+  return Math.max(-1, Math.min(1, (raw - 128) / 127));
+}
+
 interface DualSenseReportFields {
+  /** Left X/Y then right X/Y, in Gamepad API orientation and range. */
+  readonly axes: readonly number[];
+  /** 0..1 per standard-mapping button index; triggers keep analog travel. */
+  readonly buttons: readonly number[];
   /** Raw int16 counts. Scale with DUALSENSE_LSB_TO_RAD_S *after* removing bias. */
   readonly gyroPitch: number;
   readonly gyroYaw: number;
@@ -58,6 +108,8 @@ export type DualSenseParsedReport = DualSenseReportFields &
 const INVALID_REPORT: DualSenseParsedReport = {
   valid: false,
   reportType: "unknown",
+  axes: [0, 0, 0, 0],
+  buttons: [],
   gyroPitch: 0,
   gyroYaw: 0,
   triggerL2: 0,
@@ -124,13 +176,35 @@ export function parseDualSenseReport(
 
   const layout = LAYOUTS[reportType];
 
+  const triggerL2 = data.getUint8(layout.l2);
+  const triggerR2 = data.getUint8(layout.r2);
+
+  const buttons: number[] = [];
+  const face = data.getUint8(layout.buttons);
+  const shoulder = data.getUint8(layout.buttons + 1);
+  for (const [bit, index] of FACE_BITS) {
+    buttons[index] = (face >> bit) & 1;
+  }
+  for (const [bit, index] of SHOULDER_BITS) {
+    buttons[index] = (shoulder >> bit) & 1;
+  }
+  buttons[PAD_BUTTON.l2] = triggerL2 / 255;
+  buttons[PAD_BUTTON.r2] = triggerR2 / 255;
+
   return {
     valid: true,
     reportType,
+    axes: [
+      normalizeStick(data.getUint8(layout.sticks)),
+      normalizeStick(data.getUint8(layout.sticks + 1)),
+      normalizeStick(data.getUint8(layout.sticks + 2)),
+      normalizeStick(data.getUint8(layout.sticks + 3)),
+    ],
+    buttons,
     gyroPitch: data.getInt16(layout.gyro, true),
     gyroYaw: data.getInt16(layout.gyro + 2, true),
-    triggerL2: data.getUint8(layout.l2),
-    triggerR2: data.getUint8(layout.r2),
+    triggerL2,
+    triggerR2,
     ...readBattery(data, layout.battery),
   };
 }

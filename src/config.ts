@@ -37,6 +37,12 @@ type GameConfig = {
   gamepadDeadzone: number;
   /** Gamepad vertical pitch inversion */
   gamepadInvertY: boolean;
+  /**
+   * Whether to claim a paired DualSense over WebHID on load. Turning this off is
+   * the escape hatch back to the plain Gamepad API, and it has to persist —
+   * otherwise the next reload re-claims the device.
+   */
+  dualsenseHidEnabled: boolean;
   /** DualSense gyro mode: aiming (active while L2 is held), always, or disabled */
   dualsenseGyroMode: DualSenseGyroMode;
   /** DualSense gyro sensitivity multiplier */
@@ -80,6 +86,7 @@ const LS = {
   gamepadLookCurve: "friendslop_controls_gamepadLookCurve",
   gamepadDeadzone: "friendslop_controls_gamepadDeadzone",
   gamepadInvertY: "friendslop_controls_gamepadInvertY",
+  dualsenseHidEnabled: "friendslop_controls_dualsenseHidEnabled",
   dualsenseGyroMode: "friendslop_controls_dualsenseGyroMode",
   dualsenseGyroSensitivity: "friendslop_controls_dualsenseGyroSensitivity",
   dualsenseGyroInvertY: "friendslop_controls_dualsenseGyroInvertY",
@@ -142,6 +149,7 @@ export const gameConfig: GameConfig = {
   gamepadLookCurve: lsNum(LS.gamepadLookCurve, 1.6),
   gamepadDeadzone: lsNum(LS.gamepadDeadzone, 0.15),
   gamepadInvertY: lsBool(LS.gamepadInvertY, false),
+  dualsenseHidEnabled: lsBool(LS.dualsenseHidEnabled, true),
   dualsenseGyroMode: lsEnum(
     LS.dualsenseGyroMode,
     DUALSENSE_GYRO_MODES,

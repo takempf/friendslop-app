@@ -13,13 +13,19 @@ import { gameConfig } from "@/config";
 // Composition root: This is the ONLY place where input and targeting meet.
 // GamepadSource queries the aim assist layer's slowdown via this injected accessor,
 // which resolves the targeting layer's policy into the input layer's value type.
+const getAimModulation = (): typeof aimModulation => {
+  aimModulation.slowdown = resolveSlowdown(aimState, gameConfig);
+  return aimModulation;
+};
+
+dualSenseHidSource.setAimModulationAccessor(getAimModulation);
+
 export const inputManager: InputManager = new InputManager([
   new KeyboardMouseSource(),
   new GamepadSource({
-    getAimModulation: () => {
-      aimModulation.slowdown = resolveSlowdown(aimState, gameConfig);
-      return aimModulation;
-    },
+    getAimModulation,
+    // A DualSense held over WebHID is sampled by its own source instead.
+    getIsHidClaimActive: () => dualSenseHidSource.ownsDevice(),
   }),
   dualSenseHidSource,
 ]);

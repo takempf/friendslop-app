@@ -40,10 +40,18 @@ export function GyroSection() {
     setIsPairing(true);
     setPairFailed(false);
     try {
-      setPairFailed(!(await dualSenseHidSource.requestPair()));
+      const paired = await dualSenseHidSource.requestPair();
+      setPairFailed(!paired);
+      if (paired) updateConfig("dualsenseHidEnabled", true);
     } finally {
       setIsPairing(false);
     }
+  };
+
+  // Releasing has to persist, or the next reload claims the controller again.
+  const handleDisconnect = (): void => {
+    updateConfig("dualsenseHidEnabled", false);
+    dualSenseHidSource.detachDevice();
   };
 
   return (
@@ -79,11 +87,7 @@ export function GyroSection() {
             <Button
               variant={dsState.connected ? "default" : "accent"}
               size="sm"
-              onClick={
-                dsState.connected
-                  ? () => dualSenseHidSource.detachDevice()
-                  : handlePair
-              }
+              onClick={dsState.connected ? handleDisconnect : handlePair}
               disabled={isPairing}
             >
               {dsState.connected
@@ -116,6 +120,14 @@ export function GyroSection() {
         />
         <span className={styles.hint}>
           Motion aiming only while L2 is held, always on, or off
+        </span>
+      </div>
+
+      <div className={styles.paramRow}>
+        <span className={styles.hint}>
+          {gameConfig.dualsenseHidEnabled
+            ? "WebHID drives the sticks and buttons too, so the controller keeps working while it is claimed."
+            : "WebHID is released — the controller runs through the standard Gamepad API. Pair again to re-enable gyro."}
         </span>
       </div>
 

@@ -8,6 +8,9 @@ import {
   DUALSENSE_LSB_TO_RAD_S,
   type DualSenseReportType,
 } from "../dualsense/dualsenseReport";
+import { DEFAULT_GAMEPAD_BINDINGS, type GamepadBindings } from "../bindings";
+import { PadSampler, type PadSnapshot } from "../padSampling";
+import { NO_AIM_MODULATION, type AimModulation } from "../aimModulation";
 import { gameConfig } from "@/config";
 import type {
   HID,
@@ -27,12 +30,22 @@ export interface DualSenseState {
 
 export type DualSenseConfig = Pick<
   typeof gameConfig,
-  "dualsenseGyroMode" | "dualsenseGyroSensitivity" | "dualsenseGyroInvertY"
+  | "dualsenseGyroMode"
+  | "dualsenseGyroSensitivity"
+  | "dualsenseGyroInvertY"
+  | "dualsenseHidEnabled"
+  | "gamepadEnabled"
+  | "gamepadLookSensitivity"
+  | "gamepadLookCurve"
+  | "gamepadDeadzone"
+  | "gamepadInvertY"
 >;
 
 export interface DualSenseHidSourceOptions {
   getHid?: () => HID | undefined;
   getConfig?: () => DualSenseConfig;
+  getAimModulation?: () => AimModulation;
+  bindings?: GamepadBindings;
 }
 
 const CALIBRATION_SAMPLES_TARGET = 64;
@@ -63,6 +76,12 @@ export class DualSenseHidSource implements InputSource {
 
   private readonly getHid: () => HID | undefined;
   private readonly getConfig: () => DualSenseConfig;
+  private getAimModulation: () => AimModulation;
+  private readonly bindings: GamepadBindings;
+
+  private readonly sampler = new PadSampler();
+  /** Latest sticks and buttons; the pad half of the device, unlike the gyro. */
+  private padSnapshot: PadSnapshot | null = null;
 
   private activeDevice: HIDDevice | null = null;
   private connectionType: DualSenseReportType | null = null;
@@ -70,8 +89,8 @@ export class DualSenseHidSource implements InputSource {
   private batteryLevel: number | null = null;
   private isCharging = false;
 
+  /** Mirrors L2 for the gyro gate; every other button goes through the sampler. */
   private isL2Held = false;
-  private isR2Held = false;
 
   // Gyro accumulation
   private accumulatedYawDelta = 0;
@@ -104,7 +123,30 @@ export class DualSenseHidSource implements InputSource {
         dualsenseGyroMode: gameConfig.dualsenseGyroMode,
         dualsenseGyroSensitivity: gameConfig.dualsenseGyroSensitivity,
         dualsenseGyroInvertY: gameConfig.dualsenseGyroInvertY,
+        dualsenseHidEnabled: gameConfig.dualsenseHidEnabled,
+        gamepadEnabled: gameConfig.gamepadEnabled,
+        gamepadLookSensitivity: gameConfig.gamepadLookSensitivity,
+        gamepadLookCurve: gameConfig.gamepadLookCurve,
+        gamepadDeadzone: gameConfig.gamepadDeadzone,
+        gamepadInvertY: gameConfig.gamepadInvertY,
       }));
+
+    this.getAimModulation =
+      options.getAimModulation ?? ((): AimModulation => NO_AIM_MODULATION);
+    this.bindings = options.bindings ?? DEFAULT_GAMEPAD_BINDINGS;
+  }
+
+  /**
+   * Lets the composition root inject aim assist after construction, since the
+   * shared instance is built before the targeting layer is wired up.
+   */
+  public setAimModulationAccessor(accessor: () => AimModulation): void {
+    this.getAimModulation = accessor;
+  }
+
+  /** True while this source holds the device, and so owes the frame its sticks. */
+  public ownsDevice(): boolean {
+    return this.activeDevice !== null;
   }
 
   public getState(): DualSenseState {
@@ -138,6 +180,7 @@ export class DualSenseHidSource implements InputSource {
     const handleConnect = async (event: HIDDeviceEvent): Promise<void> => {
       if (
         !this.activeDevice &&
+        this.getConfig().dualsenseHidEnabled &&
         isDualSenseDevice(event.device.vendorId, event.device.productId)
       ) {
         await this.attachDevice(event.device);
@@ -153,7 +196,14 @@ export class DualSenseHidSource implements InputSource {
     hid.addEventListener("connect", handleConnect);
     hid.addEventListener("disconnect", handleDisconnect);
 
-    // Auto-attach any previously paired DualSense
+    // Auto-attach any previously paired DualSense, unless the player opted out.
+    if (!this.getConfig().dualsenseHidEnabled) {
+      return (): void => {
+        hid.removeEventListener("connect", handleConnect);
+        hid.removeEventListener("disconnect", handleDisconnect);
+      };
+    }
+
     hid
       .getDevices()
       .then(async (devices) => {
@@ -240,7 +290,7 @@ export class DualSenseHidSource implements InputSource {
     this.batteryLevel = null;
     this.isCharging = false;
     this.isL2Held = false;
-    this.isR2Held = false;
+    this.padSnapshot = null;
     this.reset();
     this.notifyState();
   }
@@ -276,7 +326,7 @@ export class DualSenseHidSource implements InputSource {
     }
 
     this.isL2Held = report.triggerL2 >= TRIGGER_PRESS_THRESHOLD;
-    this.isR2Held = report.triggerR2 >= TRIGGER_PRESS_THRESHOLD;
+    this.padSnapshot = { axes: report.axes, buttons: report.buttons };
 
     const now = performance.now();
     const elapsed =
@@ -313,7 +363,7 @@ export class DualSenseHidSource implements InputSource {
     );
   };
 
-  public sample(frame: InputFrame): void {
+  public sample(frame: InputFrame, dt: number): void {
     // Reports keep arriving regardless, so anything that skips this frame's
     // contribution has to drop the accumulated rotation with it.
     if (isTextInputActive()) {
@@ -321,21 +371,27 @@ export class DualSenseHidSource implements InputSource {
       return;
     }
 
-    // The gyro lives on the DualSense, so its own triggers gate it — reading
-    // them from HID keeps this source independent of GamepadSource and of the
-    // order sources happen to be sampled in.
-    if (this.isL2Held) {
-      frame.buttons.aim = true;
-    }
-    if (this.isR2Held) {
-      frame.buttons.chargeThrow = true;
+    const config = this.getConfig();
+
+    // Claiming the device over WebHID takes it away from the Gamepad API on
+    // some platforms, so this source owes the frame the whole controller —
+    // sticks and buttons included — not just the gyro it came for.
+    if (this.padSnapshot && config.gamepadEnabled) {
+      this.sampler.sample(
+        frame,
+        dt,
+        this.padSnapshot,
+        config,
+        this.bindings,
+        this.getAimModulation(),
+      );
     }
 
     const {
       dualsenseGyroMode,
       dualsenseGyroSensitivity,
       dualsenseGyroInvertY,
-    } = this.getConfig();
+    } = config;
 
     // L2 alone arms the gyro. Charging a throw on R2 does not: the wind-up
     // already shakes the controller, and steering the shot with that shake is
@@ -361,6 +417,7 @@ export class DualSenseHidSource implements InputSource {
 
   public reset(): void {
     this.clearAccumulatedDeltas();
+    this.sampler.reset();
     this.lastReportTimestamp = 0;
   }
 }
