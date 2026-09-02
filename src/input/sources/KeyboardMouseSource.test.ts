@@ -1,25 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { KeyboardMouseSource } from "./KeyboardMouseSource";
-import type { InputFrame } from "../actions";
+import { createEmptyFrame } from "../actions";
 import { setTextInputActive } from "../textInputMode";
-
-function createEmptyFrame(): InputFrame {
-  return {
-    moveX: 0,
-    moveY: 0,
-    lookYaw: 0,
-    lookPitch: 0,
-    buttons: {
-      jump: false,
-      interact: false,
-      chargeThrow: false,
-      sprint: false,
-      crouch: false,
-      menu: false,
-    },
-  };
-}
 
 describe("KeyboardMouseSource", () => {
   let source: KeyboardMouseSource;

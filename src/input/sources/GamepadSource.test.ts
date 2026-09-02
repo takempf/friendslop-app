@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { GamepadSource } from "./GamepadSource";
-import type { InputFrame } from "../actions";
+import { createEmptyFrame } from "../actions";
 
 function createMockGamepad(overrides: Partial<Gamepad> = {}): Gamepad {
   const defaultButtons = Array.from({ length: 17 }, () => ({
@@ -21,23 +21,6 @@ function createMockGamepad(overrides: Partial<Gamepad> = {}): Gamepad {
     vibrationActuator: null,
     ...overrides,
   } as Gamepad;
-}
-
-function createEmptyFrame(): InputFrame {
-  return {
-    moveX: 0,
-    moveY: 0,
-    lookYaw: 0,
-    lookPitch: 0,
-    buttons: {
-      jump: false,
-      interact: false,
-      chargeThrow: false,
-      sprint: false,
-      crouch: false,
-      menu: false,
-    },
-  };
 }
 
 describe("GamepadSource", () => {

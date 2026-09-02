@@ -1,27 +1,11 @@
 import type { InputSource } from "./InputSource";
 import {
   BUTTON_ACTIONS,
+  createEmptyFrame,
   type ButtonAction,
   type InputFrame,
   type ActiveDevice,
 } from "./actions";
-
-function createEmptyFrame(): InputFrame {
-  return {
-    moveX: 0,
-    moveY: 0,
-    lookYaw: 0,
-    lookPitch: 0,
-    buttons: {
-      jump: false,
-      interact: false,
-      chargeThrow: false,
-      sprint: false,
-      crouch: false,
-      menu: false,
-    },
-  };
-}
 
 /**
  * Maximum frame delta passed to input sources (~30 fps).
@@ -33,14 +17,8 @@ export const MAX_FRAME_DT = 1 / 30;
 export class InputManager {
   private sources: InputSource[] = [];
   private currentFrame: InputFrame = createEmptyFrame();
-  private prevButtons: Record<ButtonAction, boolean> = {
-    jump: false,
-    interact: false,
-    chargeThrow: false,
-    sprint: false,
-    crouch: false,
-    menu: false,
-  };
+  private prevButtons: Record<ButtonAction, boolean> =
+    createEmptyFrame().buttons;
 
   private activeDevice: ActiveDevice = "keyboard";
   private readonly deviceListeners = new Set<(device: ActiveDevice) => void>();
@@ -116,11 +94,12 @@ export class InputManager {
         }
       }
 
-      if (
-        hasActivity &&
-        (source.id === "keyboard" || source.id === "gamepad")
-      ) {
-        this.setActiveDevice(source.id as ActiveDevice);
+      if (hasActivity) {
+        if (source.id === "keyboard") {
+          this.setActiveDevice("keyboard");
+        } else if (source.id === "gamepad" || source.id === "dualsense") {
+          this.setActiveDevice("gamepad");
+        }
       }
     }
 

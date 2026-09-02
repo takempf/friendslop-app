@@ -21,6 +21,7 @@ export const DEFAULT_KEYBOARD_BINDINGS: KeyBindings = {
     jump: ["Space"],
     interact: ["KeyE"],
     chargeThrow: ["KeyQ"],
+    aim: ["KeyF"],
     sprint: ["ShiftLeft"],
     crouch: ["KeyC"],
     menu: ["Escape"],
@@ -32,7 +33,8 @@ export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
     jump: 0, // A
     crouch: 1, // B
     interact: 2, // X
-    chargeThrow: 7, // RT
+    aim: 6, // LT / L2
+    chargeThrow: 7, // RT / R2
     menu: 9, // Start
     sprint: 10, // L3
   },
