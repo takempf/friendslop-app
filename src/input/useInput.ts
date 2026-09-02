@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { InputManager } from "./InputManager";
 import { KeyboardMouseSource } from "./sources/KeyboardMouseSource";
 import { GamepadSource } from "./sources/GamepadSource";
+import { dualSenseHidSource } from "./dualsenseSource";
 import type { ActiveDevice } from "./actions";
 
 import { aimModulation } from "./aimModulation";
@@ -12,7 +13,7 @@ import { gameConfig } from "@/config";
 // Composition root: This is the ONLY place where input and targeting meet.
 // GamepadSource queries the aim assist layer's slowdown via this injected accessor,
 // which resolves the targeting layer's policy into the input layer's value type.
-export const inputManager = new InputManager([
+export const inputManager: InputManager = new InputManager([
   new KeyboardMouseSource(),
   new GamepadSource({
     getAimModulation: () => {
@@ -20,6 +21,7 @@ export const inputManager = new InputManager([
       return aimModulation;
     },
   }),
+  dualSenseHidSource,
 ]);
 
 let isConnected = false;
@@ -46,7 +48,7 @@ export function useActiveDevice(): ActiveDevice {
 
   useEffect(() => {
     ensureInputConnected();
-    return inputManager.subscribeActiveDevice((newDevice) => {
+    return inputManager.subscribeActiveDevice((newDevice: ActiveDevice) => {
       setDevice(newDevice);
     });
   }, []);
