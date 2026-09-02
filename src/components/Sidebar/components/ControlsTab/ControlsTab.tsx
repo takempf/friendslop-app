@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { gameConfig, updateConfig, subscribeToConfig } from "@/config";
 import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
+import { GyroSection } from "./GyroSection";
 import styles from "./ControlsTab.module.css";
 
 export function ControlsTab() {
@@ -162,6 +163,10 @@ export function ControlsTab() {
 
       <div className={styles.divider} />
 
+      <GyroSection />
+
+      <div className={styles.divider} />
+
       <div className={styles.section}>
         <div className={styles.bindingsGrid}>
           <div className={styles.bindingColumn}>
@@ -189,6 +194,10 @@ export function ControlsTab() {
             <div className={styles.bindingRow}>
               <span>Pick Up / Drop</span>
               <span className={styles.bindingKey}>X</span>
+            </div>
+            <div className={styles.bindingRow}>
+              <span>Manual Aim</span>
+              <span className={styles.bindingKey}>Hold L2 / LT</span>
             </div>
             <div className={styles.bindingRow}>
               <span>Charge & Throw</span>
@@ -225,6 +234,10 @@ export function ControlsTab() {
             <div className={styles.bindingRow}>
               <span>Pick Up / Drop</span>
               <span className={styles.bindingKey}>E</span>
+            </div>
+            <div className={styles.bindingRow}>
+              <span>Manual Aim</span>
+              <span className={styles.bindingKey}>Hold F</span>
             </div>
             <div className={styles.bindingRow}>
               <span>Charge & Throw</span>
