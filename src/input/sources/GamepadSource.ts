@@ -1,9 +1,7 @@
 import type { InputSource } from "../InputSource";
 import type { InputFrame } from "../actions";
 import { DEFAULT_GAMEPAD_BINDINGS, type GamepadBindings } from "../bindings";
-import { shapeStick, STICK_SATURATION } from "../stick";
-import { advanceRamp, rampScale } from "../lookRamp";
-import { mapLookRates } from "../lookMapping";
+import { PadSampler, type PadSnapshot } from "../padSampling";
 import { NO_AIM_MODULATION, type AimModulation } from "../aimModulation";
 import { isTextInputActive } from "../textInputMode";
 import { gameConfig } from "@/config";
@@ -22,6 +20,20 @@ export interface GamepadSourceOptions {
   getGamepads?: () => (Gamepad | null)[];
   getConfig?: () => GamepadConfig;
   getAimModulation?: () => AimModulation;
+  /** True while another source owns this pad over raw HID; see `isHidOwned`. */
+  getIsHidClaimActive?: () => boolean;
+}
+
+/**
+ * A DualSense claimed over WebHID is sampled by DualSenseHidSource instead.
+ * Platforms differ on whether a claimed device stays visible to the Gamepad
+ * API, so skipping it here is what stops it being counted twice where it does.
+ */
+function isHidOwned(pad: Gamepad): boolean {
+  // Chrome spells the id out, e.g. "DualSense Wireless Controller (STANDARD
+  // GAMEPAD Vendor: 054c Product: 0ce6)". Matching "wireless controller" alone
+  // would also catch an Xbox pad, so key off Sony's vendor id and model names.
+  return /054c|dualsense|dualshock/i.test(pad.id);
 }
 
 export class GamepadSource implements InputSource {
@@ -31,8 +43,9 @@ export class GamepadSource implements InputSource {
   private readonly getGamepads: () => (Gamepad | null)[];
   private readonly getConfig: () => GamepadConfig;
   private readonly getAimModulation: () => AimModulation;
+  private readonly getIsHidClaimActive: () => boolean;
 
-  private rampProgress = 0;
+  private readonly sampler = new PadSampler();
   private hasWarnedNonStandard = false;
 
   constructor(options: GamepadSourceOptions = {}) {
@@ -56,6 +69,8 @@ export class GamepadSource implements InputSource {
       }));
     this.getAimModulation =
       options.getAimModulation ?? ((): AimModulation => NO_AIM_MODULATION);
+    this.getIsHidClaimActive =
+      options.getIsHidClaimActive ?? ((): boolean => false);
   }
 
   public connect(): () => void {
@@ -80,8 +95,12 @@ export class GamepadSource implements InputSource {
     const config = this.getConfig();
     if (!config.gamepadEnabled) return;
 
+    const hidClaimActive = this.getIsHidClaimActive();
     const gamepads = this.getGamepads();
-    const pad = gamepads.find((p): p is Gamepad => Boolean(p && p.connected));
+    const pad = gamepads.find(
+      (p): p is Gamepad =>
+        Boolean(p?.connected) && !(hidClaimActive && isHidOwned(p as Gamepad)),
+    );
     if (!pad) return;
 
     if (pad.mapping !== "standard") {
@@ -94,65 +113,22 @@ export class GamepadSource implements InputSource {
       return;
     }
 
-    // Left stick -> Movement (linear curve)
-    const rawMoveX = pad.axes[0] ?? 0;
-    const rawMoveY = pad.axes[1] ?? 0;
-    const [moveX, moveY] = shapeStick(rawMoveX, rawMoveY, {
-      deadzone: config.gamepadDeadzone,
-      saturation: STICK_SATURATION,
-      curve: 1.0,
-    });
+    const snapshot: PadSnapshot = {
+      axes: pad.axes,
+      buttons: pad.buttons.map((b) => (b.pressed ? Math.max(b.value, 1) : b.value)), // prettier-ignore
+    };
 
-    frame.moveX += moveX;
-    frame.moveY += moveY;
-
-    // Right stick -> Look (shaped + ramp + modulation)
-    const rawLookX = pad.axes[2] ?? 0;
-    const rawLookY = pad.axes[3] ?? 0;
-    const [shapedLookX, shapedLookY] = shapeStick(rawLookX, rawLookY, {
-      deadzone: config.gamepadDeadzone,
-      saturation: STICK_SATURATION,
-      curve: config.gamepadLookCurve,
-    });
-
-    const deflection = Math.hypot(shapedLookX, shapedLookY);
-    this.rampProgress = advanceRamp(this.rampProgress, deflection, dt);
-    const currentRamp = rampScale(this.rampProgress);
-
-    const modulation = this.getAimModulation();
-    const [yawRate, pitchRate] = mapLookRates(
-      shapedLookX,
-      shapedLookY,
-      currentRamp,
-      {
-        sensitivity: config.gamepadLookSensitivity,
-        invertY: config.gamepadInvertY,
-      },
-      modulation,
+    this.sampler.sample(
+      frame,
+      dt,
+      snapshot,
+      config,
+      this.bindings,
+      this.getAimModulation(),
     );
-
-    frame.lookYaw -= yawRate * dt;
-    frame.lookPitch -= pitchRate * dt;
-
-    // Buttons
-    for (const [action, buttonIndex] of Object.entries(this.bindings.buttons)) {
-      const buttonAction = action as keyof typeof frame.buttons;
-      const button = pad.buttons[buttonIndex];
-      if (!button) continue;
-
-      const isTrigger =
-        buttonAction === "chargeThrow" || buttonAction === "aim";
-      const isPressed = isTrigger
-        ? button.value > 0.5 || button.pressed
-        : button.pressed;
-
-      if (isPressed) {
-        frame.buttons[buttonAction] = true;
-      }
-    }
   }
 
   public reset(): void {
-    this.rampProgress = 0;
+    this.sampler.reset();
   }
 }

@@ -32,6 +32,44 @@ describe("GamepadSource", () => {
     gamepadInvertY: false,
   };
 
+  it("skips a DualSense that WebHID has claimed, so it is not counted twice", () => {
+    const mockPads: (Gamepad | null)[] = [
+      createMockGamepad({
+        id: "DualSense Wireless Controller (054c:0ce6)",
+        axes: [0.8, 0, 0, 0],
+      }),
+    ];
+    const source = new GamepadSource({
+      getGamepads: () => mockPads,
+      getConfig: () => defaultConfig,
+      getIsHidClaimActive: () => true,
+    });
+
+    const frame = createEmptyFrame();
+    source.sample(frame, 0.016);
+
+    expect(frame.moveX).toBe(0);
+  });
+
+  it("still reads a non-DualSense pad while WebHID holds a DualSense", () => {
+    const mockPads: (Gamepad | null)[] = [
+      createMockGamepad({
+        id: "Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b12)",
+        axes: [0.8, 0, 0, 0],
+      }),
+    ];
+    const source = new GamepadSource({
+      getGamepads: () => mockPads,
+      getConfig: () => defaultConfig,
+      getIsHidClaimActive: () => true,
+    });
+
+    const frame = createEmptyFrame();
+    source.sample(frame, 0.016);
+
+    expect(frame.moveX).toBeGreaterThan(0);
+  });
+
   it("reads left stick movement with deadzone applied", () => {
     const mockPads: (Gamepad | null)[] = [
       createMockGamepad({ axes: [0.8, -0.6, 0, 0] }),
