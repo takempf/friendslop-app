@@ -18,15 +18,18 @@ const getAimModulation = (): typeof aimModulation => {
   return aimModulation;
 };
 
+const gamepadSource = new GamepadSource({
+  getAimModulation,
+});
+
 dualSenseHidSource.setAimModulationAccessor(getAimModulation);
+dualSenseHidSource.setGamepadApiActiveAccessor(() =>
+  gamepadSource.hasActivePad(),
+);
 
 export const inputManager: InputManager = new InputManager([
   new KeyboardMouseSource(),
-  new GamepadSource({
-    getAimModulation,
-    // A DualSense held over WebHID is sampled by its own source instead.
-    getIsHidClaimActive: () => dualSenseHidSource.ownsDevice(),
-  }),
+  gamepadSource,
   dualSenseHidSource,
 ]);
 

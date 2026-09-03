@@ -46,6 +46,8 @@ export interface DualSenseHidSourceOptions {
   getConfig?: () => DualSenseConfig;
   getAimModulation?: () => AimModulation;
   bindings?: GamepadBindings;
+  /** True when the Gamepad API is actively sampling a connected controller. */
+  getGamepadApiActive?: () => boolean;
 }
 
 const CALIBRATION_SAMPLES_TARGET = 64;
@@ -77,6 +79,7 @@ export class DualSenseHidSource implements InputSource {
   private readonly getHid: () => HID | undefined;
   private readonly getConfig: () => DualSenseConfig;
   private getAimModulation: () => AimModulation;
+  private getGamepadApiActive: () => boolean;
   private readonly bindings: GamepadBindings;
 
   private readonly sampler = new PadSampler();
@@ -133,7 +136,17 @@ export class DualSenseHidSource implements InputSource {
 
     this.getAimModulation =
       options.getAimModulation ?? ((): AimModulation => NO_AIM_MODULATION);
+    this.getGamepadApiActive =
+      options.getGamepadApiActive ?? ((): boolean => false);
     this.bindings = options.bindings ?? DEFAULT_GAMEPAD_BINDINGS;
+  }
+
+  /**
+   * Injects an accessor that checks if the Gamepad API is actively handling
+   * a connected controller, allowing this source to skip duplicate stick/button sampling.
+   */
+  public setGamepadApiActiveAccessor(accessor: () => boolean): void {
+    this.getGamepadApiActive = accessor;
   }
 
   /**
@@ -372,11 +385,12 @@ export class DualSenseHidSource implements InputSource {
     }
 
     const config = this.getConfig();
+    const isHandledByGamepadApi = this.getGamepadApiActive();
 
-    // Claiming the device over WebHID takes it away from the Gamepad API on
-    // some platforms, so this source owes the frame the whole controller —
-    // sticks and buttons included — not just the gyro it came for.
-    if (this.padSnapshot && config.gamepadEnabled) {
+    // If the Gamepad API already sampled this controller, leave sticks and
+    // buttons to GamepadSource so the pad behaves natively and without duplicate
+    // sampling. If the Gamepad API is empty or disconnected, drive them from WebHID.
+    if (!isHandledByGamepadApi && this.padSnapshot && config.gamepadEnabled) {
       this.sampler.sample(
         frame,
         dt,
@@ -393,12 +407,12 @@ export class DualSenseHidSource implements InputSource {
       dualsenseGyroInvertY,
     } = config;
 
-    // L2 alone arms the gyro. Charging a throw on R2 does not: the wind-up
-    // already shakes the controller, and steering the shot with that shake is
-    // exactly the drift the player would have to fight.
+    // L2 alone arms the gyro. Holding L2 either on the Gamepad API (frame.buttons.aim)
+    // or through WebHID directly gates the gyro contribution.
+    const isAiming = this.isL2Held || frame.buttons.aim;
     const shouldApplyGyro =
       dualsenseGyroMode === "always" ||
-      (dualsenseGyroMode === "aiming" && this.isL2Held);
+      (dualsenseGyroMode === "aiming" && isAiming);
 
     if (shouldApplyGyro) {
       const pitchSign = dualsenseGyroInvertY ? -1 : 1;

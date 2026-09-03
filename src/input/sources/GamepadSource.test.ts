@@ -247,4 +247,22 @@ describe("GamepadSource", () => {
       Math.abs(frameFullRamp.lookYaw),
     );
   });
+
+  it("tracks activePadSampled status via hasActivePad()", () => {
+    let mockPads: (Gamepad | null)[] = [createMockGamepad()];
+    const source = new GamepadSource({
+      getGamepads: () => mockPads,
+      getConfig: () => defaultConfig,
+    });
+
+    expect(source.hasActivePad()).toBe(false);
+
+    const frame = createEmptyFrame();
+    source.sample(frame, 0.016);
+    expect(source.hasActivePad()).toBe(true);
+
+    mockPads = [];
+    source.sample(frame, 0.016);
+    expect(source.hasActivePad()).toBe(false);
+  });
 });

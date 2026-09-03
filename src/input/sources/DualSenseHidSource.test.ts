@@ -489,4 +489,46 @@ describe("DualSenseHidSource", () => {
     expect(frame.lookYaw).toBe(0);
     expect(frame.lookPitch).toBe(0);
   });
+
+  it("suppresses sticks and buttons when Gamepad API is active, but still applies gyro", async () => {
+    const { source, device } = await createCalibratedSource({
+      dualsenseGyroMode: "always",
+    });
+    source.setGamepadApiActiveAccessor(() => true);
+
+    source.handleInputReport(
+      createUsbReportEvent(device, 2000, 2000, 0, 0, {
+        sticks: [255, 128, 128, 128], // full right on move stick
+        face: 1 << 5, // cross -> jump
+      }),
+    );
+
+    const frame = createEmptyFrame();
+    source.sample(frame, 1 / 60);
+
+    // Sticks and buttons are left to GamepadSource to avoid double-sampling
+    expect(frame.moveX).toBe(0);
+    expect(frame.buttons.jump).toBe(false);
+
+    // Gyroscope is still active and applied
+    expect(Math.abs(frame.lookYaw)).toBeGreaterThan(0);
+  });
+
+  it("arms gyro when aim button is active on incoming frame", async () => {
+    const { source, device } = await createCalibratedSource({
+      dualsenseGyroMode: "aiming",
+    });
+    source.setGamepadApiActiveAccessor(() => true);
+
+    // Trigger report with no raw L2 pressed
+    source.handleInputReport(createUsbReportEvent(device, 2000, 2000, 0, 0));
+
+    const frame = createEmptyFrame();
+    // Simulate GamepadSource having detected L2 (aim action)
+    frame.buttons.aim = true;
+
+    source.sample(frame, 1 / 60);
+
+    expect(Math.abs(frame.lookYaw)).toBeGreaterThan(0);
+  });
 });

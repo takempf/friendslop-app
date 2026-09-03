@@ -47,6 +47,11 @@ export class GamepadSource implements InputSource {
 
   private readonly sampler = new PadSampler();
   private hasWarnedNonStandard = false;
+  private activePadSampled = false;
+
+  public hasActivePad(): boolean {
+    return this.activePadSampled;
+  }
 
   constructor(options: GamepadSourceOptions = {}) {
     this.bindings = options.bindings ?? DEFAULT_GAMEPAD_BINDINGS;
@@ -90,6 +95,7 @@ export class GamepadSource implements InputSource {
   }
 
   public sample(frame: InputFrame, dt: number): void {
+    this.activePadSampled = false;
     if (isTextInputActive()) return;
 
     const config = this.getConfig();
@@ -113,6 +119,8 @@ export class GamepadSource implements InputSource {
       return;
     }
 
+    this.activePadSampled = true;
+
     const snapshot: PadSnapshot = {
       axes: pad.axes,
       buttons: pad.buttons.map((b) => (b.pressed ? Math.max(b.value, 1) : b.value)), // prettier-ignore
@@ -129,6 +137,7 @@ export class GamepadSource implements InputSource {
   }
 
   public reset(): void {
+    this.activePadSampled = false;
     this.sampler.reset();
   }
 }
