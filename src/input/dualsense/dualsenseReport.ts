@@ -135,15 +135,11 @@ function selectReportType(
   byteLength: number,
 ): DualSenseReportType | null {
   const type: DualSenseReportType | null =
-    reportId === BLUETOOTH_REPORT_ID
+    reportId === BLUETOOTH_REPORT_ID || byteLength >= BLUETOOTH_MIN_PAYLOAD
       ? "bluetooth"
-      : reportId === USB_REPORT_ID
+      : reportId === USB_REPORT_ID || reportId === 0
         ? "usb"
-        : reportId === 0
-          ? byteLength >= BLUETOOTH_MIN_PAYLOAD
-            ? "bluetooth"
-            : "usb"
-          : null;
+        : null;
 
   if (type === null) return null;
   return byteLength >= LAYOUTS[type].minLength ? type : null;
