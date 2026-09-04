@@ -114,10 +114,10 @@ const fragCRT = /* glsl */ `
   #endif
 
   uniform sampler2D tDiffuse;
-  uniform vec2 resolution;      // 640p_resolution
   uniform float time;
   uniform float scanlineIntensity;
-  uniform float scanlineCount;
+  uniform float cellHeight;
+  uniform float subpixelWidth;
   uniform float brightness;
   uniform float contrast;
   uniform float saturation;
@@ -152,32 +152,28 @@ const fragCRT = /* glsl */ `
     float lightingMask = 1.0;
 
     if (scanlineIntensity > 0.001) {
-      float scanlineY = vUv.y * scanlineCount;
+      float scanlineY = gl_FragCoord.y / cellHeight;
       float scanlinePattern = abs(sin((scanlineY - 0.25) * CRT_PI));
       lightingMask *= 1.0 - scanlinePattern * scanlineIntensity;
     }
 
     // RGB Shadow Mask (Staggered Phosphor Triads)
-    float maskCountY = scanlineCount;
-    // Scale X to maintain square cells regardless of aspect ratio
-    float maskCountX = scanlineCount * (resolution.x / resolution.y);
-    
-    // Offset Y by +0.25 so the physical mask row boundaries perfectly align with the darkest scanline gaps
-    vec2 maskPos = vec2(vUv.x * maskCountX, (vUv.y * maskCountY) + 0.25);
-    
-    // Stagger every other row by half a triad (which is 1.5 subpixels, or 0.5 of a triad)
-    if (mod(floor(maskPos.y), 2.0) == 0.0) {
-      maskPos.x += 0.5;
+    // Quantize to physical screen pixels to prevent phase drift and horizontal moire stripes
+    float maskRow = floor((gl_FragCoord.y + cellHeight * 0.25) / cellHeight);
+
+    // Stagger every other row by half a triad
+    float maskPixelX = gl_FragCoord.x;
+    if (mod(maskRow, 2.0) == 0.0) {
+      maskPixelX += cellHeight * 0.5;
     }
-    
-    // 3 subpixels per triad (R, G, B)
-    float subpixel = mod(floor(maskPos.x * 3.0), 3.0);
-    
+
+    int subpixel = int(mod(floor(maskPixelX / subpixelWidth), 3.0));
+
     vec3 shadowMask = vec3(0.5); // "Off" phosphor darkness level
-    if (subpixel == 0.0) shadowMask.r = 1.0;
-    else if (subpixel == 1.0) shadowMask.g = 1.0;
+    if (subpixel == 0) shadowMask.r = 1.0;
+    else if (subpixel == 1) shadowMask.g = 1.0;
     else shadowMask.b = 1.0;
-    
+
     // Boost by 1.5 to maintain overall average brightness (since mean of 1, 0.5, 0.5 is ~0.66)
     pixel.rgb *= shadowMask * 1.5;
 
@@ -230,6 +226,8 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
       uniforms: {
         tDiffuse: { value: null },
         resolution: { value: [w0, TARGET_HEIGHT] },
+        cellHeight: { value: 6.0 },
+        subpixelWidth: { value: 2.0 },
         scanlineIntensity: { value: 0.45 },
         scanlineCount: { value: scanlines * 1.0 },
         time: { value: 0.0 },
@@ -297,6 +295,15 @@ export function CRTRenderer({ scanlines }: { scanlines: number }) {
     const { matPost, matCRT, crtScene, crtCamera, quad } = crtRef.current!;
     if (matCRT.uniforms.scanlineCount.value !== scanlines) {
       matCRT.uniforms.scanlineCount.value = scanlines * 1.0;
+    }
+
+    const rawPeriod = scanlines > 0 ? gl.domElement.height / scanlines : 6.0;
+    const subpixelW = Math.max(1, Math.round(rawPeriod / 3));
+    const cellH = subpixelW * 3;
+
+    if (matCRT.uniforms.cellHeight.value !== cellH) {
+      matCRT.uniforms.cellHeight.value = cellH;
+      matCRT.uniforms.subpixelWidth.value = subpixelW;
     }
 
     // Rebuild render targets if aspect ratio or smoothing filter changes

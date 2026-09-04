@@ -27,7 +27,7 @@ type UiMode = "playing" | "chat" | "menu";
 const IDLE_CURSOR_TIMEOUT_MS = 3000;
 
 function CRTWrapper(): JSX.Element {
-  const scanlines = Math.floor(gameConfig.renderHeight / 6);
+  const scanlines = gameConfig.renderHeight / 6;
   return <CRTRenderer scanlines={scanlines} />;
 }
 
