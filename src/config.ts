@@ -4,9 +4,21 @@
 export const DUALSENSE_GYRO_MODES = ["aiming", "always", "disabled"] as const;
 export type DualSenseGyroMode = (typeof DUALSENSE_GYRO_MODES)[number];
 
+export const CRT_MASK_STYLES = ["aperture", "slot"] as const;
+export type CrtMaskStyle = (typeof CRT_MASK_STYLES)[number];
+
 type GameConfig = {
   crtEnabled: boolean;
   crtSmoothing: boolean;
+  crtMaskStyle: CrtMaskStyle;
+  /** Emissive phosphor bloom and halation strength (0.0 to 1.0) */
+  crtBloom: number;
+  /** Scanline beam gap depth (0.0 to 1.0) */
+  crtScanlines: number;
+  /** Electron gun beam convergence / chromatic aberration (0.0 to 1.0) */
+  crtRgbShift: number;
+  /** 60Hz cathode beam flicker */
+  crtFlicker: boolean;
   minThrowSpeed: number;
   maxThrowSpeed: number;
   throwArcDeg: number;
@@ -73,6 +85,11 @@ type GameConfig = {
 const LS = {
   crtEnabled: "friendslop_graphics_crtEnabled",
   crtSmoothing: "friendslop_graphics_crtSmoothing",
+  crtMaskStyle: "friendslop_graphics_crtMaskStyle",
+  crtBloom: "friendslop_graphics_crtBloom",
+  crtScanlines: "friendslop_graphics_crtScanlines",
+  crtRgbShift: "friendslop_graphics_crtRgbShift",
+  crtFlicker: "friendslop_graphics_crtFlicker",
   showFps: "friendslop_graphics_showFps",
   showPerf: "friendslop_graphics_showPerf",
   showClouds: "friendslop_graphics_showClouds",
@@ -129,6 +146,11 @@ const defaultRenderHeight = 1280;
 export const gameConfig: GameConfig = {
   crtEnabled: lsBool(LS.crtEnabled, true),
   crtSmoothing: lsBool(LS.crtSmoothing, true),
+  crtMaskStyle: lsEnum(LS.crtMaskStyle, CRT_MASK_STYLES, "slot"),
+  crtBloom: lsNum(LS.crtBloom, 0.7),
+  crtScanlines: lsNum(LS.crtScanlines, 0.28),
+  crtRgbShift: lsNum(LS.crtRgbShift, 0.25),
+  crtFlicker: lsBool(LS.crtFlicker, false),
   minThrowSpeed: 4.5, // m/s
   maxThrowSpeed: 15.0, // m/s
   throwArcDeg: 30, // degrees of upward arc bias added to throw
