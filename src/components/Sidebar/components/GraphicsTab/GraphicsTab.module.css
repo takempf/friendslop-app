@@ -59,3 +59,12 @@
   min-width: 40px;
   text-align: right;
 }
+
+.buttonGroup {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.buttonGroup > button {
+  flex: 1;
+}

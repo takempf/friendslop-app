@@ -73,6 +73,115 @@ export function GraphicsTab() {
       <div className={styles.section}>
         <div className={styles.paramRow}>
           <div className={styles.paramHeader}>
+            <span className={styles.paramLabel}>CRT Mask Style</span>
+          </div>
+          <div className={styles.buttonGroup}>
+            <Button
+              variant={
+                gameConfig.crtMaskStyle === "aperture" ? "accent" : "default"
+              }
+              size="sm"
+              disabled={!gameConfig.crtEnabled}
+              onClick={() => updateConfig("crtMaskStyle", "aperture")}
+            >
+              Aperture Grille
+            </Button>
+            <Button
+              variant={
+                gameConfig.crtMaskStyle === "slot" ? "accent" : "default"
+              }
+              size="sm"
+              disabled={!gameConfig.crtEnabled}
+              onClick={() => updateConfig("crtMaskStyle", "slot")}
+            >
+              Slot Mask
+            </Button>
+          </div>
+          <span className={styles.hint}>
+            Trinitron vertical stripes or classic staggered slot mask
+          </span>
+        </div>
+
+        <div className={styles.paramRow}>
+          <div className={styles.paramHeader}>
+            <span className={styles.paramLabel}>Scanline Intensity</span>
+            <span className={styles.paramValue}>
+              {Math.round(gameConfig.crtScanlines * 100)}%
+            </span>
+          </div>
+          <Slider
+            value={gameConfig.crtScanlines}
+            onChange={(v) => updateConfig("crtScanlines", v)}
+            min={0}
+            max={1}
+            step={0.05}
+            disabled={!gameConfig.crtEnabled}
+            variant="yellow"
+          />
+          <span className={styles.hint}>
+            Depth of the horizontal electron beam gaps
+          </span>
+        </div>
+
+        <div className={styles.paramRow}>
+          <div className={styles.paramHeader}>
+            <span className={styles.paramLabel}>CRT Bloom / Glow</span>
+            <span className={styles.paramValue}>
+              {Math.round(gameConfig.crtBloom * 100)}%
+            </span>
+          </div>
+          <Slider
+            value={gameConfig.crtBloom}
+            onChange={(v) => updateConfig("crtBloom", v)}
+            min={0}
+            max={1}
+            step={0.05}
+            disabled={!gameConfig.crtEnabled}
+            variant="yellow"
+          />
+          <span className={styles.hint}>
+            Emissive phosphor scatter and halation glow
+          </span>
+        </div>
+
+        <div className={styles.paramRow}>
+          <div className={styles.paramHeader}>
+            <span className={styles.paramLabel}>RGB Convergence</span>
+            <span className={styles.paramValue}>
+              {Math.round(gameConfig.crtRgbShift * 100)}%
+            </span>
+          </div>
+          <Slider
+            value={gameConfig.crtRgbShift}
+            onChange={(v) => updateConfig("crtRgbShift", v)}
+            min={0}
+            max={1}
+            step={0.05}
+            disabled={!gameConfig.crtEnabled}
+            variant="yellow"
+          />
+          <span className={styles.hint}>
+            Electron gun beam misalignment and chromatic fringe
+          </span>
+        </div>
+
+        <div className={styles.toggleRow}>
+          <div className={styles.toggleLabelGroup}>
+            <span className={styles.toggleLabel}>Cathode Flicker</span>
+            <span className={styles.hint}>Subtle 60Hz beam scan refresh</span>
+          </div>
+          <Button
+            variant={gameConfig.crtFlicker ? "accent" : "default"}
+            size="sm"
+            disabled={!gameConfig.crtEnabled}
+            onClick={() => updateConfig("crtFlicker", !gameConfig.crtFlicker)}
+          >
+            {gameConfig.crtFlicker ? "ON" : "OFF"}
+          </Button>
+        </div>
+
+        <div className={styles.paramRow}>
+          <div className={styles.paramHeader}>
             <span className={styles.paramLabel}>
               {gameConfig.crtEnabled
                 ? "CRT Output Resolution"
