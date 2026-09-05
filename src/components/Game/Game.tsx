@@ -26,7 +26,7 @@ type UiMode = "playing" | "chat" | "menu";
 
 const IDLE_CURSOR_TIMEOUT_MS = 3000;
 
-function CRTWrapper(): JSX.Element {
+function PostProcessingWrapper(): JSX.Element {
   const scanlines = gameConfig.renderHeight / 6;
   return <CRTRenderer scanlines={scanlines} />;
 }
@@ -255,7 +255,9 @@ export function Game(): JSX.Element {
             <SyncTicker />
           </Physics>
         </BasketballProvider>
-        {gameConfig.crtEnabled && <CRTWrapper />}
+        {(gameConfig.crtEnabled || gameConfig.ditherEnabled) && (
+          <PostProcessingWrapper />
+        )}
         {gameConfig.showFps && <Stats className={css.stats} />}
         {gameConfig.showPerf && <Perf position="top-left" />}
       </Canvas>

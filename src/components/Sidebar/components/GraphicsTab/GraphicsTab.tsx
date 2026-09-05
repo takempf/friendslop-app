@@ -5,10 +5,16 @@ import { Slider } from "@/components/ui/Slider/Slider";
 import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import styles from "./GraphicsTab.module.css";
 
-type ToggleKey = "crtEnabled" | "crtSmoothing" | "showFps" | "showPerf";
+type ToggleKey =
+  "crtEnabled" | "ditherEnabled" | "crtSmoothing" | "showFps" | "showPerf";
 
 const TOGGLES: { key: ToggleKey; label: string; sublabel?: string }[] = [
   { key: "crtEnabled", label: "CRT Filter" },
+  {
+    key: "ditherEnabled",
+    label: "Dither",
+    sublabel: "PS1 15-bit color dithering",
+  },
   { key: "crtSmoothing", label: "Smoothing", sublabel: "CRT texture filter" },
   { key: "showFps", label: "Show FPS" },
   {

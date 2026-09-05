@@ -9,6 +9,8 @@ export type CrtMaskStyle = (typeof CRT_MASK_STYLES)[number];
 
 type GameConfig = {
   crtEnabled: boolean;
+  /** PS1-style 15-bit color dithering */
+  ditherEnabled: boolean;
   crtSmoothing: boolean;
   crtMaskStyle: CrtMaskStyle;
   /** Emissive phosphor bloom and halation strength (0.0 to 1.0) */
@@ -84,6 +86,7 @@ type GameConfig = {
 // ── LocalStorage keys ────────────────────────────────────────────────────────
 const LS = {
   crtEnabled: "friendslop_graphics_crtEnabled",
+  ditherEnabled: "friendslop_graphics_ditherEnabled",
   crtSmoothing: "friendslop_graphics_crtSmoothing",
   crtMaskStyle: "friendslop_graphics_crtMaskStyle",
   crtBloom: "friendslop_graphics_crtBloom",
@@ -145,6 +148,7 @@ const defaultRenderHeight = 1280;
 
 export const gameConfig: GameConfig = {
   crtEnabled: lsBool(LS.crtEnabled, true),
+  ditherEnabled: lsBool(LS.ditherEnabled, true),
   crtSmoothing: lsBool(LS.crtSmoothing, true),
   crtMaskStyle: lsEnum(LS.crtMaskStyle, CRT_MASK_STYLES, "slot"),
   crtBloom: lsNum(LS.crtBloom, 0.7),
