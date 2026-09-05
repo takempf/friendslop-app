@@ -1,13 +1,14 @@
+import { EQUIPMENT } from "@/gameplay/equipment";
 import { useEffect, useRef, useMemo, useCallback } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRapier } from "@react-three/rapier";
 import * as THREE from "three";
 import { targetingSystem } from "./TargetingSystem";
-import { BasketballProvider } from "./providers/basketballProvider";
+import { EquipmentProvider } from "./providers/equipmentProvider";
 import { ResetButtonProvider } from "./providers/resetButtonProvider";
 import { HoopProvider } from "./providers/hoopProvider";
 import { reticleCircleElement } from "@/components/HUD/Reticle/reticleCircleElement";
-import { useBasketball } from "@/contexts/BasketballContext";
+import { useEquipment } from "@/gameplay/EquipmentContext";
 import { gameConfig } from "@/config";
 import { aimCursor } from "@/input/aimCursor";
 import { GROUND_RAY_COLLISION_GROUPS } from "@/constants/physics";
@@ -24,16 +25,16 @@ export function useTargeting(): void {
   const { camera, size } = useThree();
   const { rapier, world } = useRapier();
   const {
-    ballRefs,
-    heldBallRef,
+    bodyRefs,
+    heldEntityRef,
     grabCandidateRef,
     buttonCandidateRef,
     lastThrowRef,
-  } = useBasketball();
+  } = useEquipment();
 
   const basketballProvider = useMemo(
-    () => new BasketballProvider({ ballRefs, lastThrowRef }),
-    [ballRefs, lastThrowRef],
+    () => new EquipmentProvider({ bodyRefs, lastThrowRef }),
+    [bodyRefs, lastThrowRef],
   );
   const resetButtonProvider = useMemo(() => new ResetButtonProvider(), []);
   const hoopProvider = useMemo(() => new HoopProvider(), []);
@@ -84,7 +85,7 @@ export function useTargeting(): void {
   const ctxRef = useRef<TargetingContext>({
     camera,
     aspect: 1,
-    isHoldingBall: false,
+    isHoldingEquipment: false,
     cameraPosition: _cameraPos,
     isManualAiming: false,
     manualAimX: 0,
@@ -97,7 +98,8 @@ export function useTargeting(): void {
     const ctx = ctxRef.current;
     ctx.camera = camera;
     ctx.aspect = size.width / (size.height || 1);
-    ctx.isHoldingBall = heldBallRef.current !== -1;
+    ctx.isHoldingEquipment = heldEntityRef.current !== -1;
+    ctx.heldEquipmentKind = EQUIPMENT[heldEntityRef.current]?.kind;
     // The cursor is advanced by the input layer at priority -1, above.
     ctx.isManualAiming = aimCursor.active;
     ctx.manualAimX = aimCursor.x;
@@ -107,7 +109,7 @@ export function useTargeting(): void {
 
     // Publish the pick to the outline/interaction refs the basketball scene reads.
     grabCandidateRef.current =
-      state.targetKind === TARGET_KINDS.basketball ? state.targetIndex : -1;
+      state.targetKind === TARGET_KINDS.equipment ? state.targetIndex : -1;
     buttonCandidateRef.current = state.targetKind === TARGET_KINDS.resetButton;
 
     // Move the HUD circle in the same tick as the 3D camera, so it never trails it.
@@ -122,5 +124,5 @@ export function useTargeting(): void {
         ? "1"
         : `${0.6 + 0.4 * state.lock}`;
     }
-  });
+  }, -0.6);
 }

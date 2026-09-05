@@ -86,12 +86,12 @@ describe("computeHoopAimPoint", () => {
 
 describe("HoopProvider", () => {
   const createMockContext = (
-    isHoldingBall: boolean,
+    isHoldingEquipment: boolean,
     cameraPos: THREE.Vector3,
   ): TargetingContext => ({
     camera: new THREE.PerspectiveCamera(),
     aspect: 1,
-    isHoldingBall,
+    isHoldingEquipment,
     cameraPosition: cameraPos,
   });
 

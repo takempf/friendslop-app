@@ -1,3 +1,6 @@
+import { useEquipment } from "@/gameplay/EquipmentContext";
+import { EQUIPMENT } from "@/gameplay/equipment";
+import type { EquipmentBehaviors } from "@/gameplay/EquipmentBehavior";
 import { useRef, useEffect, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { SmoothedPointerLockControls } from "@/components/3d/SmoothedPointerLockControls/SmoothedPointerLockControls";
@@ -13,34 +16,17 @@ import { useInput } from "@/input/useInput";
 import { computeMoveDirection } from "@/input/movementMath";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import { audioManager } from "@/audio/AudioManager";
-import { useBasketball } from "@/contexts/BasketballContext";
-import {
-  BALL_RADIUS,
-  BALL_GATHER_ROTATION,
-  THREE_POINT_ARC_RADIUS,
-  THREE_POINT_CORNER_X,
-  HOOP_RIM_POS,
-} from "@/constants/basketball";
 import {
   PLAYER_COLLISION_GROUPS,
-  BALL_COLLISION_GROUPS,
-  HELD_BALL_COLLISION_GROUPS,
   GROUND_RAY_COLLISION_GROUPS,
   PLAYER_MASS,
 } from "@/constants/physics";
-import { gameConfig } from "@/config";
-import { pickAssistedDirection } from "@/targeting/throwCorrection";
-import { resolveAssistStrengths } from "@/targeting/assistPolicy";
-import { aimState } from "@/targeting/aimState";
-import { screenToWorldDirection } from "@/targeting/screenRay";
-import { TARGET_KINDS } from "@/targeting/types";
+import { EquipmentController } from "@/gameplay/EquipmentController";
 
 const SPEED = 5;
 const SPRINT_SPEED = 7.5;
 const CROUCH_SPEED = 2.5;
 const CROUCH_CAM_HEIGHT = 0.3; // eye level above body center when crouched (vs 0.83 standing)
-const MAX_CHARGE_TIME = 2.5; // seconds to reach full charge
-const GATHER_DURATION = 0.1; // seconds to complete gather rotation (100ms)
 
 // Jump - gravity is -9.81. v²/2g gives peak height.
 // JUMP_VELOCITY=4.4 -> ~1.0m peak (full hold). Early release cuts vy -> ~0.2m short hop.
@@ -50,14 +36,6 @@ const JUMP_CUT_MULT = 0.35; // vy multiplier on early space/button release
 const GROUND_RAY_LEN = 1.07;
 
 const _forward = new THREE.Vector3();
-const _right = new THREE.Vector3();
-const _holdPos = new THREE.Vector3();
-const _LOCAL_X_AXIS = new THREE.Vector3(1, 0, 0);
-const _WORLD_UP = new THREE.Vector3(0, 1, 0);
-const _gatherQuat = new THREE.Quaternion();
-const _heldBallRot = new THREE.Quaternion();
-const _ballGrabQuat = new THREE.Quaternion();
-
 // 12 equidistant spawn points in a circle centered in the gym (0,0,0)
 const SPAWN_POINTS: [number, number, number][] = Array.from(
   { length: 12 },
@@ -68,15 +46,17 @@ const SPAWN_POINTS: [number, number, number][] = Array.from(
   },
 );
 
-export function PlayerController() {
+export function PlayerController({
+  behaviors,
+  active,
+}: {
+  behaviors: EquipmentBehaviors;
+  active: boolean;
+}) {
   const ref = useRef<RapierRigidBody>(null);
   const input = useInput();
-  const {
-    remoteBallStates,
-    queuePresenceUpdate,
-    broadcastReset,
-    broadcastSoundEvent,
-  } = useGameSync();
+  const { heldEntityRef } = useEquipment();
+  const { queuePresenceUpdate } = useGameSync();
   const lastAudioSyncTime = useRef(0);
   const [spawnPoint] = useState(
     () => SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)],
@@ -84,24 +64,7 @@ export function PlayerController() {
 
   const { camera } = useThree();
 
-  // Basketball pick-up / throw state
   const { rapier, world } = useRapier();
-  const {
-    ballRefs,
-    mainMeshRefs,
-    heldBallRef,
-    ownedBallIds,
-    ballOwnerVersions,
-    grabCandidateRef,
-    buttonCandidateRef,
-    lastThrowRef,
-    ballShotPoints,
-    releaseBallFromRack,
-  } = useBasketball();
-
-  const qPressTime = useRef(0);
-  const throwCharge = useRef(0);
-  const heldBallRelativeQuat = useRef(new THREE.Quaternion());
 
   // Camera lean (roll when strafing)
   const leanRef = useRef(0);
@@ -113,37 +76,24 @@ export function PlayerController() {
   const SPRINT_FOV_MULT = 1.15;
   const fovRef = useRef(90);
 
-  // Dribble state
-  const dribbleTime = useRef(0);
-  const dribbleBlend = useRef(0); // 0 = held still, 1 = dribbling
-  const dribbleSide = useRef(1); // -1 = left, 1 = right (smoothly interpolated)
-  const holdLift = useRef(0); // 0 = idle (low), 1 = shooting (raised)
-  const prevDribbleSin = useRef(0); // sign of sin(dribbleTime) last frame - for floor-contact detection
-
   // Crouch state (0 = standing, 1 = fully crouched)
   const crouchRef = useRef(0);
 
   // Last XZ position where the player was grounded - used to determine shot value (2 vs 3 pts)
   const lastGroundPos = useRef<[number, number]>([0, 0]);
 
-  // DOM refs for throw meter - updated imperatively in useFrame (no re-renders)
-  const meterEl = useRef<HTMLDivElement | null>(null);
-  const meterFillEl = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     camera.rotation.set(0, 0, 0);
   }, [camera]);
 
-  useEffect(() => {
-    meterEl.current = document.getElementById("throw-meter") as HTMLDivElement;
-    meterFillEl.current = document.getElementById(
-      "throw-meter-fill",
-    ) as HTMLDivElement;
-  }, []);
-
   useFrame((state, delta) => {
     if (!ref.current) return;
 
+    if (!active) {
+      const v = ref.current.linvel();
+      ref.current.setLinvel({ x: 0, y: v.y, z: 0 }, true);
+      return;
+    }
     const frame = input.getFrame();
     const isMoving = Math.hypot(frame.moveX, frame.moveY) > 0.1;
 
@@ -199,6 +149,11 @@ export function PlayerController() {
     );
 
     const pos = ref.current.translation();
+    if (pos.y < -8) {
+      ref.current.setTranslation({ x: 0, y: 3, z: 0 }, true);
+      ref.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      return;
+    }
     const camHeight =
       CROUCH_CAM_HEIGHT + (0.83 - CROUCH_CAM_HEIGHT) * (1 - crouchRef.current);
     state.camera.position.set(pos.x, pos.y + camHeight, pos.z);
@@ -250,267 +205,6 @@ export function PlayerController() {
       }
     }
 
-    // --- Basketball pick-up / drop / reset button (interact action) ---
-    if (input.justPressed("interact")) {
-      if (heldBallRef.current !== -1) {
-        // Drop the ball - restore dynamic physics and ball collision groups
-        const held = ballRefs.current[heldBallRef.current];
-        if (held) {
-          held.setBodyType(rapier.RigidBodyType.Dynamic, true);
-          held.setGravityScale(1, true);
-          held.setLinvel({ x: 0, y: 0, z: 0 }, true);
-          held.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
-        }
-        heldBallRef.current = -1;
-      } else {
-        const nearestIdx = grabCandidateRef.current;
-
-        if (nearestIdx !== -1) {
-          releaseBallFromRack(nearestIdx);
-          heldBallRef.current = nearestIdx;
-          ownedBallIds.current.add(nearestIdx);
-
-          const remoteVersion =
-            remoteBallStates.current.get(nearestIdx)?.ownerVersion || 0;
-          const localVersion = ballOwnerVersions.current.get(nearestIdx) || 0;
-          const newVersion = Math.max(remoteVersion, localVersion) + 1;
-          ballOwnerVersions.current.set(nearestIdx, newVersion);
-
-          const ball = ballRefs.current[nearestIdx];
-          if (ball) {
-            // Switch to kinematic and filter collisions against holder
-            ball.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
-            ball.collider(0)?.setCollisionGroups(HELD_BALL_COLLISION_GROUPS);
-            const rot = ball.rotation();
-            _ballGrabQuat.set(rot.x, rot.y, rot.z, rot.w);
-            heldBallRelativeQuat.current
-              .copy(state.camera.quaternion)
-              .invert()
-              .multiply(_ballGrabQuat);
-          }
-        } else if (buttonCandidateRef.current) {
-          broadcastReset();
-        }
-      }
-    }
-
-    // --- Throw charge (chargeThrow action) ---
-    const isHoldingBall = heldBallRef.current !== -1;
-    const isCharging = input.pressed("chargeThrow") && isHoldingBall;
-
-    if (input.justPressed("chargeThrow") && isHoldingBall) {
-      qPressTime.current = performance.now();
-    }
-
-    if (isCharging) {
-      throwCharge.current = Math.min(
-        (performance.now() - qPressTime.current) / 1000 / MAX_CHARGE_TIME,
-        1,
-      );
-    }
-
-    if (input.justReleased("chargeThrow") && isHoldingBall) {
-      // Throw ball
-      const ball = ballRefs.current[heldBallRef.current];
-      if (ball) {
-        const { minThrowSpeed, maxThrowSpeed, throwArcDeg, throwSpinMult } =
-          gameConfig;
-        const throwSpeed =
-          minThrowSpeed + (maxThrowSpeed - minThrowSpeed) * throwCharge.current;
-
-        _forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion);
-
-        if (
-          aimState.isManualAiming &&
-          (aimState.screenX !== 0 || aimState.screenY !== 0)
-        ) {
-          // Manual aim throws through the reticle, wherever the player put it.
-          screenToWorldDirection(
-            state.camera,
-            aimState.screenX,
-            aimState.screenY,
-            state.size.width / (state.size.height || 1),
-            _forward,
-          );
-        } else {
-          // Apply aim assist direction correction when locked onto a target
-          const targetPoint =
-            aimState.targetKind === TARGET_KINDS.hoop && aimState.targetPoint
-              ? aimState.targetPoint
-              : null;
-
-          const { yaw: assistYaw, pitch: assistPitch } = resolveAssistStrengths(
-            input.getActiveDevice(),
-            gameConfig,
-          );
-
-          pickAssistedDirection(
-            _forward,
-            targetPoint,
-            state.camera.position,
-            assistYaw,
-            assistPitch,
-            _forward,
-          );
-        }
-
-        _right.crossVectors(_forward, _WORLD_UP).normalize();
-
-        const arcRad = (throwArcDeg * Math.PI) / 180;
-        const cosA = Math.cos(arcRad),
-          sinA = Math.sin(arcRad);
-        const upX = _right.y * _forward.z - _right.z * _forward.y;
-        const upY = _right.z * _forward.x - _right.x * _forward.z;
-        const upZ = _right.x * _forward.y - _right.y * _forward.x;
-        ball.setBodyType(rapier.RigidBodyType.Dynamic, true);
-        ball.setGravityScale(1, true);
-        ball.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
-        ball.setLinvel(
-          {
-            x: (_forward.x * cosA + upX * sinA) * throwSpeed,
-            y: (_forward.y * cosA + upY * sinA) * throwSpeed,
-            z: (_forward.z * cosA + upZ * sinA) * throwSpeed,
-          },
-          true,
-        );
-        ball.setAngvel(
-          {
-            x: _right.x * throwSpeed * throwSpinMult,
-            y: _right.y * throwSpeed * throwSpinMult,
-            z: _right.z * throwSpeed * throwSpinMult,
-          },
-          true,
-        );
-
-        // Determine shot value based on where feet last touched the ground
-        const [gx, gz] = lastGroundPos.current;
-        const dx = gx - HOOP_RIM_POS.x;
-        const dz = gz - HOOP_RIM_POS.z;
-        const dist2D = Math.sqrt(dx * dx + dz * dz);
-        const isThree =
-          dist2D >= THREE_POINT_ARC_RADIUS ||
-          Math.abs(dx) >= THREE_POINT_CORNER_X;
-        ballShotPoints.current.set(heldBallRef.current, isThree ? 3 : 2);
-      }
-      lastThrowRef.current = {
-        idx: heldBallRef.current,
-        time: performance.now(),
-      };
-      heldBallRef.current = -1;
-      throwCharge.current = 0;
-    } else if (!isHoldingBall) {
-      throwCharge.current = 0;
-    }
-
-    // --- Update held ball position (hold still or dribble) ---
-    if (heldBallRef.current !== -1) {
-      const ball = ballRefs.current[heldBallRef.current];
-      if (ball) {
-        const isMoving = Math.abs(moveVel.x) > 0.1 || Math.abs(moveVel.z) > 0.1;
-        const targetBlend = isMoving && !isCharging ? 1 : 0;
-        dribbleBlend.current +=
-          (targetBlend - dribbleBlend.current) * Math.min(delta * 8, 1);
-
-        _forward.set(0, 0, -1).applyQuaternion(state.camera.quaternion);
-        _right.set(1, 0, 0).applyQuaternion(state.camera.quaternion);
-
-        // Hold position: slightly in front of camera
-        _holdPos
-          .copy(state.camera.position)
-          .addScaledVector(_forward, BALL_RADIUS * 2 + 0.55);
-        const holdX = _holdPos.x;
-        const targetLift = isCharging ? 1 : 0;
-        holdLift.current +=
-          (targetLift - holdLift.current) * Math.min(delta * 8, 1);
-        const holdY = _holdPos.y - 0.15 - (1 - holdLift.current) * 0.2;
-        const holdZ = _holdPos.z;
-
-        // Determine dribble side: continuous from analog strafing
-        let targetSide = dribbleSide.current;
-        if (frame.moveX > 0.1) targetSide = 1;
-        else if (frame.moveX < -0.1) targetSide = -1;
-        dribbleSide.current +=
-          (targetSide - dribbleSide.current) * Math.min(delta * 5, 1);
-
-        // Dribble position: to the side (based on dribbleSide), bouncing on the floor
-        if (isMoving && !isCharging) {
-          dribbleTime.current += delta * Math.PI * 2.2;
-        }
-        const bounceT = Math.pow(Math.abs(Math.sin(dribbleTime.current)), 0.4);
-        const floorY = pos.y - 1 + BALL_RADIUS;
-        const hipY = holdY;
-        const side = dribbleSide.current;
-        const dribbleX =
-          state.camera.position.x + _right.x * 0.5 * side + _forward.x * 0.6;
-        const dribbleY = floorY + (hipY - floorY) * bounceT;
-        const dribbleZ =
-          state.camera.position.z + _right.z * 0.5 * side + _forward.z * 0.6;
-
-        // Floor-contact sound: detect when sin(dribbleTime) changes sign
-        const sinT = Math.sin(dribbleTime.current);
-        if (prevDribbleSin.current * sinT < 0 && dribbleBlend.current > 0.25) {
-          const impactSpeed = 3.2 + dribbleBlend.current * 1.2;
-          const bouncePos: [number, number, number] = [
-            dribbleX,
-            floorY,
-            dribbleZ,
-          ];
-          audioManager.playBounceSound(bouncePos, "floor", impactSpeed);
-          broadcastSoundEvent({
-            id: (Date.now() * 1000 + Math.random() * 1000) | 0,
-            pos: bouncePos,
-            surface: "floor",
-            speed: impactSpeed,
-          });
-        }
-        prevDribbleSin.current = sinT;
-
-        const b = dribbleBlend.current;
-        const finalX = holdX + (dribbleX - holdX) * b;
-        const finalY = holdY + (dribbleY - holdY) * b;
-        const finalZ = holdZ + (dribbleZ - holdZ) * b;
-        ball.setNextKinematicTranslation({
-          x: finalX,
-          y: finalY,
-          z: finalZ,
-        });
-
-        // Gather rotation: rotate backward around camera's horizontal axis
-        const gatherProgress = isCharging
-          ? Math.min(
-              (performance.now() - qPressTime.current) / 1000 / GATHER_DURATION,
-              1,
-            )
-          : 0;
-        const gatherAngle = gatherProgress * BALL_GATHER_ROTATION;
-        _gatherQuat.setFromAxisAngle(_LOCAL_X_AXIS, gatherAngle);
-        _heldBallRot
-          .copy(state.camera.quaternion)
-          .multiply(_gatherQuat)
-          .multiply(heldBallRelativeQuat.current);
-        ball.setNextKinematicRotation(_heldBallRot);
-
-        // Directly override Three.js group transform after Rapier's sync, eliminating the one-step render lag
-        const mesh = mainMeshRefs.current[heldBallRef.current];
-        if (mesh?.parent) {
-          mesh.parent.position.set(finalX, finalY, finalZ);
-          mesh.parent.quaternion.copy(_heldBallRot);
-        }
-      }
-    }
-
-    // --- Throw meter UI (imperative DOM, no re-renders) ---
-    if (meterEl.current && meterFillEl.current) {
-      meterEl.current.style.display = throwCharge.current > 0 ? "flex" : "none";
-      if (throwCharge.current > 0) {
-        const pct = throwCharge.current * 100;
-        meterFillEl.current.style.width = `${pct}%`;
-        // hue: 120 (green) -> 60 (yellow) -> 0 (red) as charge grows
-        const hue = Math.round((1 - throwCharge.current) * 120);
-        meterFillEl.current.style.background = `hsl(${hue}, 90%, 45%)`;
-      }
-    }
-
     // --- Sync & audio ---
     const now = performance.now();
     const p = state.camera.position;
@@ -536,11 +230,30 @@ export function PlayerController() {
         audioManager.setRoom("gym");
       }
     }
-  });
+  }, -0.8);
 
   return (
     <>
-      <SmoothedPointerLockControls leanRef={leanRef} />
+      <EquipmentController
+        active={active}
+        lastGroundPos={lastGroundPos}
+        behaviors={behaviors}
+      />
+      <SmoothedPointerLockControls
+        leanRef={leanRef}
+        captureLook={(frame) => {
+          const heldId = active ? heldEntityRef.current : -1;
+          const kind = EQUIPMENT[heldId]?.kind;
+          let captured = false;
+          for (const [key, behavior] of Object.entries(behaviors)) {
+            captured =
+              (behavior.captureLook?.(frame, key === kind ? heldId : -1) ??
+                false) ||
+              captured;
+          }
+          return captured;
+        }}
+      />
       <RigidBody
         ref={ref}
         position={spawnPoint}

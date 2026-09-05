@@ -1,13 +1,15 @@
+import { useBasketballShotPoints } from "@/games/basketball/BasketballRules";
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, type RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { useBasketball } from "@/contexts/BasketballContext";
+import { useEquipment } from "@/gameplay/EquipmentContext";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import { getPlayerLightColor } from "@/utils/colors";
 import { gameConfig } from "@/config";
 import { BasketballNet } from "@/components/3d/BasketballNet/BasketballNet";
 import {
+  BALL_COUNT,
   BOARD_Z,
   BOARD_THICKNESS,
   BOARD_FRONT_FACE_Z,
@@ -20,8 +22,9 @@ import {
 } from "@/constants/basketball";
 
 export function BasketballHoop() {
-  const { ballRefs, ownedBallIds, ballShotPoints } = useBasketball();
-  const { myId, myColorIndex, remoteBallStates, getPlayers, broadcastScore } =
+  const { bodyRefs, ownedEntityIds } = useEquipment();
+  const ballShotPoints = useBasketballShotPoints();
+  const { myId, myColorIndex, remoteEntityStates, getPlayers, broadcastScore } =
     useGameSync();
   const [scored, setScored] = useState(false);
   const scoredTimer = useRef(0);
@@ -70,8 +73,8 @@ export function BasketballHoop() {
         rimRbRef.current.collider(i).setRestitution(gameConfig.rimRestitution);
     }
 
-    ballRefs.current.forEach((ballRef, i) => {
-      if (!ballRef) return;
+    bodyRefs.current.forEach((ballRef, i) => {
+      if (!ballRef || i >= BALL_COUNT) return;
       const pos = ballRef.translation();
       const vel = ballRef.linvel();
 
@@ -102,10 +105,10 @@ export function BasketballHoop() {
           // Determine scorer's clientId and display color
           let scorerClientId = myId;
           let scorerColorIdx = myColorIndex; // used only for the flash color
-          const isLocalBall = ownedBallIds.current.has(i);
+          const isLocalBall = ownedEntityIds.current.has(i);
           if (!isLocalBall) {
             // Ball is owned by a remote player
-            const remote = remoteBallStates.current.get(i);
+            const remote = remoteEntityStates.current.get(i);
             if (remote) {
               scorerClientId = remote.ownerId;
               const owner = getPlayers().get(remote.ownerId);

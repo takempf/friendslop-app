@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useBasketball } from "@/contexts/BasketballContext";
+import { useEquipment } from "@/gameplay/EquipmentContext";
 import { sharedOutlineMat, sharedStrokeMat } from "@/utils/outlineMaterial";
 import { RESET_BUTTON_POS } from "@/constants/basketball";
 
@@ -32,7 +32,7 @@ const labelTexture = createLabelTexture();
 const buttonBox = new THREE.BoxGeometry(BUTTON_W, BUTTON_H, BUTTON_D);
 
 export function ResetButton() {
-  const { buttonCandidateRef } = useBasketball();
+  const { buttonCandidateRef } = useEquipment();
   const outlineRef = useRef<THREE.Mesh>(null);
   const strokeRef = useRef<THREE.Mesh>(null);
 

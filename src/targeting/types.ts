@@ -7,7 +7,7 @@ import type * as THREE from "three";
  * providers of their own invented kinds.
  */
 export const TARGET_KINDS = {
-  basketball: "basketball",
+  equipment: "equipment",
   hoop: "hoop",
   resetButton: "resetButton",
 } as const;
@@ -31,7 +31,8 @@ export interface TargetCandidate {
 export interface TargetingContext {
   camera: THREE.Camera;
   aspect: number;
-  isHoldingBall: boolean;
+  isHoldingEquipment: boolean;
+  heldEquipmentKind?: string;
   /** Camera/eye world position, resolved once per frame and shared by every stage. */
   cameraPosition: THREE.Vector3;
   /** Whether the user is holding the manual aim trigger/button (L2 / aim). */

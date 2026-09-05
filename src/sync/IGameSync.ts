@@ -1,11 +1,12 @@
+import type { ISharedWorld } from "./ISharedWorld";
 export interface PlayerState {
   position?: [number, number, number];
   rotation?: [number, number, number];
   name?: string;
   colorIndex?: number;
   emojiIndex?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  webrtcId?: string;
+  entityStates?: Record<number, EntitySnapshot>;
 }
 
 export interface ChatMessage {
@@ -18,12 +19,15 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export interface RemoteBallState {
+export interface EntitySnapshot {
   pos: [number, number, number];
   rot: [number, number, number, number];
   vel: [number, number, number];
   angvel: [number, number, number];
   held?: boolean;
+  sequence?: number;
+  /** Opaque game-owned state travels with the entity across ownership changes. */
+  gameData?: Record<string, unknown>;
   ownerVersion?: number;
 }
 
@@ -36,6 +40,7 @@ export interface SoundEvent {
 }
 
 export interface IGameSync {
+  readonly world: ISharedWorld;
   connect(roomName: string, localStream?: MediaStream): Promise<void>;
   disconnect(): void;
   setLocalStream?(stream: MediaStream): void;
@@ -53,9 +58,9 @@ export interface IGameSync {
     position: [number, number, number],
     rotation: [number, number, number],
   ) => void;
-  onBallStatesReceived: (
+  onEntityStatesReceived: (
     ownerId: number,
-    states: Record<number, RemoteBallState>,
+    states: Record<number, EntitySnapshot>,
   ) => void;
 
   onPlayerStream: (clientId: number, stream: MediaStream) => void;

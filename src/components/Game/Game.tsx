@@ -1,13 +1,15 @@
+import { PHYSICS_PRIORITY } from "@/gameplay/frameOrder";
 import { useRef, useState, useEffect, useCallback, type JSX } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Perf } from "r3f-perf";
 import { Physics } from "@react-three/rapier";
 import { SchoolEnvironment } from "@/components/3d/SchoolEnvironment/SchoolEnvironment";
-import { PlayerController } from "@/components/3d/PlayerController/PlayerController";
+import { FirstPersonPlayer } from "@/games/FirstPersonPlayer";
+import { BasketballRules } from "@/games/basketball/BasketballRules";
 import { RemotePlayers } from "@/components/3d/RemotePlayers/RemotePlayers";
-import { BasketballProvider } from "@/contexts/BasketballContext";
-import { BasketballSync } from "@/components/3d/BasketballSync/BasketballSync";
+import { EquipmentProvider } from "@/gameplay/EquipmentContext";
+import { EquipmentSync } from "@/gameplay/EquipmentSync";
 import { SyncTicker } from "@/components/3d/SyncTicker/SyncTicker";
 import { CRTRenderer } from "@/components/3d/CRTRenderer/CRTRenderer";
 import { PartlyCloudySky } from "@/components/3d/PartlyCloudySky/PartlyCloudySky";
@@ -245,16 +247,18 @@ export function Game(): JSX.Element {
       >
         <RenderResolution />
         <PartlyCloudySky />
-        <BasketballProvider>
-          <Physics gravity={[0, -9.81, 0]}>
-            <TargetingManager />
-            <SchoolEnvironment />
-            <PlayerController />
-            <RemotePlayers />
-            <BasketballSync />
-            <SyncTicker />
-          </Physics>
-        </BasketballProvider>
+        <EquipmentProvider>
+          <BasketballRules>
+            <Physics gravity={[0, -9.81, 0]} updatePriority={PHYSICS_PRIORITY}>
+              <TargetingManager />
+              <SchoolEnvironment />
+              <FirstPersonPlayer active={mode === "playing"} />
+              <RemotePlayers />
+              <EquipmentSync />
+              <SyncTicker />
+            </Physics>
+          </BasketballRules>
+        </EquipmentProvider>
         {(gameConfig.crtEnabled || gameConfig.ditherEnabled) && (
           <PostProcessingWrapper />
         )}

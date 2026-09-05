@@ -1,8 +1,8 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useBasketball } from "@/contexts/BasketballContext";
-import { RIM_RADIUS, BALL_RADIUS } from "@/constants/basketball";
+import { useEquipment } from "@/gameplay/EquipmentContext";
+import { RIM_RADIUS, BALL_RADIUS, BALL_COUNT } from "@/constants/basketball";
 
 interface NetProps {
   position: [number, number, number];
@@ -35,7 +35,7 @@ interface RingState {
 }
 
 export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
-  const { ballRefs } = useBasketball();
+  const { bodyRefs } = useEquipment();
   const geometryRef = useRef<THREE.CylinderGeometry>(null);
 
   const ringsRef = useRef<RingState[] | null>(null);
@@ -69,7 +69,7 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
     // that cheap test is all we run on a quiet frame.
     if (restFramesRef.current >= REST_FRAMES) {
       let ballNear = false;
-      for (const ballRef of ballRefs.current) {
+      for (const ballRef of bodyRefs.current.slice(0, BALL_COUNT)) {
         if (!ballRef) continue;
         const localBallY = ballRef.translation().y - posY;
         if (
@@ -133,7 +133,7 @@ export function BasketballNet({ position: [posX, posY, posZ] }: NetProps) {
 
     // 2. Interact with basketballs
     const netWorldY = posY;
-    ballRefs.current.forEach((ballRef) => {
+    bodyRefs.current.slice(0, BALL_COUNT).forEach((ballRef) => {
       if (!ballRef) return;
       const pos = ballRef.translation();
       const vel = ballRef.linvel();

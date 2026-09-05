@@ -52,7 +52,10 @@ export class HoopProvider implements TargetProvider {
   }
 
   public isActive(ctx: TargetingContext): boolean {
-    return ctx.isHoldingBall;
+    return (
+      ctx.isHoldingEquipment &&
+      (!ctx.heldEquipmentKind || ctx.heldEquipmentKind === "basketball")
+    );
   }
 
   public collect(ctx: TargetingContext, out: TargetCandidate[]): void {

@@ -18,7 +18,7 @@ describe("pickTarget ranking", () => {
     ctx = {
       camera,
       aspect: 1.0,
-      isHoldingBall: false,
+      isHoldingEquipment: false,
       cameraPosition: new THREE.Vector3(0, 0, 0),
     };
 

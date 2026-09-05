@@ -25,7 +25,7 @@ describe("TargetingSystem", () => {
     ctx = {
       camera,
       aspect: 1.0,
-      isHoldingBall: false,
+      isHoldingEquipment: false,
       cameraPosition: new THREE.Vector3(0, 0, 0),
     };
 
@@ -73,7 +73,7 @@ describe("TargetingSystem", () => {
   it("swaps active providers when hold state changes", () => {
     const ballProvider: TargetProvider = {
       kind: "basketball",
-      isActive: (c) => !c.isHoldingBall,
+      isActive: (c) => !c.isHoldingEquipment,
       collect: (_ctx, out) => {
         out.push({
           id: "ball:0",
@@ -85,7 +85,7 @@ describe("TargetingSystem", () => {
 
     const hoopProvider: TargetProvider = {
       kind: "hoop",
-      isActive: (c) => c.isHoldingBall,
+      isActive: (c) => c.isHoldingEquipment,
       collect: (_ctx, out) => {
         out.push({
           id: "hoop",
@@ -99,13 +99,13 @@ describe("TargetingSystem", () => {
     system.registerProvider(hoopProvider);
 
     // Empty handed
-    ctx.isHoldingBall = false;
+    ctx.isHoldingEquipment = false;
     let state = system.update(ctx, config, 0.016);
     expect(state.targetId).toBe("ball:0");
     expect(state.targetKind).toBe("basketball");
 
     // Holding ball -> switches to hoop
-    ctx.isHoldingBall = true;
+    ctx.isHoldingEquipment = true;
     state = system.update(ctx, config, 0.016);
     expect(state.targetId).toBe("hoop");
     expect(state.targetKind).toBe("hoop");

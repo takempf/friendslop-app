@@ -12,7 +12,7 @@ export interface AssistStrengths {
  *
  * Friction applies only while locked onto a hoop target. The "player is holding a ball"
  * half of that condition is enforced upstream by `HoopProvider.isActive`, which only
- * emits the hoop candidate when `ctx.isHoldingBall` — so a hoop lock implies a held ball.
+ * emits the hoop candidate when `ctx.isHoldingEquipment` — so a hoop lock implies a held ball.
  */
 export function resolveSlowdown(
   aim: Pick<AimState, "lock" | "targetKind">,

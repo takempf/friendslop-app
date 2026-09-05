@@ -1,3 +1,4 @@
+import { compareSnapshots, validSnapshot } from "@/gameplay/replication";
 import React, {
   createContext,
   useContext,
@@ -9,7 +10,7 @@ import type {
   IGameSync,
   PlayerState,
   ChatMessage,
-  RemoteBallState,
+  EntitySnapshot,
   SoundEvent,
 } from "./IGameSync";
 import { YjsWebRtcAdapter } from "./YjsWebRtcAdapter";
@@ -32,8 +33,8 @@ interface SyncContextType {
   myName: string;
   myColorIndex: number;
   myEmojiIndex: number;
-  remoteBallStates: React.RefObject<
-    Map<number, RemoteBallState & { ownerId: number }>
+  remoteEntityStates: React.RefObject<
+    Map<number, EntitySnapshot & { ownerId: number }>
   >;
   pendingPresenceRef: React.RefObject<Partial<PlayerState>>;
   queuePresenceUpdate: (patch: Partial<PlayerState>) => void;
@@ -54,7 +55,7 @@ const SyncContext = createContext<SyncContextType>({
   myName: "Connecting...",
   myColorIndex: 0,
   myEmojiIndex: 0,
-  remoteBallStates: { current: new Map() },
+  remoteEntityStates: { current: new Map() },
   pendingPresenceRef: { current: {} },
   queuePresenceUpdate: () => {},
   broadcastReset: () => {},
@@ -77,8 +78,8 @@ export function GameSyncProvider({
   // useMemo guarantees a single synchronous instantiation without breaking render or state mutation rules
   const sync = React.useMemo(() => new YjsWebRtcAdapter(), []);
   const playersRef = useRef<Map<number, PlayerState>>(new Map());
-  const remoteBallStates = useRef<
-    Map<number, RemoteBallState & { ownerId: number }>
+  const remoteEntityStates = useRef<
+    Map<number, EntitySnapshot & { ownerId: number }>
   >(new Map());
   const pendingPresenceRef = useRef<Partial<PlayerState>>({});
   const queuePresenceUpdate = React.useCallback(
@@ -122,9 +123,7 @@ export function GameSyncProvider({
       playersRef.current.delete(id);
       updatePeersList();
       audioManager.removeRemoteStream(id);
-      for (const [ballId, state] of remoteBallStates.current.entries()) {
-        if (state.ownerId === id) remoteBallStates.current.delete(ballId);
-      }
+      // Keep checkpoints after disconnect; the elected peer recovers orphaned bodies.
     };
 
     adapter.onPlayerUpdate = (id: number, state: PlayerState) => {
@@ -136,9 +135,14 @@ export function GameSyncProvider({
       updatePeersList();
     };
 
-    adapter.onBallStatesReceived = (ownerId, states) => {
+    adapter.onEntityStatesReceived = (ownerId, states) => {
       for (const [ballId, state] of Object.entries(states)) {
-        remoteBallStates.current.set(Number(ballId), { ...state, ownerId });
+        if (!validSnapshot(state)) continue;
+        const incoming = { ...state, ownerId };
+        const existing = remoteEntityStates.current.get(Number(ballId));
+        if (!existing || compareSnapshots(incoming, existing) > 0) {
+          remoteEntityStates.current.set(Number(ballId), incoming);
+        }
       }
     };
 
@@ -174,6 +178,17 @@ export function GameSyncProvider({
     adapter.onSoundEvent = ({ pos, surface, speed }) => {
       audioManager.playBounceSound(pos, surface, speed);
     };
+
+    const loadCheckpoints = () => {
+      adapter.world.getEntities().forEach((state, id) => {
+        if (state.ownerId === adapter.myId) return;
+        const old = remoteEntityStates.current.get(id);
+        if (!old || compareSnapshots(state, old) > 0)
+          remoteEntityStates.current.set(id, state);
+      });
+    };
+    const unsubEntities = adapter.world.subscribeEntities(loadCheckpoints);
+    loadCheckpoints();
 
     const unsubChat = adapter.subscribeToChat(setChatMessages);
 
@@ -218,6 +233,7 @@ export function GameSyncProvider({
     return () => {
       isCancelled = true;
       unsubChat();
+      unsubEntities();
       adapter.disconnect();
     };
   }, [roomName, sync]);
@@ -256,7 +272,7 @@ export function GameSyncProvider({
         myName: sync.myName,
         myColorIndex,
         myEmojiIndex,
-        remoteBallStates,
+        remoteEntityStates,
         pendingPresenceRef,
         queuePresenceUpdate,
         broadcastReset,

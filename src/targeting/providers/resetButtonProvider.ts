@@ -10,7 +10,7 @@ export class ResetButtonProvider implements TargetProvider {
   public readonly kind = TARGET_KINDS.resetButton;
 
   public isActive(ctx: TargetingContext): boolean {
-    return !ctx.isHoldingBall;
+    return !ctx.isHoldingEquipment;
   }
 
   public collect(ctx: TargetingContext, out: TargetCandidate[]): void {

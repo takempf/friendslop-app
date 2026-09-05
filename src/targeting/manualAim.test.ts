@@ -37,7 +37,7 @@ function createContext(
   return {
     camera,
     aspect: 16 / 9,
-    isHoldingBall: true,
+    isHoldingEquipment: true,
     cameraPosition: camera.position,
     ...overrides,
   };

@@ -1,16 +1,18 @@
+import { SharedWorld } from "./SharedWorld";
 import * as Y from "yjs";
 import { WebrtcProvider } from "y-webrtc";
 import type {
   IGameSync,
   PlayerState,
   ChatMessage,
-  RemoteBallState,
+  EntitySnapshot,
   SoundEvent,
 } from "./IGameSync";
 import { COLOR_POOL, EMOJI_POOL } from "../utils/colors";
 
 export class YjsWebRtcAdapter implements IGameSync {
   private doc: Y.Doc;
+  public readonly world: SharedWorld;
   private provider: WebrtcProvider | null = null;
   private chatArray: Y.Array<ChatMessage>;
   private scoresMap: Y.Map<number>;
@@ -44,6 +46,7 @@ export class YjsWebRtcAdapter implements IGameSync {
 
   constructor() {
     this.doc = new Y.Doc();
+    this.world = new SharedWorld(this.doc);
     this.chatArray = this.doc.getArray<ChatMessage>("chat");
     this.scoresMap = this.doc.getMap<number>("scores");
 
@@ -65,9 +68,9 @@ export class YjsWebRtcAdapter implements IGameSync {
     });
   }
 
-  public onBallStatesReceived: (
+  public onEntityStatesReceived: (
     ownerId: number,
-    states: Record<number, RemoteBallState>,
+    states: Record<number, EntitySnapshot>,
   ) => void = () => {};
 
   public onResetScores: () => void = () => {};
@@ -133,7 +136,7 @@ export class YjsWebRtcAdapter implements IGameSync {
         ? `wss://${window.location.host}/party/y-webrtc-signaling`
         : `wss://${partykitHost}/party/y-webrtc-signaling`;
 
-    this.provider = new WebrtcProvider(roomName, this.doc, {
+    this.provider = new WebrtcProvider(`${roomName}:world-v2`, this.doc, {
       signaling: [signalingServerUrl],
       peerOpts: this.localStream ? { stream: this.localStream } : {},
     });
@@ -298,8 +301,8 @@ export class YjsWebRtcAdapter implements IGameSync {
           );
         }
 
-        if (playerState.ballStates) {
-          this.onBallStatesReceived(clientId, playerState.ballStates);
+        if (playerState.entityStates) {
+          this.onEntityStatesReceived(clientId, playerState.entityStates);
         }
 
         const soundEvent = state?.soundEvent as SoundEvent | undefined;

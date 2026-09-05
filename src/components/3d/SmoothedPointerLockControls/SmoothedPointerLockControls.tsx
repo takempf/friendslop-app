@@ -1,3 +1,4 @@
+import type { InputFrame } from "@/input/actions";
 import { useRef, type RefObject } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -9,12 +10,16 @@ import {
 } from "@/input/aimCursor";
 
 interface Props {
+  captureLook?: (frame: InputFrame) => boolean;
   leanRef?: RefObject<number>;
 }
 
 const PI_2 = Math.PI / 2;
 
-export function SmoothedPointerLockControls({ leanRef }: Props): null {
+export function SmoothedPointerLockControls({
+  leanRef,
+  captureLook,
+}: Props): null {
   const { camera } = useThree();
   const input = useInput();
 
@@ -31,6 +36,7 @@ export function SmoothedPointerLockControls({ leanRef }: Props): null {
     // 1. Update and merge input for this frame
     input.update(delta);
     const frame = input.getFrame();
+    if (captureLook?.(frame)) return;
 
     // The manual-aim cursor rides the same look delta, so it advances here —
     // once the frame is merged, before targeting reads it at priority 0.

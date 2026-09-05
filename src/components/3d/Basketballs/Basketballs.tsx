@@ -3,7 +3,7 @@ import { RigidBody, BallCollider, useRapier } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useBasketball } from "@/contexts/BasketballContext";
+import { useEquipment } from "@/gameplay/EquipmentContext";
 import { useGameSync } from "@/sync/GameSyncProvider";
 import {
   BALL_RADIUS,
@@ -81,14 +81,14 @@ function isOutOfBounds(pos: { x: number; y: number; z: number }): boolean {
 export function Basketballs() {
   const { rapier } = useRapier();
   const {
-    ballRefs,
-    mainMeshRefs,
+    bodyRefs,
+    visualRefs,
     grabCandidateRef,
-    heldBallRef,
-    ballInRack,
-    releaseBallFromRack,
-    returnBallToRack,
-  } = useBasketball();
+    heldEntityRef,
+    atSpawn,
+    releaseFromSpawn,
+    returnToSpawn,
+  } = useEquipment();
   const { broadcastSoundEvent } = useGameSync();
   const outlineRefs = useRef<(THREE.Mesh | null)[]>(
     Array(BALL_COUNT).fill(null),
@@ -128,10 +128,10 @@ export function Basketballs() {
       if (mesh) mesh.visible = i === candidate;
     });
 
-    ballRefs.current.forEach((ballRef, i) => {
-      if (!ballRef) return;
+    bodyRefs.current.forEach((ballRef, i) => {
+      if (!ballRef || i >= BALL_COUNT) return;
 
-      if (ballInRack.current[i]) {
+      if (atSpawn.current[i]) {
         // --- Rack ball: keep kinematic at slot position ---
         const sp = RACK_SLOT_POSITIONS[i];
         const p = ballRef.translation();
@@ -140,7 +140,7 @@ export function Basketballs() {
         const dz = p.z - sp[2];
         if (dx * dx + dy * dy + dz * dz > 0.09) {
           // Ball has moved more than 0.3m from its slot — someone grabbed it
-          releaseBallFromRack(i);
+          releaseFromSpawn(i);
         } else {
           if (
             ballRef.bodyType() !== rapier.RigidBodyType.KinematicPositionBased
@@ -159,9 +159,9 @@ export function Basketballs() {
       } else {
         // --- In-play ball: check for out-of-bounds and respawn ---
         const p = ballRef.translation();
-        if (isOutOfBounds(p) && heldBallRef.current !== i) {
+        if (isOutOfBounds(p) && heldEntityRef.current !== i) {
           const sp = RACK_SLOT_POSITIONS[i];
-          returnBallToRack(i);
+          returnToSpawn(i);
           ballRef.setBodyType(
             rapier.RigidBodyType.KinematicPositionBased,
             true,
@@ -188,7 +188,7 @@ export function Basketballs() {
         <RigidBody
           key={i}
           ref={(ref: RapierRigidBody | null) => {
-            ballRefs.current[i] = ref;
+            bodyRefs.current[i] = ref;
           }}
           type="kinematicPosition"
           position={pos}
@@ -208,8 +208,8 @@ export function Basketballs() {
               pv.x * pv.x + pv.y * pv.y + pv.z * pv.z,
             );
 
-            const ballRef = ballRefs.current[i];
-            if (!ballRef) return;
+            const ballRef = bodyRefs.current[i];
+            if (!ballRef || i >= BALL_COUNT) return;
             const p = ballRef.translation();
 
             const surface = detectSurface(p);
@@ -230,7 +230,7 @@ export function Basketballs() {
 
           <group
             ref={(r) => {
-              mainMeshRefs.current[i] = r;
+              visualRefs.current[i] = r;
             }}
           >
             <Center scale={modelScale}>
