@@ -11,6 +11,12 @@ The platform features real-time synchronization, physics, and a fast, responsive
 - **Spatial Audio:** Immersive audio environments that react to distance and position.
 - **Modern UI:** Unstyled headless components customized with utility-first CSS for a rich, accessible experience.
 
+## First-person games
+
+The basketball gym now connects to **Pine Six**, a six-hole woodland disc golf course through the rear hallway doors. Pick up a disc with E / gamepad X, hold Q / RT to charge, and release to throw. The standing course scoreboard has its own clear button.
+
+See [the first-person game architecture and play guide](docs/first-person-games.md) for controls, scoring, shared equipment behaviors, multiplayer ownership and extension points for future experiments.
+
 ## 🛠️ Technology Stack & Dependencies
 
 This project relies on a carefully selected stack to deliver a smooth and scalable 3D multiplayer experience:
