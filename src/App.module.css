@@ -32,9 +32,14 @@
 }
 
 .startHint {
-  font-size: max(2.5svh, 30px);
+  font-family: var(--font-ui);
+  font-size: max(2svh, 20px);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
   color: var(--clr-text-2);
   animation: pulse 2s ease-in-out infinite;
+  margin-top: var(--sp-4);
 }
 
 @keyframes pulse {
@@ -43,7 +48,7 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 

@@ -304,7 +304,7 @@ export function Game(): JSX.Element {
               bottom: 0,
               left: 0,
               width: "0%",
-              borderRadius: "9999px",
+              borderRadius: 0,
               background: "hsl(120, 90%, 45%)",
             }}
           />

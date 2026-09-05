@@ -61,17 +61,18 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(17, 17, 19, 0.9);
   color: #00ffcc;
-  font-family: monospace;
-  font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 2px 6px;
+  border: 1px solid var(--clr-border);
+  border-radius: 0;
   white-space: nowrap;
   pointer-events: none;
 }
 
 .debugLabelOccluded {
-  color: #ff4444;
-  border: 1px solid #ff4444;
+  color: #ef4444;
+  border-color: #ef4444;
 }

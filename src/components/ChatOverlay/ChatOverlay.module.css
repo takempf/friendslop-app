@@ -2,34 +2,34 @@
   position: absolute;
   right: 1em;
   bottom: 1em;
-  width: min(360px, 30vw);
+  width: min(380px, 32vw);
   height: 400px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: var(--sp-1);
+  gap: 6px;
   z-index: 50;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 400ms ease;
+  transition: opacity 250ms ease;
 }
 
 .active {
   pointer-events: auto;
   opacity: 1;
-  transition: opacity 150ms ease;
+  transition: opacity 120ms ease;
 }
 
 .peeking {
   pointer-events: none;
   opacity: 1;
-  transition: opacity 150ms ease;
+  transition: opacity 120ms ease;
 }
 
 .messages {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
+  gap: 4px;
   max-height: 100%;
 }
 
@@ -46,18 +46,20 @@
 .message {
   align-self: flex-start;
   max-width: 100%;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  border-radius: var(--r-sm);
-  font-size: var(--text-sm);
+  padding: 6px 10px;
+  background: rgba(23, 23, 26, 0.85);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--clr-border);
+  border-radius: 0;
+  font-size: var(--text-xs);
   line-height: 1.4;
   word-break: break-word;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
 .sender {
   font-weight: 700;
+  letter-spacing: var(--tracking-normal);
 }
 
 .text {
@@ -67,13 +69,17 @@
 .inputRow {
   display: flex;
   align-items: center;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(23, 23, 26, 0.95);
   backdrop-filter: blur(8px);
   border: 1px solid var(--clr-border);
-  border-radius: var(--r-md);
-  padding: var(--sp-1) var(--sp-2);
+  border-radius: 0;
+  padding: 8px var(--sp-2);
   pointer-events: auto;
   flex-shrink: 0;
+}
+
+.inputRow:focus-within {
+  border-color: var(--clr-accent);
 }
 
 .input {
@@ -83,10 +89,13 @@
   outline: none;
   color: var(--clr-text);
   font-family: var(--font-ui);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   caret-color: var(--clr-accent);
 }
 
 .input::placeholder {
   color: var(--clr-text-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  font-size: 13px;
 }
