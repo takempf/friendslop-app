@@ -113,3 +113,5 @@ When contributing to this repository, please ensure to:
 1. Run `npm run validate` to check types (`tsc`), linting (`eslint`), and formatting (`prettier`) before committing.
 2. Adhere to strict TypeScript typing guidelines—no `any` or `!`.
 3. Follow the established container/presentational component patterns for the frontend UI.
+
+The firing range is through the hallway’s left-hand door. Pick up a Falcon 9, Dragon or CMP150, then use the bronze/silver/gold terminal to start a scored trial. See [controls and multiplayer behavior](docs/first-person-games.md#firing-range).
