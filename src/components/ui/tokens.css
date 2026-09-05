@@ -1,42 +1,44 @@
 :root {
-  /* ── Surfaces ───────────────────────────────────────────── */
-  --clr-bg: #08080f;
-  --clr-surface-0: #0d0d18;
-  --clr-surface-1: #131320;
-  --clr-surface-2: #1a1a2a;
-  --clr-surface-3: #222236;
+  /* ── Surfaces (Minimalist Architectural Gray) ─────────────── */
+  --clr-bg: #111113;
+  --clr-surface-0: #17171a;
+  --clr-surface-1: #1e1e22;
+  --clr-surface-2: #26262c;
+  --clr-surface-3: #2f2f36;
+  --clr-surface-4: #3c3c44;
 
-  /* ── Borders ────────────────────────────────────────────── */
-  --clr-border: #28283c;
-  --clr-border-subtle: #1c1c2c;
+  /* ── Borders (Geometric & High Contrast) ─────────────────── */
+  --clr-border: #383842;
+  --clr-border-subtle: #24242a;
+  --clr-border-active: #ffffff;
 
-  /* ── Text ───────────────────────────────────────────────── */
-  --clr-text: #e6e6f0;
-  --clr-text-2: #9090a8;
-  --clr-text-3: #505068;
+  /* ── Text (Stark Modernist Hierarchy) ───────────────────── */
+  --clr-text: #f4f4f5;
+  --clr-text-2: #a1a1aa;
+  --clr-text-3: #71717a;
 
-  /* ── Accent (purple) ────────────────────────────────────── */
-  --clr-accent: #a855f7;
-  --clr-accent-hover: #9333ea;
-  --clr-accent-dim: rgba(168, 85, 247, 0.15);
-  --clr-accent-dim-hover: rgba(168, 85, 247, 0.25);
+  /* ── Accent (Phthalo Green) ──────────────────────────────── */
+  --clr-accent: #127249;
+  --clr-accent-hover: #188e5b;
+  --clr-accent-dim: rgba(18, 114, 73, 0.2);
+  --clr-accent-dim-hover: rgba(18, 114, 73, 0.32);
 
-  /* ── Blue (peers) ───────────────────────────────────────── */
-  --clr-blue: #60a5fa;
-  --clr-blue-dim: rgba(96, 165, 250, 0.12);
+  /* ── Blue (Telemetry / Peers) ────────────────────────────── */
+  --clr-blue: #38bdf8;
+  --clr-blue-dim: rgba(56, 189, 248, 0.14);
 
-  /* ── Green (meters) ─────────────────────────────────────── */
-  --clr-green: #4ade80;
+  /* ── Green (Meters / Active Signals) ─────────────────────── */
+  --clr-green: #22c55e;
 
-  /* ── Red (danger/muted) ─────────────────────────────────── */
-  --clr-red: #f87171;
-  --clr-red-hover: #ef4444;
-  --clr-red-dim: rgba(248, 113, 113, 0.18);
-  --clr-red-dim-hover: rgba(248, 113, 113, 0.28);
+  /* ── Red (Danger / Warning Signals) ──────────────────────── */
+  --clr-red: #ef4444;
+  --clr-red-hover: #dc2626;
+  --clr-red-dim: rgba(239, 68, 68, 0.16);
+  --clr-red-dim-hover: rgba(239, 68, 68, 0.28);
 
-  /* ── Yellow (debug) ─────────────────────────────────────── */
-  --clr-yellow: #facc15;
-  --clr-yellow-dim: rgba(250, 204, 21, 0.12);
+  /* ── Yellow / Amber (Diagnostics) ────────────────────────── */
+  --clr-yellow: #f59e0b;
+  --clr-yellow-dim: rgba(245, 158, 11, 0.14);
 
   /* ── Spacing ────────────────────────────────────────────── */
   --sp-1: 0.5em;
@@ -46,24 +48,35 @@
   --sp-5: 2.5em;
   --sp-6: 3em;
 
-  /* ── Border radius ──────────────────────────────────────── */
-  --r-sm: 0.5em;
-  --r-md: 1em;
-  --r-lg: 2em;
-  --r-xl: 3em;
-  --r-full: 9999px;
+  /* ── Border radius (Brutalist 0px geometry) ──────────────── */
+  --r-sm: 0px;
+  --r-md: 0px;
+  --r-lg: 0px;
+  --r-xl: 0px;
+  --r-full: 0px;
 
-  /* ── Typography ─────────────────────────────────────────── */
-  --font-ui: system-ui, -apple-system, sans-serif;
-  --font-mono: "Consolas", "Courier New", monospace;
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-md: 16px;
-  --text-lg: 20px;
+  /* ── Typography (Grotesque Modernist Swiss & Tech Mono) ─── */
+  --font-ui:
+    "Inter", "Neue Haas Grotesk Text Pro", "Neue Haas Grotesk", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono:
+    "JetBrains Mono", "SF Mono", "Consolas", "Courier New", monospace;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0.02em;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.14em;
+  --tracking-widest: 0.22em;
+
+  --text-xs: 15px;
+  --text-sm: 18px;
+  --text-md: 22px;
+  --text-lg: 26px;
+  --text-xl: 32px;
+  --text-2xl: 40px;
 
   /* ── Motion ─────────────────────────────────────────────── */
-  --ease: 130ms ease;
-  --ease-slow: 200ms ease;
+  --ease: 120ms ease;
+  --ease-slow: 180ms ease;
 
   /* ── Layout ─────────────────────────────────────────────── */
   --sidebar-width: 300px;
