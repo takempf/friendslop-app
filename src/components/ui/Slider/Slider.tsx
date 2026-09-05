@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { Slider as BaseSlider } from "@base-ui/react/slider";
 import styles from "./Slider.module.css";
 
@@ -21,7 +22,7 @@ export function Slider({
   disabled,
   variant = "accent",
   className,
-}: SliderProps) {
+}: SliderProps): JSX.Element {
   const rootClass = [
     styles.root,
     variant !== "accent" ? styles[variant] : undefined,

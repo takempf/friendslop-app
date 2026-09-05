@@ -3,13 +3,15 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid transparent;
-  border-radius: var(--r-md);
+  padding: 7px 14px;
+  border: 1px solid var(--clr-border);
+  border-radius: 0;
   font-family: var(--font-ui);
-  font-size: inherit;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: 700;
   line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
   cursor: pointer;
   transition:
     background-color var(--ease),
@@ -20,33 +22,34 @@
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
 /* ── Variants ──────────────────────────────── */
 
 .default {
-  background: var(--clr-surface-3);
+  background: var(--clr-surface-2);
   border-color: var(--clr-border);
   color: var(--clr-text-2);
 }
 
 .default:hover:not(:disabled) {
   background: var(--clr-surface-3);
-  border-color: var(--clr-border);
+  border-color: var(--clr-text-2);
   color: var(--clr-text);
 }
 
 .accent {
-  background: var(--clr-accent-dim);
-  border-color: var(--clr-accent);
-  color: var(--clr-accent);
+  background: var(--clr-accent);
+  border-color: var(--clr-accent-hover);
+  color: #ffffff;
 }
 
 .accent:hover:not(:disabled) {
-  background: var(--clr-accent-dim-hover);
-  color: var(--clr-text);
+  background: var(--clr-accent-hover);
+  border-color: #ffffff;
+  color: #ffffff;
 }
 
 .danger {
@@ -56,18 +59,19 @@
 }
 
 .danger:hover:not(:disabled) {
-  background: var(--clr-red-dim-hover);
-  color: var(--clr-text);
+  background: var(--clr-red);
+  border-color: var(--clr-red-hover);
+  color: #ffffff;
 }
 
 /* ── Sizes ─────────────────────────────────── */
 
 .sm {
-  padding: 3px var(--sp-2);
+  padding: 6px 12px;
   font-size: var(--text-xs);
 }
 
 .md {
-  padding: var(--sp-1) var(--sp-3);
+  padding: 10px 18px;
   font-size: var(--text-sm);
 }

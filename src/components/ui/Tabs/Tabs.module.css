@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background: var(--clr-surface-0);
 }
 
 .list {
@@ -10,60 +11,93 @@
   flex-direction: row;
   position: relative;
   flex-shrink: 0;
-  padding: var(--sp-1);
-  gap: 2px;
+  padding: 0;
   background: var(--clr-surface-0);
-  border-bottom: 1px solid var(--clr-border-subtle);
+  border-bottom: 1px solid var(--clr-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--clr-border) var(--clr-surface-0);
+}
+
+.list::-webkit-scrollbar {
+  height: 3px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: var(--clr-surface-0);
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--clr-border);
+  border-radius: 0;
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--clr-accent);
 }
 
 .tab {
-  flex: 1;
-  padding: var(--sp-1) var(--sp-2);
+  flex: 1 0 auto;
+  min-width: max-content;
+  padding: 12px var(--sp-3);
   border: none;
-  border-radius: var(--r-md);
+  border-radius: 0;
   background: transparent;
   color: var(--clr-text-3);
   font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: inherit;
+  font-weight: 700;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
   cursor: pointer;
   transition:
     color var(--ease),
-    background var(--ease);
+    background-color var(--ease);
   outline: none;
   position: relative;
   z-index: 1;
   white-space: nowrap;
+  text-align: center;
 }
 
 .tab:hover {
-  color: var(--clr-text-2);
+  color: var(--clr-text);
+  background: var(--clr-surface-1);
 }
 
 .tab[data-active] {
-  color: var(--clr-accent);
+  color: var(--clr-text);
+  background: var(--clr-surface-1);
+}
+
+.tab:focus-visible {
+  outline: 1px solid var(--clr-accent);
+  outline-offset: -1px;
 }
 
 .indicator {
   position: absolute;
-  inset: var(--sp-1);
-  height: calc(100% - var(--sp-2));
-  border-radius: var(--r-md);
-  background: var(--clr-accent-dim);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  bottom: 0;
+  height: 2px;
+  background: var(--clr-accent);
   transition:
     left var(--ease-slow),
     width var(--ease-slow);
+  z-index: 2;
 }
 
 .panel {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--sp-3);
+  padding: var(--sp-4);
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  background: var(--clr-surface-0);
 }
 
 .panel:focus-visible {
