@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { audioManager } from "@/audio/AudioManager";
-import { Button } from "@/components/ui/Button/Button";
+import { Switch } from "@/components/ui/Switch/Switch";
 import {
   Progress,
   type ProgressHandle,
@@ -28,7 +28,7 @@ export function AudioTab({
   onMasterVolume,
   onMasterMuted,
   onMicMuted,
-}: AudioTabProps) {
+}: AudioTabProps): JSX.Element {
   const micMeterRef = useRef<ProgressHandle>(null);
   const [selectedInput, setSelectedInput] = useState("default");
   const [selectedOutput, setSelectedOutput] = useState("default");
@@ -83,13 +83,26 @@ export function AudioTab({
       )}
 
       <div className={styles.section}>
-        <label className={styles.label}>Master Volume</label>
+        <div className={styles.toggleRow}>
+          <div className={styles.toggleLabelGroup}>
+            <span className={styles.toggleLabel}>Sound Output</span>
+            <span className={styles.hint}>Master game and voice audio</span>
+          </div>
+          <Switch
+            checked={!masterMuted}
+            onChange={onMasterMuted}
+            ariaLabel="Sound Output"
+          />
+        </div>
+
         <div className={styles.row}>
           <Slider
             value={masterVolume}
             onChange={onMasterVolume}
             min={0}
             max={100}
+            disabled={masterMuted}
+            className={styles.volumeSlider}
           />
           <span className={styles.volumeValue}>{masterVolume}%</span>
         </div>
@@ -98,27 +111,19 @@ export function AudioTab({
       <div className={styles.divider} />
 
       <div className={styles.section}>
-        <label className={styles.label}>Controls</label>
-        <div className={styles.buttonRow}>
-          <Button
-            variant={masterMuted ? "danger" : "default"}
-            onClick={onMasterMuted}
-          >
-            {masterMuted ? "🔇 Output Muted" : "🔊 Output"}
-          </Button>
-          <Button
-            variant={micMuted ? "danger" : "default"}
-            onClick={onMicMuted}
-          >
-            {micMuted ? "🔇 Mic Muted" : "🎙️ Mic"}
-          </Button>
+        <div className={styles.toggleRow}>
+          <div className={styles.toggleLabelGroup}>
+            <span className={styles.toggleLabel}>Microphone</span>
+            <span className={styles.hint}>Voice chat transmission</span>
+          </div>
+          <Switch
+            checked={!micMuted}
+            disabled={audioBlocked}
+            onChange={onMicMuted}
+            ariaLabel="Microphone"
+          />
         </div>
-      </div>
 
-      <div className={styles.divider} />
-
-      <div className={styles.section}>
-        <label className={styles.label}>Mic Level</label>
         <div className={styles.meterRow}>
           <span className={styles.meterLabel}>MIC</span>
           <Progress ref={micMeterRef} variant="green" />

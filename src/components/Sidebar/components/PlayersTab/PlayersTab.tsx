@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type JSX } from "react";
 import { audioManager } from "@/audio/AudioManager";
 import { getPlayerColor, getPlayerEmoji } from "@/utils/colors";
-import { Button } from "@/components/ui/Button/Button";
+import { Switch } from "@/components/ui/Switch/Switch";
 import {
   Progress,
   type ProgressHandle,
@@ -36,7 +36,7 @@ export function PlayersTab({
   peerMuted,
   onPeerVolume,
   onPeerMuted,
-}: PlayersTabProps) {
+}: PlayersTabProps): JSX.Element {
   const peerMeterRefs = useRef<Map<number, ProgressHandle>>(new Map());
 
   useEffect(() => {
@@ -92,20 +92,19 @@ export function PlayersTab({
               />
             </div>
             <div className={styles.peerControls}>
-              <Button
-                variant={muted ? "danger" : "default"}
-                size="sm"
-                onClick={() => onPeerMuted(peer.id)}
-                title={muted ? "Unmute" : "Mute"}
-              >
-                {muted ? "🔇" : "🔊"}
-              </Button>
+              <Switch
+                checked={!muted}
+                onChange={() => onPeerMuted(peer.id)}
+                ariaLabel={`Voice audio for ${peer.name}`}
+              />
               <Slider
                 value={vol}
                 onChange={(v) => onPeerVolume(peer.id, v)}
                 min={0}
                 max={200}
+                disabled={muted}
                 variant="blue"
+                className={styles.peerSlider}
               />
               <span className={styles.peerVolumeValue}>{vol}%</span>
             </div>

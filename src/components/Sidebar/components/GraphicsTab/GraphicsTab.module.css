@@ -6,7 +6,7 @@
 
 .divider {
   height: 1px;
-  background: var(--clr-border-subtle);
+  background: var(--clr-border);
 }
 
 .toggleRow {
@@ -24,14 +24,17 @@
 }
 
 .toggleLabel {
-  font-size: var(--text-sm);
-  color: var(--clr-text-2);
+  font-size: var(--text-xs);
+  color: var(--clr-text);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
 }
 
 .hint {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--clr-text-3);
-  font-style: italic;
+  letter-spacing: var(--tracking-normal);
 }
 
 .paramRow {
@@ -47,8 +50,11 @@
 }
 
 .paramLabel {
-  font-size: var(--text-sm);
-  color: var(--clr-text-2);
+  font-size: var(--text-xs);
+  color: var(--clr-text);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
 }
 
 .paramValue {
@@ -58,11 +64,15 @@
   font-variant-numeric: tabular-nums;
   min-width: 40px;
   text-align: right;
+  font-weight: 700;
 }
 
 .buttonGroup {
   display: flex;
-  gap: var(--sp-2);
+  gap: 2px;
+  background: var(--clr-surface-1);
+  border: 1px solid var(--clr-border);
+  padding: 2px;
 }
 
 .buttonGroup > button {

@@ -9,6 +9,7 @@ import { dualSenseHidSource } from "@/input/dualsenseSource";
 import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
 import { Select } from "@/components/ui/Select/Select";
+import { Switch } from "@/components/ui/Switch/Switch";
 import styles from "./ControlsTab.module.css";
 
 const GYRO_MODE_LABELS: Record<DualSenseGyroMode, string> = {
@@ -159,19 +160,12 @@ export function GyroSection() {
             Flip vertical motion sensor direction
           </span>
         </div>
-        <Button
-          variant={gameConfig.dualsenseGyroInvertY ? "accent" : "default"}
-          size="sm"
-          onClick={() =>
-            updateConfig(
-              "dualsenseGyroInvertY",
-              !gameConfig.dualsenseGyroInvertY,
-            )
-          }
+        <Switch
+          checked={gameConfig.dualsenseGyroInvertY}
           disabled={isGyroOff}
-        >
-          {gameConfig.dualsenseGyroInvertY ? "ON" : "OFF"}
-        </Button>
+          onChange={(next) => updateConfig("dualsenseGyroInvertY", next)}
+          ariaLabel="Invert Gyro Pitch"
+        />
       </div>
 
       <div className={styles.actionRow}>

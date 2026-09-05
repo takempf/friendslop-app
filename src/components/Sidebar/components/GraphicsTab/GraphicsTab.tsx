@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { gameConfig, updateConfig, subscribeToConfig } from "@/config";
 import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
+import { Switch } from "@/components/ui/Switch/Switch";
 import { CRT_TARGET_HEIGHT } from "@/constants/render";
 import styles from "./GraphicsTab.module.css";
 
@@ -63,13 +64,11 @@ export function GraphicsTab() {
               <span className={styles.toggleLabel}>{label}</span>
               {sublabel && <span className={styles.hint}>{sublabel}</span>}
             </div>
-            <Button
-              variant={gameConfig[key] ? "accent" : "default"}
-              size="sm"
-              onClick={() => updateConfig(key, !gameConfig[key])}
-            >
-              {gameConfig[key] ? "ON" : "OFF"}
-            </Button>
+            <Switch
+              checked={Boolean(gameConfig[key])}
+              onChange={(next) => updateConfig(key, next)}
+              ariaLabel={label}
+            />
           </div>
         ))}
       </div>
@@ -176,14 +175,12 @@ export function GraphicsTab() {
             <span className={styles.toggleLabel}>Cathode Flicker</span>
             <span className={styles.hint}>Subtle 60Hz beam scan refresh</span>
           </div>
-          <Button
-            variant={gameConfig.crtFlicker ? "accent" : "default"}
-            size="sm"
+          <Switch
+            checked={gameConfig.crtFlicker}
             disabled={!gameConfig.crtEnabled}
-            onClick={() => updateConfig("crtFlicker", !gameConfig.crtFlicker)}
-          >
-            {gameConfig.crtFlicker ? "ON" : "OFF"}
-          </Button>
+            onChange={(next) => updateConfig("crtFlicker", next)}
+            ariaLabel="Cathode Flicker"
+          />
         </div>
 
         <div className={styles.paramRow}>
@@ -222,13 +219,11 @@ export function GraphicsTab() {
             <span className={styles.toggleLabel}>Volumetric Clouds</span>
             <span className={styles.hint}>Raymarched 3D sky simulation</span>
           </div>
-          <Button
-            variant={gameConfig.showClouds ? "accent" : "default"}
-            size="sm"
-            onClick={() => updateConfig("showClouds", !gameConfig.showClouds)}
-          >
-            {gameConfig.showClouds ? "ON" : "OFF"}
-          </Button>
+          <Switch
+            checked={gameConfig.showClouds}
+            onChange={(next) => updateConfig("showClouds", next)}
+            ariaLabel="Volumetric Clouds"
+          />
         </div>
 
         <div className={styles.paramRow}>

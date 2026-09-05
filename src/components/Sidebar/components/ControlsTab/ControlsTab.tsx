@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { gameConfig, updateConfig, subscribeToConfig } from "@/config";
-import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
+import { Switch } from "@/components/ui/Switch/Switch";
 import { GyroSection } from "./GyroSection";
 import styles from "./ControlsTab.module.css";
 
@@ -59,15 +59,11 @@ export function ControlsTab() {
             <span className={styles.toggleLabel}>Enable Gamepad</span>
             <span className={styles.hint}>Allow standard controller input</span>
           </div>
-          <Button
-            variant={gameConfig.gamepadEnabled ? "accent" : "default"}
-            size="sm"
-            onClick={() =>
-              updateConfig("gamepadEnabled", !gameConfig.gamepadEnabled)
-            }
-          >
-            {gameConfig.gamepadEnabled ? "ON" : "OFF"}
-          </Button>
+          <Switch
+            checked={gameConfig.gamepadEnabled}
+            onChange={(next) => updateConfig("gamepadEnabled", next)}
+            ariaLabel="Enable Gamepad"
+          />
         </div>
 
         <div className={styles.toggleRow}>
@@ -77,16 +73,12 @@ export function ControlsTab() {
               Invert vertical stick look direction
             </span>
           </div>
-          <Button
-            variant={gameConfig.gamepadInvertY ? "accent" : "default"}
-            size="sm"
-            onClick={() =>
-              updateConfig("gamepadInvertY", !gameConfig.gamepadInvertY)
-            }
+          <Switch
+            checked={gameConfig.gamepadInvertY}
             disabled={!gameConfig.gamepadEnabled}
-          >
-            {gameConfig.gamepadInvertY ? "ON" : "OFF"}
-          </Button>
+            onChange={(next) => updateConfig("gamepadInvertY", next)}
+            ariaLabel="Invert Y-Axis"
+          />
         </div>
       </div>
 

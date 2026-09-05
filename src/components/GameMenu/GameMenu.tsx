@@ -20,11 +20,11 @@ const LS_MASTER_MUTED = "friendslop_masterMuted";
 const LS_MIC_MUTED = "friendslop_micMuted";
 
 const TABS = [
-  { value: "audio", label: "Audio" },
-  { value: "controls", label: "Controls" },
-  { value: "players", label: "Players" },
-  { value: "graphics", label: "Graphics" },
-  ...(isLocalhost ? [{ value: "debug", label: "Debug" }] : []),
+  { value: "audio", label: "01 // Audio" },
+  { value: "controls", label: "02 // Controls" },
+  { value: "players", label: "03 // Players" },
+  { value: "graphics", label: "04 // Graphics" },
+  ...(isLocalhost ? [{ value: "debug", label: "05 // Debug" }] : []),
 ];
 
 export function GameMenu({
@@ -114,7 +114,9 @@ export function GameMenu({
         <Dialog.Backdrop className={css.backdrop} />
         <Dialog.Popup className={css.popup}>
           <div className={css.header}>
-            <Dialog.Title className={css.title}>Friend Slop 3D</Dialog.Title>
+            <Dialog.Title className={css.title}>
+              // SYSTEM CONFIGURATION
+            </Dialog.Title>
             <Dialog.Close className={css.closeBtn} aria-label="Close">
               ✕
             </Dialog.Close>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { gameConfig, updateConfig, subscribeToConfig } from "@/config";
-import { Button } from "@/components/ui/Button/Button";
 import { Slider } from "@/components/ui/Slider/Slider";
+import { Switch } from "@/components/ui/Switch/Switch";
 import styles from "./DebugTab.module.css";
 
 type ConfigKey = keyof typeof gameConfig;
@@ -159,31 +159,20 @@ export function DebugTab() {
 
         <div className={styles.toggleRow}>
           <span className={styles.toggleLabel}>Show Assist Circles</span>
-          <Button
-            variant={gameConfig.showAimAssistCircle ? "accent" : "default"}
-            size="sm"
-            onClick={() =>
-              updateConfig(
-                "showAimAssistCircle",
-                !gameConfig.showAimAssistCircle,
-              )
-            }
-          >
-            {gameConfig.showAimAssistCircle ? "ON" : "OFF"}
-          </Button>
+          <Switch
+            checked={gameConfig.showAimAssistCircle}
+            onChange={(next) => updateConfig("showAimAssistCircle", next)}
+            ariaLabel="Show Assist Circles"
+          />
         </div>
 
         <div className={styles.toggleRow}>
           <span className={styles.toggleLabel}>Show Target Debug</span>
-          <Button
-            variant={gameConfig.showTargetDebug ? "accent" : "default"}
-            size="sm"
-            onClick={() =>
-              updateConfig("showTargetDebug", !gameConfig.showTargetDebug)
-            }
-          >
-            {gameConfig.showTargetDebug ? "ON" : "OFF"}
-          </Button>
+          <Switch
+            checked={gameConfig.showTargetDebug}
+            onChange={(next) => updateConfig("showTargetDebug", next)}
+            ariaLabel="Show Target Debug"
+          />
         </div>
 
         {AIM_ASSIST_PARAMS.map(({ key, label, min, max, step }) => (

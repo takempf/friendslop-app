@@ -1,7 +1,8 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   z-index: 100;
   transition: opacity var(--ease-slow);
 }
@@ -19,17 +20,15 @@
   scale: 1;
   z-index: 101;
 
-  width: 520px;
-  height: 580px;
-  max-width: calc(100vw - var(--sp-6));
-  max-height: calc(100vh - var(--sp-6));
+  width: 775px;
+  height: 680px;
+  max-width: calc(100vw - var(--sp-4));
+  max-height: calc(100vh - var(--sp-4));
 
   background: var(--clr-surface-0);
   border: 1px solid var(--clr-border);
-  border-radius: var(--r-lg);
-  box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(168, 85, 247, 0.08);
+  border-radius: 0;
+  box-shadow: none;
   outline: none;
 
   display: flex;
@@ -44,7 +43,7 @@
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  scale: 0.8;
+  scale: 0.95;
 }
 
 /* ── Header ─────────────────────────────────────────────── */
@@ -53,37 +52,56 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--clr-border-subtle);
+  padding: 14px var(--sp-4);
+  background: var(--clr-surface-0);
+  border-bottom: 1px solid var(--clr-border);
   flex-shrink: 0;
 }
 
 .title {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: 800;
   color: var(--clr-text);
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: var(--clr-accent);
 }
 
 .closeBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: none;
-  border-radius: var(--r-sm);
-  color: var(--clr-text-3);
-  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  border-radius: 0;
+  color: var(--clr-text-2);
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
-  transition: color var(--ease);
+  transition:
+    background-color var(--ease),
+    color var(--ease),
+    border-color var(--ease);
   padding: 0;
 }
 
 .closeBtn:hover {
-  color: var(--clr-text);
+  background: var(--clr-surface-3);
+  color: #ffffff;
+  border-color: var(--clr-text-2);
 }
 
 /* ── Tabs fill the rest of the popup ────────────────────── */
