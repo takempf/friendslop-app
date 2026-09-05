@@ -1,3 +1,4 @@
+import { useGunBehavior } from "./firingRange/useGunBehavior";
 import { PlayerController } from "@/components/3d/PlayerController/PlayerController";
 import { useBasketballBehavior } from "./basketball/useBasketballBehavior";
 import { useDiscBehavior } from "./discGolf/useDiscBehavior";
@@ -6,5 +7,8 @@ import { useDiscBehavior } from "./discGolf/useDiscBehavior";
 export function FirstPersonPlayer({ active }: { active: boolean }) {
   const basketball = useBasketballBehavior();
   const disc = useDiscBehavior();
-  return <PlayerController active={active} behaviors={{ basketball, disc }} />;
+  const gun = useGunBehavior();
+  return (
+    <PlayerController active={active} behaviors={{ basketball, disc, gun }} />
+  );
 }

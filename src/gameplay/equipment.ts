@@ -1,10 +1,11 @@
 import { BALL_COUNT, RACK_SLOT_POSITIONS } from "@/constants/basketball";
 
-export type EquipmentKind = "basketball" | "disc";
+export type EquipmentKind = "basketball" | "disc" | "gun";
 export interface EquipmentDefinition {
   id: number;
   kind: EquipmentKind;
   spawn: [number, number, number];
+  variant?: "falcon9" | "dragon" | "cmp150";
 }
 
 // Stable slots form the wire identity. New experiments append definitions;
@@ -24,6 +25,20 @@ export const EQUIPMENT: EquipmentDefinition[] = [
       number,
     ],
   })),
+  ...(["falcon9", "dragon", "cmp150"] as const).flatMap((variant, i) =>
+    Array.from({ length: 2 }, (_, copy) => ({
+      id: BALL_COUNT + 8 + i * 2 + copy,
+      kind: "gun" as const,
+      variant,
+      spawn: [-4.2 - copy * 0.85, 1.05, -22 - i * 2.5] as [
+        number,
+        number,
+        number,
+      ],
+    })),
+  ),
 ];
 export const EQUIPMENT_COUNT = EQUIPMENT.length;
 export const DISCS = EQUIPMENT.filter((item) => item.kind === "disc");
+
+export const GUNS = EQUIPMENT.filter((item) => item.kind === "gun");

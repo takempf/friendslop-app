@@ -9,6 +9,7 @@ import type * as THREE from "three";
 export const TARGET_KINDS = {
   equipment: "equipment",
   hoop: "hoop",
+  shootingTarget: "shooting-target",
   resetButton: "resetButton",
 } as const;
 

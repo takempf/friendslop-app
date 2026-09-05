@@ -136,7 +136,7 @@ export class YjsWebRtcAdapter implements IGameSync {
         ? `wss://${window.location.host}/party/y-webrtc-signaling`
         : `wss://${partykitHost}/party/y-webrtc-signaling`;
 
-    this.provider = new WebrtcProvider(`${roomName}:world-v2`, this.doc, {
+    this.provider = new WebrtcProvider(`${roomName}:world-v3`, this.doc, {
       signaling: [signalingServerUrl],
       peerOpts: this.localStream ? { stream: this.localStream } : {},
     });

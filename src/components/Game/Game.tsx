@@ -1,3 +1,6 @@
+import { FiringRangeProvider } from "@/games/firingRange/FiringRangeProvider";
+import { FiringRange } from "@/games/firingRange/FiringRange";
+import { RangeHUD } from "@/games/firingRange/RangeHUD";
 import { PHYSICS_PRIORITY } from "@/gameplay/frameOrder";
 import { DiscWristIndicator } from "@/games/discGolf/DiscWristIndicator";
 import { DiscGolfCourse } from "@/games/discGolf/DiscGolfCourse";
@@ -251,17 +254,23 @@ export function Game(): JSX.Element {
         <RenderResolution />
         <PartlyCloudySky />
         <EquipmentProvider>
-          <BasketballRules>
-            <Physics gravity={[0, -9.81, 0]} updatePriority={PHYSICS_PRIORITY}>
-              <TargetingManager />
-              <SchoolEnvironment />
-              <DiscGolfCourse />
-              <FirstPersonPlayer active={mode === "playing"} />
-              <RemotePlayers />
-              <EquipmentSync />
-              <SyncTicker />
-            </Physics>
-          </BasketballRules>
+          <FiringRangeProvider>
+            <BasketballRules>
+              <Physics
+                gravity={[0, -9.81, 0]}
+                updatePriority={PHYSICS_PRIORITY}
+              >
+                <TargetingManager />
+                <SchoolEnvironment />
+                <DiscGolfCourse />
+                <FiringRange active={mode === "playing"} />
+                <FirstPersonPlayer active={mode === "playing"} />
+                <RemotePlayers />
+                <EquipmentSync />
+                <SyncTicker />
+              </Physics>
+            </BasketballRules>
+          </FiringRangeProvider>
         </EquipmentProvider>
         {(gameConfig.crtEnabled || gameConfig.ditherEnabled) && (
           <PostProcessingWrapper />
@@ -273,6 +282,7 @@ export function Game(): JSX.Element {
       <Reticle />
       <DiscGolfHUD />
       <DiscWristIndicator />
+      <RangeHUD />
 
       {/* Controls Hint - Device aware */}
       <div className={css.controls}>

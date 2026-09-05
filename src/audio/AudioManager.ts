@@ -857,6 +857,47 @@ class AudioManager {
     }
   }
 
+  /** Procedural range effects use the same spatial output, device and master volume as the rest of the game. */
+  public playWeaponSound(
+    position: [number, number, number],
+    profile: "pistol" | "rifle" | "smg" | "explosion",
+  ) {
+    if (!this.ctx || !this.analyserOut) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const panner = ctx.createPanner();
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "inverse";
+    panner.refDistance = 2;
+    panner.rolloffFactor = 1.4;
+    panner.positionX.value = position[0];
+    panner.positionY.value = position[1];
+    panner.positionZ.value = position[2];
+    panner.connect(this.analyserOut);
+    const explosion = profile === "explosion";
+    this._bounceSynth_osc(
+      ctx,
+      now,
+      "sawtooth",
+      explosion ? 65 : profile === "pistol" ? 180 : 130,
+      25,
+      0.12,
+      explosion ? 0.45 : 0.12,
+      0.075,
+      panner,
+    );
+    this._bounceSynth_noise(
+      ctx,
+      now,
+      explosion ? 250 : 1600,
+      1,
+      explosion ? 0.4 : 0.055,
+      0.08,
+      panner,
+    );
+    setTimeout(() => panner.disconnect(), 700);
+  }
+
   /** Oscillator with pitch-sweep envelope: startFreq → endFreq, then exponential volume decay */
   private _bounceSynth_osc(
     ctx: AudioContext,

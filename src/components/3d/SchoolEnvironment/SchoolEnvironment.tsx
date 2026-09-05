@@ -332,13 +332,18 @@ export function SchoolEnvironment() {
       />
 
       {/* Hallway Walls */}
-      <Block
-        position={[-2, wallHeight / 2, -20]}
-        args={[wallThickness, wallHeight, 20]}
-        color="#f5f5dc"
-        wallTexture={debugTex}
-        textureRepeat={wr(20)}
-      />
+      {/* Left doorway: 3m clear opening at Z=-25, no overlapping wall. */}
+      <Block position={[-2, 4, -16.75]} args={[0.5, 8, 13.5]} color="#b4bdc2" />
+      <Block position={[-2, 4, -28.25]} args={[0.5, 8, 3.5]} color="#b4bdc2" />
+      <Block position={[-2, 5.6, -25]} args={[0.5, 4.8, 3]} color="#b4bdc2" />
+      <group position={[-1.7, 3.7, -25]} rotation={[0, Math.PI / 2, 0]}>
+        <WorldSign
+          lines={["FIRING RANGE", "WEAPONS / TRAINING"]}
+          width={2.7}
+          height={0.75}
+          accent="#68dbea"
+        />
+      </group>
       <Block
         position={[2, wallHeight / 2, -20]}
         args={[wallThickness, wallHeight, 20]}
@@ -391,56 +396,6 @@ export function SchoolEnvironment() {
           height={0.8}
         />
       </group>
-
-      {/* --- Classroom A (West of Hallway at Z=-25) --- */}
-      {/* Opening in West Hallway wall is at Z=-25, width=2 */}
-      <Block
-        position={[-2, wallHeight / 2, -15]}
-        args={[wallThickness, wallHeight, 10]}
-        color="#f5f5dc"
-        wallTexture={debugTex}
-        textureRepeat={wr(10)}
-      />
-      <Block
-        position={[-2, wallHeight / 2, -28]}
-        args={[wallThickness, wallHeight, 6]}
-        color="#f5f5dc"
-        wallTexture={debugTex}
-        textureRepeat={wr(6)}
-      />
-
-      {/* Floor 10x10 */}
-      <Block
-        position={[-7.5, -0.25, -25]}
-        args={[10, 0.5, 10]}
-        color="#5f9ea0"
-        restitution={0.84}
-        wallTexture={floorTex}
-        textureRepeat={[10, 10]}
-        castShadow={false}
-      />
-      {/* Classroom A Walls */}
-      <Block
-        position={[-12.5, wallHeight / 2, -25]}
-        args={[wallThickness, wallHeight, 10]}
-        color="#fdf5e6"
-        wallTexture={debugTex}
-        textureRepeat={wr(10)}
-      />
-      <Block
-        position={[-7.5, wallHeight / 2, -20]}
-        args={[10, wallHeight, wallThickness]}
-        color="#fdf5e6"
-        wallTexture={debugTex}
-        textureRepeat={wc(10)}
-      />
-      <Block
-        position={[-7.5, wallHeight / 2, -30]}
-        args={[10, wallHeight, wallThickness]}
-        color="#fdf5e6"
-        wallTexture={debugTex}
-        textureRepeat={wc(10)}
-      />
 
       {/* Basketball */}
       <ScoreTicker />

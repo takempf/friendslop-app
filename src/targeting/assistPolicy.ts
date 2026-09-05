@@ -18,7 +18,11 @@ export function resolveSlowdown(
   aim: Pick<AimState, "lock" | "targetKind">,
   config: Pick<TargetingConfig, "aimAssistSlowdown">,
 ): number {
-  if (aim.targetKind !== TARGET_KINDS.hoop || aim.lock <= 0) {
+  if (
+    (aim.targetKind !== TARGET_KINDS.hoop &&
+      aim.targetKind !== TARGET_KINDS.shootingTarget) ||
+    aim.lock <= 0
+  ) {
     return 0;
   }
 
