@@ -1,3 +1,4 @@
+import { WorldSign } from "@/gameplay/WorldSign";
 import { useMemo } from "react";
 import { RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
@@ -345,14 +346,51 @@ export function SchoolEnvironment() {
         wallTexture={debugTex}
         textureRepeat={wr(20)}
       />
-      {/* End of Hallway */}
+      {/* Rear exit: open double doors, continuous floor into Pine Six. */}
       <Block
-        position={[0, wallHeight / 2, -30]}
-        args={[4, wallHeight, wallThickness]}
+        position={[0, 5.6, -30]}
+        args={[4, 4.8, wallThickness]}
         color="#f5f5dc"
-        wallTexture={debugTex}
-        textureRepeat={wc(4)}
       />
+      {[-1.7, 1.7].map((x) => (
+        <Block
+          key={x}
+          position={[x, 1.6, -30]}
+          args={[0.6, 3.2, 0.5]}
+          color="#36524d"
+        />
+      ))}
+      {[-1.4, 1.4].map((x) => (
+        <group
+          key={x}
+          position={[x, 0, -30]}
+          rotation={[0, x < 0 ? -Math.PI / 2 : Math.PI / 2, 0]}
+        >
+          <Block
+            position={[x < 0 ? 0.65 : -0.65, 1.5, 0]}
+            args={[1.3, 3, 0.1]}
+            color="#567568"
+          />
+          <mesh position={[x < 0 ? 0.65 : -0.65, 2, 0.06]}>
+            <boxGeometry args={[0.8, 0.85, 0.02]} />
+            <meshLambertMaterial color="#a6c7b5" />
+          </mesh>
+        </group>
+      ))}
+      <group position={[0, 3.7, -29.7]}>
+        <WorldSign
+          lines={["PINE SIX", "DISC GOLF / 6 HOLES"]}
+          width={2.8}
+          height={0.8}
+        />
+      </group>
+      <group position={[0, 3.7, -30.3]} rotation={[0, Math.PI, 0]}>
+        <WorldSign
+          lines={["GYM / BASKETBALL", "WELCOME BACK"]}
+          width={2.8}
+          height={0.8}
+        />
+      </group>
 
       {/* --- Classroom A (West of Hallway at Z=-25) --- */}
       {/* Opening in West Hallway wall is at Z=-25, width=2 */}

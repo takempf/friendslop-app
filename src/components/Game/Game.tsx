@@ -1,4 +1,7 @@
 import { PHYSICS_PRIORITY } from "@/gameplay/frameOrder";
+import { DiscWristIndicator } from "@/games/discGolf/DiscWristIndicator";
+import { DiscGolfCourse } from "@/games/discGolf/DiscGolfCourse";
+import { DiscGolfHUD } from "@/games/discGolf/DiscGolfScores";
 import { useRef, useState, useEffect, useCallback, type JSX } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
@@ -252,6 +255,7 @@ export function Game(): JSX.Element {
             <Physics gravity={[0, -9.81, 0]} updatePriority={PHYSICS_PRIORITY}>
               <TargetingManager />
               <SchoolEnvironment />
+              <DiscGolfCourse />
               <FirstPersonPlayer active={mode === "playing"} />
               <RemotePlayers />
               <EquipmentSync />
@@ -267,6 +271,8 @@ export function Game(): JSX.Element {
       </Canvas>
 
       <Reticle />
+      <DiscGolfHUD />
+      <DiscWristIndicator />
 
       {/* Controls Hint - Device aware */}
       <div className={css.controls}>
