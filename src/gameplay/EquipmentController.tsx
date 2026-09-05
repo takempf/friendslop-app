@@ -14,10 +14,8 @@ import {
   HELD_BALL_COLLISION_GROUPS,
 } from "@/constants/physics";
 import { gameConfig } from "@/config";
-import { pickAssistedDirection } from "@/targeting/throwCorrection";
-import { resolveAssistStrengths } from "@/targeting/assistPolicy";
+import { resolveEquipmentAim } from "./equipmentAim";
 import { aimState } from "@/targeting/aimState";
-import { screenToWorldDirection } from "@/targeting/screenRay";
 
 const forward = new Vector3(),
   right = new Vector3(),
@@ -73,7 +71,10 @@ export function EquipmentController({
       return;
     }
     const frame = input.getFrame();
-    if (input.justPressed("interact")) {
+    if (
+      input.justPressed("interact") &&
+      aimState.targetKind !== "world-action"
+    ) {
       const held = bodyRefs.current[heldEntityRef.current];
       if (held) {
         const id = heldEntityRef.current;
@@ -85,7 +86,8 @@ export function EquipmentController({
         held.setAngvel({ x: 0, y: 0, z: 0 }, true);
         held.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
         // Dropping is not a throw and cannot complete a hole.
-        entityGameData.current.delete(heldEntityRef.current);
+        if (!behaviors[EQUIPMENT[id].kind].preserveStateOnTransfer)
+          entityGameData.current.delete(id);
         heldEntityRef.current = -1;
         charge.current = 0;
       } else {
@@ -110,7 +112,8 @@ export function EquipmentController({
             .copy(camera.quaternion)
             .invert()
             .multiply(rotation.set(q.x, q.y, q.z, q.w));
-          entityGameData.current.delete(id);
+          if (!behaviors[EQUIPMENT[id].kind].preserveStateOnTransfer)
+            entityGameData.current.delete(id);
           charge.current = 0;
         } else if (buttonCandidateRef.current) broadcastReset();
       }
@@ -118,7 +121,9 @@ export function EquipmentController({
     const id = heldEntityRef.current;
     const body = bodyRefs.current[id];
     const behavior = EQUIPMENT[id] ? behaviors[EQUIPMENT[id].kind] : undefined;
-    const charging = Boolean(body && input.pressed("chargeThrow"));
+    const charging = Boolean(
+      body && !behavior?.use && input.pressed("chargeThrow"),
+    );
     if (charging)
       charge.current = Math.min(
         MAX_CHARGE_TIME,
@@ -141,37 +146,50 @@ export function EquipmentController({
         rotation,
       );
       heldPose.current.set(id, position, rotation);
-      if (input.justReleased("chargeThrow")) {
+      if (behavior.use || input.justReleased("chargeThrow")) {
+        resolveEquipmentAim(
+          camera,
+          size.width / (size.height || 1),
+          aimState,
+          behavior,
+          input.getActiveDevice(),
+          gameConfig,
+          forward,
+        );
+      }
+
+      if (behavior.use) {
+        charge.current = 0;
+        body.setNextKinematicTranslation(position);
+        body.setNextKinematicRotation(rotation);
+        behavior.use({
+          camera,
+          id,
+          direction: forward,
+          delta,
+          firing: input.pressed("fire") || input.pressed("chargeThrow"),
+          firePressed:
+            input.justPressed("fire") || input.justPressed("chargeThrow"),
+          reloadPressed: input.justPressed("reload"),
+          secondaryPressed: input.justPressed("secondary"),
+          release(velocity) {
+            heldPose.current.release(id, body);
+            releasedVisual.current = id;
+            body.setBodyType(rapier.RigidBodyType.Dynamic, true);
+            body.setGravityScale(1, true);
+            body.collider(0)?.setCollisionGroups(BALL_COLLISION_GROUPS);
+            body.setLinvel(velocity, true);
+            body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+            heldEntityRef.current = -1;
+            lastThrowRef.current = { idx: id, time: performance.now() };
+          },
+        });
+      } else if (input.justReleased("chargeThrow")) {
         const settings = behavior.throwSettings();
         const speed =
           settings.minThrowSpeed +
           ((settings.maxThrowSpeed - settings.minThrowSpeed) * charge.current) /
             MAX_CHARGE_TIME;
-        forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
-        if (aimState.isManualAiming) {
-          screenToWorldDirection(
-            camera,
-            aimState.screenX,
-            aimState.screenY,
-            size.width / (size.height || 1),
-            forward,
-          );
-        } else {
-          const assist = resolveAssistStrengths(
-            input.getActiveDevice(),
-            gameConfig,
-          );
-          pickAssistedDirection(
-            forward,
-            aimState.targetKind === behavior.aimTargetKind
-              ? aimState.targetPoint
-              : null,
-            camera.position,
-            assist.yaw,
-            assist.pitch,
-            forward,
-          );
-        }
         right.crossVectors(forward, up).normalize();
         forward.applyAxisAngle(right, (settings.throwArcDeg * Math.PI) / 180);
         heldPose.current.release(id, body);

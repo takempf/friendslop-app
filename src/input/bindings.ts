@@ -18,10 +18,13 @@ export const DEFAULT_KEYBOARD_BINDINGS: KeyBindings = {
   left: ["KeyA"],
   right: ["KeyD"],
   buttons: {
+    fire: ["Mouse0"],
+    reload: ["KeyR"],
+    secondary: ["KeyB"],
     jump: ["Space"],
     interact: ["KeyE"],
     chargeThrow: ["KeyQ"],
-    aim: ["KeyF"],
+    aim: ["KeyF", "Mouse2"],
     sprint: ["ShiftLeft"],
     crouch: ["KeyC"],
     menu: ["Escape"],
@@ -30,6 +33,9 @@ export const DEFAULT_KEYBOARD_BINDINGS: KeyBindings = {
 
 export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
   buttons: {
+    fire: 7, // RT
+    reload: 3, // Y
+    secondary: 5, // RB
     jump: 0, // A
     crouch: 1, // B
     interact: 2, // X

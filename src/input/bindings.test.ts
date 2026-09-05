@@ -18,8 +18,13 @@ describe("bindings", () => {
     }
   });
 
-  it("does not bind any gamepad button index more than once", () => {
-    const indices = Object.values(DEFAULT_GAMEPAD_BINDINGS.buttons);
+  it("only shares the context-sensitive fire and throw trigger", () => {
+    expect(DEFAULT_GAMEPAD_BINDINGS.buttons.fire).toBe(
+      DEFAULT_GAMEPAD_BINDINGS.buttons.chargeThrow,
+    );
+    const indices = Object.entries(DEFAULT_GAMEPAD_BINDINGS.buttons)
+      .filter(([action]) => action !== "fire")
+      .map(([, index]) => index);
     const uniqueIndices = new Set(indices);
     expect(uniqueIndices.size).toBe(indices.length);
   });

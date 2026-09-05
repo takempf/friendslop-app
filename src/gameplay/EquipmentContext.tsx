@@ -6,6 +6,8 @@ import * as THREE from "three";
 import { EQUIPMENT_COUNT } from "@/gameplay/equipment";
 
 interface EquipmentContextType {
+  registerBody: (id: number, body: RapierRigidBody | null) => void;
+  registerVisual: (id: number, visual: THREE.Object3D | null) => void;
   heldPose: React.RefObject<HeldPose>;
   entityGameData: React.RefObject<Map<number, EntitySnapshot["gameData"]>>;
   ownerIds: React.RefObject<Map<number, number>>;
@@ -49,6 +51,18 @@ export function EquipmentProvider({ children }: { children: React.ReactNode }) {
   });
   const atSpawn = useRef<boolean[]>(Array(EQUIPMENT_COUNT).fill(true));
 
+  const registerBody = useCallback(
+    (id: number, body: RapierRigidBody | null) => {
+      bodyRefs.current[id] = body;
+    },
+    [],
+  );
+  const registerVisual = useCallback(
+    (id: number, visual: THREE.Object3D | null) => {
+      visualRefs.current[id] = visual;
+    },
+    [],
+  );
   const releaseFromSpawn = useCallback((idx: number) => {
     atSpawn.current[idx] = false;
   }, []);
@@ -60,6 +74,8 @@ export function EquipmentProvider({ children }: { children: React.ReactNode }) {
   return (
     <EquipmentContext.Provider
       value={{
+        registerBody,
+        registerVisual,
         entityGameData,
         ownerIds,
         bodyRefs,

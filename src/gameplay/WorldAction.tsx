@@ -12,10 +12,12 @@ export function WorldAction({
   id,
   position,
   onInteract,
+  allowWhileHolding = false,
 }: {
   id: string;
   position: [number, number, number];
   onInteract: () => void;
+  allowWhileHolding?: boolean;
 }) {
   const input = useInput();
   const { heldEntityRef } = useEquipment();
@@ -24,17 +26,17 @@ export function WorldAction({
     const point = new Vector3(x, y, z);
     return {
       kind: "world-action",
-      isActive: (ctx) => !ctx.isHoldingEquipment,
+      isActive: (ctx) => allowWhileHolding || !ctx.isHoldingEquipment,
       collect(ctx, out) {
         if (ctx.cameraPosition.distanceTo(point) <= 2.5)
           out.push({ id, kind: "world-action", point });
       },
     };
-  }, [id, x, y, z]);
+  }, [id, x, y, z, allowWhileHolding]);
   useEffect(() => targetingSystem.registerProvider(provider), [provider]);
   useFrame(() => {
     if (
-      heldEntityRef.current === -1 &&
+      (allowWhileHolding || heldEntityRef.current === -1) &&
       aimState.targetId === id &&
       input.justPressed("interact")
     )

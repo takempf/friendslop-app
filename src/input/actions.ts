@@ -1,4 +1,7 @@
 export const BUTTON_ACTIONS = [
+  "fire",
+  "reload",
+  "secondary",
   "jump",
   "interact",
   "chargeThrow",

@@ -93,4 +93,46 @@ describe("KeyboardMouseSource", () => {
     expect(frame.moveX).toBe(0);
     expect(frame.moveY).toBe(0);
   });
+  it("maps mouse fire/aim only under pointer lock and releases them on unlock", () => {
+    window.dispatchEvent(new MouseEvent("mousedown", { button: 0 }));
+    let frame = createEmptyFrame();
+    source.sample(frame);
+    expect(frame.buttons.fire).toBe(false);
+    Object.defineProperty(document, "pointerLockElement", {
+      value: document.body,
+      configurable: true,
+    });
+    document.dispatchEvent(new Event("pointerlockchange"));
+    window.dispatchEvent(new MouseEvent("mousedown", { button: 0 }));
+    window.dispatchEvent(new MouseEvent("mousedown", { button: 2 }));
+    frame = createEmptyFrame();
+    source.sample(frame);
+    expect(frame.buttons.fire).toBe(true);
+    expect(frame.buttons.aim).toBe(true);
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+    frame = createEmptyFrame();
+    source.sample(frame);
+    expect(frame.buttons.fire).toBe(false);
+    Object.defineProperty(document, "pointerLockElement", {
+      value: null,
+      configurable: true,
+    });
+    document.dispatchEvent(new Event("pointerlockchange"));
+    frame = createEmptyFrame();
+    source.sample(frame);
+    expect(frame.buttons.aim).toBe(false);
+  });
+  it("clears gun keys when focus is lost", () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyR" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyB" }));
+    let frame = createEmptyFrame();
+    source.sample(frame);
+    expect(frame.buttons.reload).toBe(true);
+    expect(frame.buttons.secondary).toBe(true);
+    window.dispatchEvent(new Event("blur"));
+    frame = createEmptyFrame();
+    source.sample(frame);
+    expect(frame.buttons.reload).toBe(false);
+    expect(frame.buttons.secondary).toBe(false);
+  });
 });

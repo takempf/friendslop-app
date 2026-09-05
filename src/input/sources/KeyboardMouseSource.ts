@@ -67,6 +67,8 @@ export class KeyboardMouseSource implements InputSource {
       if (typeof document !== "undefined" && document.pointerLockElement) {
         this.isFirstMoveAfterLock = true;
       }
+      this.heldKeys.delete("Mouse0");
+      this.heldKeys.delete("Mouse2");
       this.mouseDeltaX = 0;
       this.mouseDeltaY = 0;
     };
@@ -94,6 +96,14 @@ export class KeyboardMouseSource implements InputSource {
       this.mouseDeltaY += (event.movementY || 0) * multiplier;
     };
 
+    const handleMouseDown = (event: MouseEvent): void => {
+      if (document.pointerLockElement && !isTextInputActive())
+        this.heldKeys.add(`Mouse${event.button}`);
+    };
+    const handleMouseUp = (event: MouseEvent): void => {
+      this.heldKeys.delete(`Mouse${event.button}`);
+    };
+    const handleBlur = (): void => this.reset();
     const unsubTextInput = subscribeToTextInput((active) => {
       if (active) {
         this.reset();
@@ -101,6 +111,9 @@ export class KeyboardMouseSource implements InputSource {
     });
 
     if (typeof window !== "undefined") {
+      window.addEventListener("mousedown", handleMouseDown);
+      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("blur", handleBlur);
       window.addEventListener("keydown", handleKeyDown);
       window.addEventListener("keyup", handleKeyUp);
       document.addEventListener("pointerlockchange", handlePointerLockChange);
@@ -110,6 +123,9 @@ export class KeyboardMouseSource implements InputSource {
     return (): void => {
       unsubTextInput();
       if (typeof window !== "undefined") {
+        window.removeEventListener("mousedown", handleMouseDown);
+        window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("blur", handleBlur);
         window.removeEventListener("keydown", handleKeyDown);
         window.removeEventListener("keyup", handleKeyUp);
         document.removeEventListener(
